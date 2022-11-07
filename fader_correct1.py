@@ -27,7 +27,7 @@ G = generate_parity_matrix(L,messageLengthVector,parityLengthVector)
 K = 100                                             # number of active users
 # N = 38400                                           # number of channel uses (real d.o.f)
 N = int((30000 / 2**16)*M)
-numAMPIter = 2                                     # number of AMP iterations to perform
+numAMPIter = 10                                     # number of AMP iterations to perform
 listSize = int(K + 5)                                     # list size retained per section after AMP converges
 sigma_n = 1                                         # AWGN noise standard deviation
 
