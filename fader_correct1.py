@@ -66,6 +66,7 @@ txBits = np.random.randint(low=2, size=(K, w))
 # # col sum: 	[0, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 16]
 # Section #:	 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15
 
+# Up till now, I hard code the message -> outer code procedure.
 txBitsParitized = Tree_error_correct_encode(txBits, K,G,L,J,Pa,Ml,
                         messageLengthVector, parityLengthVector,parityDistribution)
 
@@ -74,8 +75,6 @@ txBitsParitized = Tree_error_correct_encode(txBits, K,G,L,J,Pa,Ml,
 BETA = convert_bits_to_sparse_Rayleigh(txBitsParitized, L, J, K, sigma_Rayleigh)
 print("non zero: " + str(sum([1 if i!=0 else 0 for i in BETA])))
 print("beta with fading: sum is: " + str(sum(BETA)) + " len: " + str(len(BETA)) )
-
-
 
 # Generate the binned SPARC codebook
 Ab, Az = sparc_codebook(L, M, N)
@@ -89,7 +88,7 @@ y = (x + z).reshape(-1, 1)
 p0 = 1-(1-1/M)**K
 
 
-
+# This is NOT done yet!!!!!!!
 decTempBETA = amp_prior_art_Rayleigh(y, sigma_n, P, L, M, numAMPIter, Ab, Az, p0, K, sigma_Rayleigh, False) 
 # print("decTempBETA length :" + str(len(decTempBETA)/L))
 
@@ -119,7 +118,7 @@ decBetaSignificantsPos = decBetaSignificantsPos.transpose() # shape is (listSize
 tic = time.time()
 rxBits = Tree_decoder_uninformative_fading(decBetaSignificants, decBetaSignificantsPos, G,L,J, w, parityLengthVector,messageLengthVector,listSize)
 toc = time.time()
-print("我們的新算法時間 " + str(toc-tic))
+print("Time of new algo " + str(toc-tic))
 
 if rxBits.shape[0] > K: 
     rxBits = rxBits[np.arange(K)]
@@ -161,7 +160,7 @@ rxBits = Tree_decoder_uninformative(decOutMsg, G, L, J, w,
                                                 messageLengthVector,
                                                 listSize,)
 toc = time.time()
-print("老算法時間 " + str(toc-tic))
+print("time of old algo " + str(toc-tic))
 
 if rxBits.shape[0] > K: rxBits = rxBits[np.arange(K)]
 

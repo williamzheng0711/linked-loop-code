@@ -57,7 +57,9 @@ def Tree_error_correct_encode(tx_message,K,G,L,J,P,Ml,messageLengthVector,parity
                 tx_message[:, sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) : sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1])]
 
     np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
-    print(encoded_tx_message[0,0:16])
+    # print(encoded_tx_message[0,0:16])
+
+    return encoded_tx_message
 
 
 def Tree_encode(tx_message,K,G,L,J,P,Ml,messageLengthVector,parityLengthVector):
