@@ -68,42 +68,42 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos, G,L,J,B,parityLengthVector,m
         onlyPathToConsider = Paths[optimalOne]
         sectionLost = np.where(onlyPathToConsider < 0)[0]
 
-        decoded_message = np.zeros((1, B), dtype=int)
+        decoded_message = np.zeros((1, L*J), dtype=int)
         for l in np.arange(L):
             if (l!=sectionLost):
-                decoded_message[0, l*J:(l+1)*J] = np.binary_repr(, width=J)
+                decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
 
+        recovered_message = recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L)
+        tree_decoded_tx_message = np.vstack(tree_decoded_tx_message, recovered_message)
 
-
-        if Paths.shape[0] >= 1:  
-            if Paths.shape[0] >= 2:
-                # If tree decoder outputs multiple paths for a root node, select the first one 
-                flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
-                if flag:
-                    # print("Path[0] detail is " + str(Paths[0]))
-                    tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
-                else:
-                    # print("Path shape is" + str(Paths.shape))
-                    # print("Path[0] detail is " + str(Paths[0]))
-                    optimalOne = 0
-                    pathVar = np.zeros((Paths.shape[0]))
-                    for whichPath in range(Paths.shape[0]):
-                        fadingValues = []
-                        for l in range(Paths.shape[1]):
-                            # decBetaSignificantsPos size is (listSize, 16)s
-                            fadingValues.append( decBetaNoised[ Paths[whichPath][l] ][l] )
+        # if Paths.shape[0] >= 1:  
+        #     if Paths.shape[0] >= 2:
+        #         # If tree decoder outputs multiple paths for a root node, select the first one 
+        #         flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
+        #         if flag:
+        #             # print("Path[0] detail is " + str(Paths[0]))
+        #             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
+        #         else:
+        #             # print("Path shape is" + str(Paths.shape))
+        #             # print("Path[0] detail is " + str(Paths[0]))
+        #             optimalOne = 0
+        #             pathVar = np.zeros((Paths.shape[0]))
+        #             for whichPath in range(Paths.shape[0]):
+        #                 fadingValues = []
+        #                 for l in range(Paths.shape[1]):
+        #                     # decBetaSignificantsPos size is (listSize, 16)s
+        #                     fadingValues.append( decBetaNoised[ Paths[whichPath][l] ][l] )
                         
-                        # print("fadingValues = " + str(fadingValues))
-                        demeanFading = fadingValues - np.mean(fadingValues)
-                        # pathVar[whichPath] = np.linalg.norm(demeanFading, 1)
-                        pathVar[whichPath] = np.var(fadingValues)
+        #                 # print("fadingValues = " + str(fadingValues))
+        #                 demeanFading = fadingValues - np.mean(fadingValues)
+        #                 # pathVar[whichPath] = np.linalg.norm(demeanFading, 1)
+        #                 pathVar[whichPath] = np.var(fadingValues)
 
-                    optimalOne = np.argmin(pathVar)
-                    tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[optimalOne].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[optimalOne].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
-                    # tree_decoded_tx_message = np.vstack( (tree_decoded_tx_message,extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
-            elif Paths.shape[0] == 1:
-                tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
-
+        #             optimalOne = np.argmin(pathVar)
+        #             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[optimalOne].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[optimalOne].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
+        #             # tree_decoded_tx_message = np.vstack( (tree_decoded_tx_message,extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
+        #     elif Paths.shape[0] == 1:
+        #         tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
 
     return tree_decoded_tx_message
 
@@ -208,3 +208,25 @@ def compute_permissible_parity_fader(Path,cs_decoded_tx_message,J,messageLengthV
         # print("Parity_computed = " + str(Parity_computed))
 
     return Parity_computed
+
+
+
+def recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L):
+    # decoded_message is (1, L*J) = (1, 256)
+    # suppose sectionLost = 5. we first check section 5 determines what? 
+    saverSections = np.nonzero(parityDistribution[sectionLost])[0]
+    # then saverSections = [6, 7, 8, 9]
+
+    theLostPart = np.array([], dtype=int).reshape(1,-1)
+    for l in saverSections:
+        theLostPart = np.concatenate( (theLostPart, decoded_message[0][ l*J+messageLengthVector[l]+sum(parityDistribution[0:sectionLost,l]):l*J+messageLengthVector[l]+sum(parityDistribution[0:sectionLost+1,l])])    )
+    
+    recovered_msg = np.array([], dtype= int)
+    for ll in np.arange(L):
+        if ll != sectionLost:
+            recovered_msg = np.concatenate(recovered_msg, decoded_message[ll*J:ll*J+messageLengthVector[ll]])
+        else:
+            recovered_msg = np.concatenate(recovered_msg, theLostPart)
+
+    print("recovered_msg.shape = " + str(recovered_msg.shape))
+    return recovered_msg

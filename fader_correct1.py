@@ -27,7 +27,7 @@ G = generate_parity_matrix(L,messageLengthVector,parityLengthVector)
 K = 100                                             # number of active users
 # N = 38400                                           # number of channel uses (real d.o.f)
 N = int((30000 / 2**16)*M)
-numAMPIter = 10                                     # number of AMP iterations to perform
+numAMPIter = 6                                     # number of AMP iterations to perform
 listSize = int(K + 5)                                     # list size retained per section after AMP converges
 sigma_n = 1                                         # AWGN noise standard deviation
 
@@ -150,7 +150,12 @@ print("error_box mean is " + str(np.mean(error_box))  )
 
 rxBits_corrected = Tree_corrector_fader(decBetaSignificants, decBetaSignificantsPos, G,L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex)
 
-
+corrected = 0
+for i in range(txBits_remained.shape[0]):
+    incre = 0
+    incre = np.equal(txBits[i,:],rxBits_corrected).all(axis=1).any()
+    corrected += int(incre)
+print("!!!!! CORRECTED " + str(corrected) + " out of " +str(rxBits_corrected.shape[0]) )
 
 
 # tic = time.time()
