@@ -43,8 +43,28 @@ Phat = N*P/L
 txBits = np.random.randint(low=2, size=(K, w))
 
 # Outer-encode the message bits 
-# txBitsParitized = Tree_encode(txBits, K,G,L,J,Pa,Ml,
-#                         messageLengthVector, parityLengthVector)
+# This is our scheme that supposed to have error correcting feature. 
+
+# 															                # row sum 
+# section 0: 	[0, 7, 4, 3, 2, ~]									            16
+# section 1:	[0, 0, 3, 2, 2, 2,  ~]									        9
+# section 2: 	[0, 0, 0, 3, 2, 2, 2, ~]								        9
+# section 3: 	[0, 0, 0, 0, 2, 2, 2, 2, ~]								        8
+# section 4: 	[0, 0, 0, 0, 0, 2, 2, 2, 2, ~]							        8
+# section 5:	[0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]							    8
+# section 6: 	[0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]						    8
+# section 7: 	[0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]						    8
+# section 8: 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]					    8
+# section 9:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]					8
+# section 10:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0]				8
+# section 11:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2]				8
+# section 12:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 3]				8
+# section 13:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4]				7
+# section 14:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7]				7
+# section 15:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]				0
+
+# # col sum: 	[0, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 16]
+# Section #:	 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15
 
 txBitsParitized = Tree_error_correct_encode(txBits, K,G,L,J,Pa,Ml,
                         messageLengthVector, parityLengthVector,parityDistribution)
