@@ -116,12 +116,17 @@ if rxBits.shape[0] > K:
     rxBits = rxBits[np.arange(K)]
 
 thisIter = 0
+txBits_remained = np.array([], dtype=int)
 for i in range(txBits.shape[0]):
     incre = 0
     incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
-    thisIter += incre        
+    thisIter += int(incre)
+    if (incre == False):
+        txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) )
 print("correctly recovers " + str(thisIter) + " out of " +str(rxBits.shape[0]) )
 
+
+### To calculate genie
 thisTimeGenie = 0
 decOutMsg = convert_sparse_to_bits(decTempBETA, L, J, listSize, ) 
 

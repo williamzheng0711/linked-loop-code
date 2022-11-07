@@ -760,8 +760,8 @@ def parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVe
     index=0
     Lpath = Path.shape[1]
     Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthvector[Lpath]:(Lpath+1)*J]
-    Parity_computed_nonNA_args = 
-    if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
+    check_args = np.where(Parity_computed >=0)[0]
+    if (np.sum(np.absolute(Parity_computed[check_args]-Parity[check_args])) == 0):
         index = 1
     
     return index

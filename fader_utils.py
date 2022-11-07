@@ -38,6 +38,8 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos, G,L,J,B,parityLengthVector,m
                 Parity_computed = compute_permissible_parity_fader(Path,cs_decoded_tx_message,J,messageLengthVector, parityDistribution)
                 # print("Parity_computed is: " + str(Parity_computed) )
                 
+                PathContainNa = len( np.where( Path[0] < 0 )[0] )
+
                 noCandidates = True
                 for k in range(listSize):
                     # Verify parity constraints for the children of surviving path
@@ -47,10 +49,31 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos, G,L,J,B,parityLengthVector,m
                         noCandidates = False
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
                     
-                if noCandidates == True and PathContain0Na:
+                if noCandidates == True and PathContainNa < 1:
                     new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
 
             Paths = new 
+
+
+        optimalOne = 0
+        if Paths.shape[0] >= 2:
+            pathVar = np.zeros((Paths.shape[0]))
+            for whichPath in range(Paths.shape[0]):
+                fadingValues = []
+                for l in range(Paths.shape[1]) and Paths[whichPath][l] != -1:
+                    fadingValues.append( decBetaNoised[ Paths[whichPath][l] ][l] )
+                pathVar[whichPath] = np.var(fadingValues)
+            optimalOne = np.argmin(pathVar)
+
+        onlyPathToConsider = Paths[optimalOne]
+        sectionLost = np.where(onlyPathToConsider < 0)[0]
+
+        decoded_message = np.zeros((1, B), dtype=int)
+        for l in np.arange(L):
+            if (l!=sectionLost):
+                decoded_message[0, l*J:(l+1)*J] = np.binary_repr(, width=J)
+
+
 
         if Paths.shape[0] >= 1:  
             if Paths.shape[0] >= 2:
@@ -82,7 +105,7 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos, G,L,J,B,parityLengthVector,m
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
 
 
-    return 1
+    return tree_decoded_tx_message
 
 
 
