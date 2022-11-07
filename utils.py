@@ -47,13 +47,14 @@ def Tree_error_correct_encode(tx_message,K,G,L,J,P,Ml,messageLengthVector,parity
             # when i=0, j will be 1 2 3 4
             # j 是要写入东西的section i 是东西的来源section
             # if (i==0 and j == 1):
+            # print("---")
             # print(j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]))
             # print(j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j]))
-            print( sum(messageLengthVector[0:i])+sum(parityDistribution[0:i,j]) )
-            print( sum(messageLengthVector[0:i])+sum(parityDistribution[0:i+1,j]))
-            print(i,j)
-            encoded_tx_message[:,j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]) :   j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j])] = \
-                tx_message[:, sum(messageLengthVector[0:i])+sum(parityDistribution[0:i,j]) :sum(messageLengthVector[0:i])+sum(parityDistribution[0:i+1,j])]
+            # print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j])  )
+            # print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1]))
+            # print(i,j)
+            encoded_tx_message[:,j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]) :    j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j])] = \
+                tx_message[:, sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) : sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1])]
 
     np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
     print(encoded_tx_message[0,0:16])
