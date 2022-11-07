@@ -27,12 +27,12 @@ G = generate_parity_matrix(L,messageLengthVector,parityLengthVector)
 K = 100                                             # number of active users
 # N = 38400                                           # number of channel uses (real d.o.f)
 N = int((30000 / 2**16)*M)
-numAMPIter = 6                                     # number of AMP iterations to perform
+numAMPIter = 2                                     # number of AMP iterations to perform
 listSize = int(K + 5)                                     # list size retained per section after AMP converges
 sigma_n = 1                                         # AWGN noise standard deviation
 
 
-SNR = 5
+SNR = 3.5
 sigma_Rayleigh = 1
 
 EbNo = 10**(SNR/10)
@@ -116,13 +116,13 @@ if rxBits.shape[0] > K:
     rxBits = rxBits[np.arange(K)]
 
 thisIter = 0
-txBits_remained = np.array([], dtype=int)
+txBits_remained = np.empty(shape=(0,0))
 for i in range(txBits.shape[0]):
     incre = 0
     incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
     thisIter += int(incre)
     if (incre == False):
-        txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) )
+        txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
 print("correctly recovers " + str(thisIter) + " out of " +str(rxBits.shape[0]) )
 
 

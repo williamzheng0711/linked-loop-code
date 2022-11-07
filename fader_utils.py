@@ -55,26 +55,27 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos, G,L,J,B,parityLengthVector,m
             Paths = new 
 
 
-        optimalOne = 0
-        if Paths.shape[0] >= 2:
-            pathVar = np.zeros((Paths.shape[0]))
-            for whichPath in range(Paths.shape[0]):
-                fadingValues = []
-                for l in range(Paths.shape[1]) and Paths[whichPath][l] != -1:
-                    fadingValues.append( decBetaNoised[ Paths[whichPath][l] ][l] )
-                pathVar[whichPath] = np.var(fadingValues)
-            optimalOne = np.argmin(pathVar)
+        if Paths.shape[0] >= 1:  
+            optimalOne = 0
+            if Paths.shape[0] >= 2:
+                pathVar = np.zeros((Paths.shape[0]))
+                for whichPath in range(Paths.shape[0]):
+                    fadingValues = []
+                    for l in range(Paths.shape[1]) and Paths[whichPath][l] != -1:
+                        fadingValues.append( decBetaNoised[ Paths[whichPath][l] ][l] )
+                    pathVar[whichPath] = np.var(fadingValues)
+                optimalOne = np.argmin(pathVar)
 
-        onlyPathToConsider = Paths[optimalOne]
-        sectionLost = np.where(onlyPathToConsider < 0)[0]
+            onlyPathToConsider = Paths[optimalOne]
+            sectionLost = np.where(onlyPathToConsider < 0)[0]
 
-        decoded_message = np.zeros((1, L*J), dtype=int)
-        for l in np.arange(L):
-            if (l!=sectionLost):
-                decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
+            decoded_message = np.zeros((1, L*J), dtype=int)
+            for l in np.arange(L):
+                if (l!=sectionLost):
+                    decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
 
-        recovered_message = recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L)
-        tree_decoded_tx_message = np.vstack(tree_decoded_tx_message, recovered_message)
+            recovered_message = recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L)
+            tree_decoded_tx_message = np.vstack(tree_decoded_tx_message, recovered_message)
 
         # if Paths.shape[0] >= 1:  
         #     if Paths.shape[0] >= 2:
@@ -202,7 +203,7 @@ def compute_permissible_parity_fader(Path,cs_decoded_tx_message,J,messageLengthV
         if (Path[0][l] != -1):
             toAppend = cs_decoded_tx_message[Path[0][l],l*J+sum(parityDistribution[l,0:section2Check]): l*J+sum(parityDistribution[l,0:section2Check+1])].reshape(1,-1)[0]
         elif Path[0][l] == -1:
-            toAppend = -1 * np.ones(1, parityDistribution[l,0:section2Check])[0]
+            toAppend = -1 * np.ones(1, parityDistribution[l,section2Check])[0]
         # print(toAppend)
         Parity_computed = np.concatenate((Parity_computed, toAppend), axis=None)
         # print("Parity_computed = " + str(Parity_computed))
@@ -219,7 +220,8 @@ def recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthV
 
     theLostPart = np.array([], dtype=int).reshape(1,-1)
     for l in saverSections:
-        theLostPart = np.concatenate( (theLostPart, decoded_message[0][ l*J+messageLengthVector[l]+sum(parityDistribution[0:sectionLost,l]):l*J+messageLengthVector[l]+sum(parityDistribution[0:sectionLost+1,l])])    )
+        toAppend = decoded_message[0][ l*J+messageLengthVector[l]+sum(parityDistribution[0:sectionLost,l]):l*J+messageLengthVector[l]+sum(parityDistribution[0:sectionLost+1,l])].reshape(1,-1)[0]
+        theLostPart = np.concatenate( (theLostPart, toAppend  )  , axis=None  )
     
     recovered_msg = np.array([], dtype= int)
     for ll in np.arange(L):
