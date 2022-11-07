@@ -2,13 +2,14 @@ from multiprocessing.heap import Arena
 import time
 import numpy as np
 from utils import *
+from fader_utils import *
 
 w = 128     # is called B in uninformative         # length of each user's uncoded message
 L = 16      # Number of sections/sub-blocks
 
 parityLengthVector = np.array([0,7,7,8,8,8,8,8,8,8,8,8,8,9,9,16],dtype=int)
 
-parityDistribution = generate_parity_distribution(L=L)
+parityDistribution = generate_parity_distribution()
 print(parityDistribution)
 
 
@@ -87,11 +88,8 @@ y = (x + z).reshape(-1, 1)
 
 p0 = 1-(1-1/M)**K
 
-
-# This is NOT done yet!!!!!!!
+# AMP does not need to change.
 decTempBETA = amp_prior_art_Rayleigh(y, sigma_n, P, L, M, numAMPIter, Ab, Az, p0, K, sigma_Rayleigh, False) 
-# print("decTempBETA length :" + str(len(decTempBETA)/L))
-
 decBETA_erase_small_values = postprocess_evenlS(decTempBETA,L,J,listSize)
 
 # We need to do a lot here: only preserve listSize for every section, others all zero
@@ -105,26 +103,17 @@ for l in np.arange(L):
         decBetaSignificants[l] = decBeta_l[decBeta_l!=0]
         decBetaSignificantsPos[l] = [pos for decBeta_l_element, pos in zip(decBeta_l,np.arange(len(decBeta_l))) if decBeta_l_element!=0]
 
-# print(decBetaSignificants) # shape is (16, listSize)
-# print(decBetaSignificantsPos.shape) # (16, listSize)
-
-# rxOutercodes = stitching_use_fading_and_tree_listSize( decBetaSignificants, decBetaSignificantsPos, K, G, J, P, Ml, messageLengthVector, parityLengthVector, L, listSize )
-# print("rxOutercodes.shape: " + str(rxOutercodes.shape))
-# print(rxOutercodes)
-
 decBetaSignificants = decBetaSignificants.transpose() # shape is (listSize, 16)
 decBetaSignificantsPos = decBetaSignificantsPos.transpose() # shape is (listSize, 16)
 
 tic = time.time()
-rxBits = Tree_decoder_uninformative_fading(decBetaSignificants, decBetaSignificantsPos, G,L,J, w, parityLengthVector,messageLengthVector,listSize)
+# rxBits = Tree_decoder_uninformative_fading(decBetaSignificants, decBetaSignificantsPos, G,L,J, w, parityLengthVector,messageLengthVector,listSize)
+rxBits, usedRootsIndex = Tree_decoder_fader(decBetaSignificants, decBetaSignificantsPos, G,L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution)
 toc = time.time()
 print("Time of new algo " + str(toc-tic))
 
 if rxBits.shape[0] > K: 
     rxBits = rxBits[np.arange(K)]
-
-# rxOutercodes = np.array(rxOutercodes).reshape(-1,L)
-
 
 thisIter = 0
 for i in range(txBits.shape[0]):
@@ -132,7 +121,6 @@ for i in range(txBits.shape[0]):
     incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
     thisIter += incre        
 print("correctly recovers " + str(thisIter) + " out of " +str(rxBits.shape[0]) )
-
 
 thisTimeGenie = 0
 decOutMsg = convert_sparse_to_bits(decTempBETA, L, J, listSize, ) 
@@ -154,18 +142,24 @@ print("Genie recovers " + str(thisTimeGenie) +" out of " + str(K))
 print(error_box)
 print("error_box mean is " + str(np.mean(error_box))  )
 
-tic = time.time()
-rxBits = Tree_decoder_uninformative(decOutMsg, G, L, J, w,
-                                                parityLengthVector,
-                                                messageLengthVector,
-                                                listSize,)
-toc = time.time()
-print("time of old algo " + str(toc-tic))
 
-if rxBits.shape[0] > K: rxBits = rxBits[np.arange(K)]
+rxBits_corrected = Tree_corrector_fader(decBetaSignificants, decBetaSignificantsPos, G,L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex)
 
-thisIter = 0
-for i in range(txBits.shape[0]):
-    incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
-    thisIter += incre
-print("Old decoder correctly recovers " + str(thisIter) + " out of " +str(rxBits.shape[0]) )
+
+
+
+# tic = time.time()
+# rxBits = Tree_decoder_uninformative(decOutMsg, G, L, J, w,
+#                                                 parityLengthVector,
+#                                                 messageLengthVector,
+#                                                 listSize,)
+# toc = time.time()
+# print("time of old algo " + str(toc-tic))
+
+# if rxBits.shape[0] > K: rxBits = rxBits[np.arange(K)]
+
+# thisIter = 0
+# for i in range(txBits.shape[0]):
+#     incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
+#     thisIter += incre
+# print("Old decoder correctly recovers " + str(thisIter) + " out of " +str(rxBits.shape[0]) )

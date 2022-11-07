@@ -15,7 +15,7 @@ from scipy.linalg import hadamard
 # parity and info bits get mixed
 # P is sum( paritylenthVector ) 
 
-def generate_parity_distribution(L):
+def generate_parity_distribution():
     parityDistribution = np.zeros((16,16),dtype=int)
     parityDistribution[0][1] = 7; parityDistribution[0][2] = 4; parityDistribution[0][3] = 3; parityDistribution[0][4] = 2; 
     parityDistribution[1][2] = 3; parityDistribution[1][3] = 2; parityDistribution[1][4] = 2; parityDistribution[1][5] = 2; 
@@ -321,7 +321,7 @@ def amp_prior_art_Rayleigh(y, σ_n, P, L, M, T, Ab, Az, p0, K, sigma_R, convertT
     for t in range(T):
         
         τ = np.sqrt(np.sum(z**2)/n)
-        # print("now is iter" + str(t) + " and tau is: " + str(τ))
+        print("now is iter" + str(t) + " and tau is: " + str(τ))
 
         # effective observation
         r = (np.sqrt(Phat)*β + Az(z)).astype(np.longdouble) 
@@ -760,6 +760,7 @@ def parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVe
     index=0
     Lpath = Path.shape[1]
     Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthvector[Lpath]:(Lpath+1)*J]
+    Parity_computed_nonNA_args = 
     if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
         index = 1
     
