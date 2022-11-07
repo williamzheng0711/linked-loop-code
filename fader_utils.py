@@ -77,7 +77,7 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos, G,L,J,B,parityLengthVector,m
                     decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
 
             recovered_message = recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L)
-            tree_decoded_tx_message = np.vstack(tree_decoded_tx_message, recovered_message)
+            tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
 
         # if Paths.shape[0] >= 1:  
         #     if Paths.shape[0] >= 2:
@@ -214,31 +214,33 @@ def compute_permissible_parity_fader(Path,cs_decoded_tx_message,J,messageLengthV
 
 
 
-def recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L):
+def recover_msg(sectionLostA, decoded_message, parityDistribution, messageLengthVector, J, L):
     print("至少进来一次?")
     # decoded_message is (1, L*J) = (1, 256)
     # suppose sectionLost = 5. we first check section 5 determines what? 
+    sectionLost = sectionLostA[0]
     saverSections = np.nonzero(parityDistribution[sectionLost])[0]
     # then saverSections = [6, 7, 8, 9]
 
-    print("sectionLost= " +str(sectionLost))
-    print("saverSections =" + str(saverSections) )
+    # print("sectionLost= " +str(sectionLost))
+    # print("saverSections =" + str(saverSections) )
+    # print("decoded_message[0]=" + str(decoded_message[0]))
 
     theLostPart = np.array([], dtype=int).reshape(1,-1)
     for l in saverSections:
-        print("l =" + str(l))
-        print("decoded_message[0]=" + str(decoded_message[0]))
-        print(l*J + messageLengthVector[l] + int(sum(parityDistribution[0:sectionLost,l])))
-        print(l*J+messageLengthVector[l]+int(sum(parityDistribution[0:sectionLost+1,l])))
+        # print("l =" + str(l))
+        # print(l*J + messageLengthVector[l] + int(sum(parityDistribution[0:sectionLost,l])))
+        # print(l*J + messageLengthVector[l] + int(sum(parityDistribution[0:sectionLost+1,l])))
         toAppend = decoded_message[0][ ( l*J + messageLengthVector[l] + int(sum(parityDistribution[0:sectionLost,l])) ) :( l*J+messageLengthVector[l]+int(sum(parityDistribution[0:sectionLost+1,l])) ) ].reshape(1,-1)[0]
         theLostPart = np.concatenate( (theLostPart, toAppend  )  , axis=None  )
     
-    recovered_msg = np.array([], dtype= int)
+    recovered_msg = np.array([], dtype= int).reshape(1,-1)
     for ll in np.arange(L):
+        # print("ll=" +str(ll) )
         if ll != sectionLost:
-            recovered_msg = np.concatenate(recovered_msg, decoded_message[0,ll*J:ll*J+messageLengthVector[ll]].reshape(1,-1))
+            recovered_msg = np.concatenate( (recovered_msg, decoded_message[0][ ll*J : ll*J+messageLengthVector[ll] ].reshape(1,-1)[0]) , axis=None )
         else:
-            recovered_msg = np.concatenate(recovered_msg, theLostPart)
+            recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
 
     print("recovered_msg.shape = " + str(recovered_msg.shape))
     return recovered_msg

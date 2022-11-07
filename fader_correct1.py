@@ -126,6 +126,7 @@ for i in range(txBits.shape[0]):
 print("correctly recovers " + str(thisIter) + " out of " +str(rxBits.shape[0]) )
 
 
+
 ### To calculate genie
 thisTimeGenie = 0
 decOutMsg = convert_sparse_to_bits(decTempBETA, L, J, listSize, ) 
@@ -150,10 +151,14 @@ print("error_box mean is " + str(np.mean(error_box))  )
 
 rxBits_corrected = Tree_corrector_fader(decBetaSignificants, decBetaSignificantsPos, G,L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex)
 
+print("corrected shape: " + str( rxBits_corrected.shape))
+
+
+print("txBits_remained shape is :" + str(txBits_remained.shape))
 corrected = 0
 for i in range(txBits_remained.shape[0]):
     incre = 0
-    incre = np.equal(txBits[i,:],rxBits_corrected).all(axis=1).any()
+    incre = np.equal(txBits_remained[i,:],rxBits_corrected).all(axis=1).any()
     corrected += int(incre)
 print("!!!!! CORRECTED " + str(corrected) + " out of " +str(rxBits_corrected.shape[0]) )
 
