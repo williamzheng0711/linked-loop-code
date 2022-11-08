@@ -243,4 +243,4 @@ def recover_msg(sectionLostA, decoded_message, parityDistribution, messageLength
             recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
 
     print("recovered_msg.shape = " + str(recovered_msg.shape))
-    return recovered_msg
+    return recovered_msg.reshape(1,-1)

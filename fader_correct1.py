@@ -32,7 +32,7 @@ listSize = int(K + 5)                                     # list size retained p
 sigma_n = 1                                         # AWGN noise standard deviation
 
 
-SNR = 3.5
+SNR = 5
 sigma_Rayleigh = 1
 
 EbNo = 10**(SNR/10)
