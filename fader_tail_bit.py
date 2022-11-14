@@ -7,9 +7,9 @@ from fader_utils import *
 w = 128     # is called B in uninformative         # length of each user's uncoded message
 L = 16      # Number of sections/sub-blocks
 
-parityLengthVector = np.array([0,7,7,8,8,8,8,8,8,8,8,8,8,9,9,16],dtype=int)
+parityLengthVector = np.array([8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8],dtype=int)
 
-parityDistribution = generate_parity_distribution()
+parityDistribution = generate_parity_distribution_evenly()
 print(parityDistribution)
 
 
@@ -21,6 +21,7 @@ messageLengthVector = np.subtract(J*np.ones(L, dtype = 'int'), parityLengthVecto
 
 Pa = np.sum(parityLengthVector) # Total number of parity check bits
 Ml = np.sum(messageLengthVector) # Total number of information bits
+
 
 K = 100                                             # number of active users
 # N = 38400                                           # number of channel uses (real d.o.f)
@@ -41,32 +42,8 @@ Phat = N*P/L
 # Generate random messages for K active users
 txBits = np.random.randint(low=2, size=(K, w))
 
-# Outer-encode the message bits 
-# This is our scheme that supposed to have error correcting feature. 
-
-# 															                # row sum 
-# section 0: 	[0, 7, 4, 3, 2, ~]									            16
-# section 1:	[0, 0, 3, 2, 2, 2,  ~]									        9
-# section 2: 	[0, 0, 0, 3, 2, 2, 2, ~]								        9
-# section 3: 	[0, 0, 0, 0, 2, 2, 2, 2, ~]								        8
-# section 4: 	[0, 0, 0, 0, 0, 2, 2, 2, 2, ~]							        8
-# section 5:	[0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]							    8
-# section 6: 	[0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]						    8
-# section 7: 	[0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]						    8
-# section 8: 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]					    8
-# section 9:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, ~]					8
-# section 10:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0]				8
-# section 11:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2]				8
-# section 12:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 3]				8
-# section 13:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4]				7
-# section 14:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7]				7
-# section 15:	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]				0
-
-# # col sum: 	[0, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 16]
-# Section #:	 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15
-
 # Up till now, I hard code the message -> outer code procedure.
-txBitsParitized = Tree_error_correct_encode(txBits, K,L,J,Pa,Ml,
+txBitsParitized = Tree_error_correct_encode_tb(txBits, K,L,J,Pa,Ml,
                         messageLengthVector, parityLengthVector,parityDistribution)
 
 # Convert bits to sparse representation

@@ -31,9 +31,19 @@ def generate_parity_distribution():
 
     return parityDistribution
 
+
+def generate_parity_distribution_evenly():
+    parityDistribution = np.zeros((16,16),dtype=int)
+    for l in np.arange(16):
+        for i in [1,2,3,4]:
+            parityDistribution[l][(l + i) % 16] = 2
+    return parityDistribution
+
+
+
 # P : Total number of parity check bits
 # Ml: Total number of information bits
-def Tree_error_correct_encode(tx_message,K,G,L,J,P,Ml,messageLengthVector,parityLengthVector, parityDistribution):
+def Tree_error_correct_encode(tx_message,K,L,J,P,Ml,messageLengthVector,parityLengthVector, parityDistribution):
     encoded_tx_message = np.zeros((K,Ml+P),dtype=int)
     # plug in the info bits for each section
     encoded_tx_message[:,0:messageLengthVector[0]] = tx_message[:,0:messageLengthVector[0]]
@@ -50,7 +60,7 @@ def Tree_error_correct_encode(tx_message,K,G,L,J,P,Ml,messageLengthVector,parity
             # print("---")
             # print(j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]))
             # print(j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j]))
-            # print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j])  )
+            # print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) )
             # print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1]))
             # print(i,j)
             encoded_tx_message[:,j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]) :    j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j])] = \
@@ -62,26 +72,33 @@ def Tree_error_correct_encode(tx_message,K,G,L,J,P,Ml,messageLengthVector,parity
     return encoded_tx_message
 
 
-def Tree_encode(tx_message,K,G,L,J,P,Ml,messageLengthVector,parityLengthVector):
+
+def Tree_error_correct_encode_tb(tx_message,K,L,J,P,Ml,messageLengthVector,parityLengthVector, parityDistribution):
     encoded_tx_message = np.zeros((K,Ml+P),dtype=int)
+    # plug in the info bits for each section
     encoded_tx_message[:,0:messageLengthVector[0]] = tx_message[:,0:messageLengthVector[0]]
     for i in range(1,L):
-        ParityInteger=np.zeros((K,1),dtype='int')
-        G1=G[i-1]
-        for j in range(1,i+1):
-            ParityBinary = np.mod(np.matmul(tx_message[:,np.sum(messageLengthVector[0:j-1]):np.sum(messageLengthVector[0:j])],
-                                G1[np.sum(messageLengthVector[0:j-1]):np.sum(messageLengthVector[0:j])]),2)
-            # Convert into decimal equivalent\n",
-            # print("ParityBinary shape: " + str(ParityBinary.shape))
-            ParityInteger1 = ParityBinary.dot(2**np.arange(ParityBinary.shape[1])[::-1]).reshape([K,1])
-            ParityInteger = np.mod(ParityInteger+ParityInteger1,2**parityLengthVector[i])
-        # Convert integer parity back into bit    \n",
-        Parity = np.array([list(np.binary_repr(int(x),parityLengthVector[i])) for x in ParityInteger], dtype=int)
         encoded_tx_message[:,i*J:i*J+messageLengthVector[i]] = tx_message[:,np.sum(messageLengthVector[0:i]):np.sum(messageLengthVector[0:i+1])]
-        # Embed Parity check bits\n",
-        encoded_tx_message[:,i*J+messageLengthVector[i]:(i+1)*J] = Parity
     
+    for i in np.arange(0,L,1):
+        parityDistRow_i = np.nonzero(parityDistribution[i])[0]
+        # print(parityDistRow_i)
+        for j in parityDistRow_i:
+            # when i=0, j will be 1 2 3 4
+            # j 是要写入东西的section i 是东西的来源section
+            # if (i==0 and j == 1):
+            print("---")
+            print(j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]))
+            print(j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j]))
+            print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) )
+            print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1]))
+            print(i,j)
+            encoded_tx_message[:,j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]) :    j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j])] = \
+                tx_message[:, sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) : sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1])]
+
+    np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
     return encoded_tx_message
+
 
 
 
@@ -756,15 +773,45 @@ def compute_permissible_parity(Path,cs_decoded_tx_message,G1,L,J,parityLengthVec
     Parity_computed = np.array([list(np.binary_repr(int(x),parityLengthVector[Lpath])) for x in Parity_computed_integer], dtype=int)
     return Parity_computed
 
-def parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthvector):
-    index=0
+def parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthvector, parityDistribution):
+    index1 = 0
+    index2 = 1
     Lpath = Path.shape[1]
     Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthvector[Lpath]:(Lpath+1)*J]
     check_args = np.where(Parity_computed >=0)[0]
     if (np.sum(np.absolute(Parity_computed[check_args]-Parity[check_args])) == 0):
-        index = 1
+        index1 = 1
     
-    return index
+    if Lpath >= 13:
+        cs_decoded_L_sections = np.ones((1,L*J), dtype=int)
+        for ll in np.arange(Lpath):
+            cs_decoded_L_sections[0][ll*J:(ll+1)*J] = cs_decoded_tx_message[Path[0][ll], ll*J:(ll+1)*J]
+
+        for l in np.arange(12, Lpath):
+            # check what sections are partly determined by l
+            toCheckSections = np.nonzero(parityDistribution[l])[0] # is l = 13, then toCheckSections = [14, 15, 0, 1]
+            # for each those sections, check if parity are same. 
+            for section in toCheckSections: # section = 14, 15, 0, 1
+                if section > l: continue # only section = 0, 1 will be executed
+                
+                # print('---- l='+str(l) +" and section=" + str(section) + "----")
+                # print(section*J + messageLengthvector[section] + sum(parityDistribution[0:l,section]))
+                # print(section*J + messageLengthvector[section] + sum(parityDistribution[0:l+1,section]))
+                # print(l*J        + sum(parityDistribution[l,0:section]))
+                # print(l*J        + sum(parityDistribution[l,0:section+1]))
+
+                oldPart = cs_decoded_L_sections[0][section*J + messageLengthvector[section] + sum(parityDistribution[0:l,section]) : section*J + messageLengthvector[section] + sum(parityDistribution[0:l+1,section])].reshape(1,-1)[0]
+                newPart = cs_decoded_L_sections[0][      l*J                                + sum(parityDistribution[l,0:section]) :       l*J                                + sum(parityDistribution[l,0:section+1])].reshape(1,-1)[0]
+
+                check_args_old = np.where(oldPart >=0)[0]
+                # print("check_args_old" + str(check_args_old))
+                checksum =  np.sum(np.absolute(  oldPart[check_args_old]-newPart[check_args_old]  ))
+                # print("checksum = " + str(checksum))
+                if  checksum != 0:
+                    index2 = 0
+                    return index2
+
+    return index1 * index2
 
 def check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector):   
     msg_bits = extract_msg_bits(Paths,cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
