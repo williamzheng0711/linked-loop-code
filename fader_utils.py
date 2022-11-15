@@ -48,11 +48,11 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
                         noCandidates = False
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
                     
-                if noCandidates == True and containNaConditions and PathContainNa<2 :
+                if noCandidates == True and containNaConditions and PathContainNa==0 :
                     new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
 
             Paths = new 
-            print("Root No: "+ str(arg_i) + " l =" + str(l) + ". Path Shape is: " + str(Paths.shape[0]))
+            # print("Root No: "+ str(arg_i) + " l =" + str(l) + ". Path Shape is: " + str(Paths.shape[0]))
 
         if Paths.shape[0] >= 1: 
             # print("也许有correct!!!") 
@@ -68,7 +68,7 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
                 optimalOne = np.argmin(pathVar)
 
             onlyPathToConsider = Paths[optimalOne]
-            sectionLost = np.where(onlyPathToConsider < 0)
+            sectionLost = np.where(onlyPathToConsider < 0)[0]
             decoded_message = np.zeros((1, L*J), dtype=int)
             for l in np.arange(L):
                 if (l not in sectionLost):
@@ -117,7 +117,7 @@ def Tree_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
             Paths = new 
 
-            print("Root No: "+ str(arg_i) + " l =" + str(l) + ". Path Shape is: " + str(Paths.shape[0]))
+            # print("Root No: "+ str(arg_i) + " l =" + str(l) + ". Path Shape is: " + str(Paths.shape[0]))
 
         if Paths.shape[0] >= 1:  
             if Paths.shape[0] >= 2:

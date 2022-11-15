@@ -10,7 +10,7 @@ L = 16      # Number of sections/sub-blocks
 parityLengthVector = np.array([8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8],dtype=int)
 
 parityDistribution = generate_parity_distribution_evenly()
-print(parityDistribution)
+# print(parityDistribution)
 
 
 
@@ -26,12 +26,12 @@ Ml = np.sum(messageLengthVector) # Total number of information bits
 K = 100                                             # number of active users
 # N = 38400                                           # number of channel uses (real d.o.f)
 N = int((30000 / 2**16)*M)
-numAMPIter = 7                                     # number of AMP iterations to perform
+numAMPIter = 10                                     # number of AMP iterations to perform
 listSize = int(K + 5)                                     # list size retained per section after AMP converges
 sigma_n = 1                                         # AWGN noise standard deviation
 
 
-SNR = 5
+SNR = 7
 sigma_Rayleigh = 1
 
 EbNo = 10**(SNR/10)
