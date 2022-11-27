@@ -70,7 +70,7 @@ txBits = np.random.randint(low=2, size=(K, w))
 
 # Up till now, I hard code the message -> outer code procedure.
 txBitsParitized = Tree_error_correct_encode(txBits, K,L,J,Pa,Ml,
-                        messageLengthVector, parityLengthVector,parityDistribution)
+                        messageLengthVector, parityLengthVector,parityDistribution, useWhichMatrix)
 
 # Convert bits to sparse representation
 # Note that BETA has shape e.g. (L*2**J,1)=(1048576, 1)
