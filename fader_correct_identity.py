@@ -7,10 +7,13 @@ from fader_utils import *
 w = 128     # is called B in uninformative         # length of each user's uncoded message
 L = 16      # Number of sections/sub-blocks
 
+
+
 parityLengthVector = np.array([0,7,7,8,8,8,8,8,8,8,8,8,8,9,9,16],dtype=int)
 
-parityDistribution = generate_parity_distribution()
+parityDistribution, useWhichMatrix = generate_parity_distribution()
 print(parityDistribution)
+# print(useWhichMatrix)
 
 
 

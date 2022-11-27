@@ -11,6 +11,64 @@ from scipy.linalg import hadamard
 # from stolen_things import *
 
 
+def matrix_repo(dim): 
+    if dim == 2:
+        return [ [[1,1],[0,1]], 
+                 [[0,1],[1,0]], 
+                 [[1,0],[1,1]], 
+                 [[1,1],[1,0]], 
+                 [[0,1],[1,1]]  ]
+    if dim == 3: 
+        return [ [[0, 1, 0],
+                  [1, 1, 0],
+                  [0, 1, 1]],
+                 [[0, 1, 1],
+                  [0, 0, 1],
+                  [1, 0, 0]],
+                 [[0, 0, 1],
+                  [1, 0, 0],
+                  [1, 1, 0]],
+                 [[0, 0, 1],
+                  [0, 1, 1],
+                  [1, 0, 1]] ]
+
+    if dim == 4:
+        return [ [[0, 1, 0, 1],
+                  [0, 1, 1, 0],
+                  [0, 1, 0, 0],
+                  [1, 1, 1, 0]],
+                 [[1, 0, 1, 1],
+                  [0, 1, 1, 0],
+                  [1, 0, 0, 0],
+                  [1, 0, 0, 1]], 
+                 [[0, 0, 0, 1],
+                  [1, 0, 1, 0],
+                  [0, 1, 1, 1],
+                  [1, 0, 0, 1]],  
+                 [[0, 1, 0, 0],
+                  [0, 1, 0, 1],
+                  [0, 1, 1, 0],
+                  [1, 0, 1, 1]] ]
+
+    if dim == 7: 
+        return [ [[0, 0, 1, 0, 1, 0, 0],
+                  [0, 1, 0, 0, 1, 0, 1],
+                  [1, 1, 0, 1, 1, 0, 0],
+                  [1, 0, 1, 1, 0, 1, 0],
+                  [1, 0, 0, 0, 1, 0, 1],
+                  [0, 1, 0, 1, 0, 1, 0],
+                  [1, 0, 1, 1, 1, 1, 1]],
+
+                 [[0, 0, 0, 0, 0, 0, 1],
+                  [1, 0, 1, 1, 0, 1, 1],
+                  [1, 1, 0, 1, 1, 0, 0],
+                  [0, 0, 1, 0, 0, 0, 0],
+                  [1, 0, 1, 0, 1, 1, 1],
+                  [0, 1, 0, 1, 1, 0, 1],
+                  [0, 1, 1, 0, 0, 1, 1]] ]
+
+
+
 
 # parity and info bits get mixed
 # P is sum( paritylenthVector ) 
@@ -29,9 +87,17 @@ def generate_parity_distribution():
     parityDistribution[13][14] = 3; parityDistribution[13][15] = 4;  
     parityDistribution[14][15] = 7
 
-    
 
-    return parityDistribution
+    useWhichMatrix = np.zeros((16,16),dtype=int)
+    for row in np.arange(0,16):
+        for col in np.arange(0, 16):
+            if parityDistribution[row][col]!=0:
+                dim = parityDistribution[row][col]
+                choices = matrix_repo(dim=dim)
+                # print(choices)
+                useWhichMatrix[row][col] = np.random.randint(low=0, high=len(choices))
+
+    return parityDistribution, useWhichMatrix
 
 
 def generate_parity_distribution_evenly():
@@ -45,7 +111,7 @@ def generate_parity_distribution_evenly():
 
 # P : Total number of parity check bits
 # Ml: Total number of information bits
-def Tree_error_correct_encode(tx_message,K,L,J,P,Ml,messageLengthVector,parityLengthVector, parityDistribution):
+def Tree_error_correct_encode(tx_message,K,L,J,P,Ml,messageLengthVector,parityLengthVector, parityDistribution, useWhichMatrix):
     encoded_tx_message = np.zeros((K,Ml+P),dtype=int)
     # plug in the info bits for each section
     encoded_tx_message[:,0:messageLengthVector[0]] = tx_message[:,0:messageLengthVector[0]]
@@ -65,8 +131,14 @@ def Tree_error_correct_encode(tx_message,K,L,J,P,Ml,messageLengthVector,parityLe
             # print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) )
             # print( sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1]))
             # print(i,j)
-            encoded_tx_message[:,j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]) :    j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j])] = \
-                tx_message[:, sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) : sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1])]
+            if useWhichMatrix == None:
+                encoded_tx_message[:,j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]) :    j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j])] = \
+                    tx_message[:, sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) : sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1])]
+
+            else: 
+                encoded_tx_message[:,j*J+messageLengthVector[j]+sum(parityDistribution[0:i,j]) :    j*J+messageLengthVector[j]+sum(parityDistribution[0:i+1,j])] = \
+                    tx_message[:, sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j]) : sum(messageLengthVector[0:i])+sum(parityDistribution[i,0:j+1])]
+
 
     np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
     # print(encoded_tx_message[0,0:16])

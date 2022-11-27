@@ -25,4 +25,5 @@ def check_conditions(A):
     return True
 
 
-check_all_possiblility(8,10000000)
+# check_all_possiblility(4,10)
+
