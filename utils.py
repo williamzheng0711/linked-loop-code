@@ -29,6 +29,8 @@ def generate_parity_distribution():
     parityDistribution[13][14] = 3; parityDistribution[13][15] = 4;  
     parityDistribution[14][15] = 7
 
+    
+
     return parityDistribution
 
 
