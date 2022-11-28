@@ -13,45 +13,69 @@ from scipy.linalg import hadamard
 
 def matrix_repo(dim): 
     if dim == 2:
-        return [ [[1,1],[0,1]], 
+        return [ [[1,0],[0,1]], 
+                 [[1,1],[0,1]], 
                  [[0,1],[1,0]], 
                  [[1,0],[1,1]], 
                  [[1,1],[1,0]], 
-                 [[0,1],[1,1]]  ]
+                 [[0,1],[1,1]] ]
     if dim == 3: 
-        return [ [[0, 1, 0],
+        return [ [[1, 0, 0],
+                  [0, 1, 0],
+                  [0, 0, 1]],
+            
+                 [[0, 1, 0],
                   [1, 1, 0],
                   [0, 1, 1]],
+
                  [[0, 1, 1],
                   [0, 0, 1],
                   [1, 0, 0]],
+
                  [[0, 0, 1],
                   [1, 0, 0],
                   [1, 1, 0]],
+
                  [[0, 0, 1],
                   [0, 1, 1],
                   [1, 0, 1]] ]
 
     if dim == 4:
-        return [ [[0, 1, 0, 1],
+        return [ [[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 1, 0],
+                  [0, 0, 0, 1]],
+
+                 [[0, 1, 0, 1],
                   [0, 1, 1, 0],
                   [0, 1, 0, 0],
                   [1, 1, 1, 0]],
+
                  [[1, 0, 1, 1],
                   [0, 1, 1, 0],
                   [1, 0, 0, 0],
                   [1, 0, 0, 1]], 
+
                  [[0, 0, 0, 1],
                   [1, 0, 1, 0],
                   [0, 1, 1, 1],
                   [1, 0, 0, 1]],  
+
                  [[0, 1, 0, 0],
                   [0, 1, 0, 1],
                   [0, 1, 1, 0],
                   [1, 0, 1, 1]] ]
 
     if dim == 7: 
-        return [ [[0, 0, 1, 0, 1, 0, 0],
+        return [ [[1, 0, 0, 0, 0, 0, 0],
+                  [0, 1, 0, 0, 0, 0, 0],
+                  [0, 0, 1, 0, 0, 0, 0],
+                  [0, 0, 0, 1, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 0, 0],
+                  [0, 0, 0, 0, 0, 1, 0],
+                  [0, 0, 0, 0, 0, 0, 1]],
+
+                 [[0, 0, 1, 0, 1, 0, 0],
                   [0, 1, 0, 0, 1, 0, 1],
                   [1, 1, 0, 1, 1, 0, 0],
                   [1, 0, 1, 1, 0, 1, 0],
@@ -73,7 +97,7 @@ def matrix_repo(dim):
 # parity and info bits get mixed
 # P is sum( paritylenthVector ) 
 
-def generate_parity_distribution():
+def generate_parity_distribution(identity=True):
     parityDistribution = np.zeros((16,16),dtype=int)
     parityDistribution[0][1] = 7; parityDistribution[0][2] = 4; parityDistribution[0][3] = 3; parityDistribution[0][4] = 2; 
     parityDistribution[1][2] = 3; parityDistribution[1][3] = 2; parityDistribution[1][4] = 2; parityDistribution[1][5] = 2; 
@@ -87,15 +111,25 @@ def generate_parity_distribution():
     parityDistribution[13][14] = 3; parityDistribution[13][15] = 4;  
     parityDistribution[14][15] = 7
 
+    if identity!= True:
+        useWhichMatrix = np.zeros((16,16),dtype=int)
+        for row in np.arange(0,16):
+            for col in np.arange(0, 16):
+                if parityDistribution[row][col]!=0:
+                    dim = parityDistribution[row][col]
+                    choices = matrix_repo(dim=dim)
+                    # print(choices)
+                    useWhichMatrix[row][col] = np.random.randint(low=0, high=len(choices))
 
-    useWhichMatrix = np.zeros((16,16),dtype=int)
-    for row in np.arange(0,16):
-        for col in np.arange(0, 16):
-            if parityDistribution[row][col]!=0:
-                dim = parityDistribution[row][col]
-                choices = matrix_repo(dim=dim)
-                # print(choices)
-                useWhichMatrix[row][col] = np.random.randint(low=0, high=len(choices))
+    elif identity == True:
+        useWhichMatrix = np.zeros((16,16),dtype=int)
+        for row in np.arange(0,16):
+            for col in np.arange(0, 16):
+                if parityDistribution[row][col]!=0:
+                    dim = parityDistribution[row][col]
+                    choices = matrix_repo(dim=dim)
+                    # print(choices)
+                    useWhichMatrix[row][col] = 0
 
     return parityDistribution, useWhichMatrix
 
@@ -111,7 +145,7 @@ def generate_parity_distribution_evenly():
 
 # P : Total number of parity check bits
 # Ml: Total number of information bits
-def Tree_error_correct_encode(tx_message,K,L,J,P,Ml,messageLengthVector,parityLengthVector, parityDistribution, useWhichMatrix = []):
+def Tree_error_correct_encode(tx_message,K,L,J,P,Ml,messageLengthVector,parityLengthVector, parityDistribution, useWhichMatrix):
     encoded_tx_message = np.zeros((K,Ml+P),dtype=int)
     # plug in the info bits for each section
     encoded_tx_message[:,0:messageLengthVector[0]] = tx_message[:,0:messageLengthVector[0]]

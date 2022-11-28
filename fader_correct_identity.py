@@ -8,10 +8,7 @@ w = 128     # is called B in uninformative         # length of each user's uncod
 L = 16      # Number of sections/sub-blocks
 parityLengthVector = np.array([0,7,7,8,8,8,8,8,8,8,8,8,8,9,9,16],dtype=int)
 
-parityDistribution, useWhichMatrix = generate_parity_distribution()
-print(parityDistribution)
-# print(useWhichMatrix)
-
+parityDistribution, useWhichMatrix = generate_parity_distribution(identity=True)
 
 
 J=((w+np.sum(parityLengthVector))/L).astype(int) # Length of each coded sub-block
@@ -25,7 +22,7 @@ Ml = np.sum(messageLengthVector) # Total number of information bits
 K = 100                                             # number of active users
 # N = 38400                                           # number of channel uses (real d.o.f)
 N = int((30000 / 2**16)*M)
-numAMPIter = 7                                     # number of AMP iterations to perform
+numAMPIter = 10                                     # number of AMP iterations to perform
 listSize = int(K + 5)                                     # list size retained per section after AMP converges
 sigma_n = 1                                         # AWGN noise standard deviation
 
@@ -67,7 +64,7 @@ txBits = np.random.randint(low=2, size=(K, w))
 
 # Up till now, I hard code the message -> outer code procedure.
 txBitsParitized = Tree_error_correct_encode(txBits, K,L,J,Pa,Ml,
-                        messageLengthVector, parityLengthVector,parityDistribution)
+                        messageLengthVector, parityLengthVector,parityDistribution, useWhichMatrix)
 
 # Convert bits to sparse representation
 # Note that BETA has shape e.g. (L*2**J,1)=(1048576, 1)
@@ -106,7 +103,7 @@ decBetaSignificantsPos = decBetaSignificantsPos.transpose() # shape is (listSize
 
 tic = time.time()
 # rxBits = Tree_decoder_uninformative_fading(decBetaSignificants, decBetaSignificantsPos, G,L,J, w, parityLengthVector,messageLengthVector,listSize)
-rxBits, usedRootsIndex = Tree_decoder_fader(decBetaSignificants, decBetaSignificantsPos, L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution)
+rxBits, usedRootsIndex = Tree_decoder_fader(decBetaSignificants, decBetaSignificantsPos, L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution, useWhichMatrix)
 toc = time.time()
 print("Time of new algo " + str(toc-tic))
 if rxBits.shape[0] > K: 
@@ -146,7 +143,7 @@ print(error_box)
 print("error_box mean is " + str(np.mean(error_box))  )
 
 
-rxBits_corrected = Tree_corrector_fader(decBetaSignificants, decBetaSignificantsPos, L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex)
+rxBits_corrected = Tree_corrector_fader(decBetaSignificants, decBetaSignificantsPos, L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex, useWhichMatrix)
 print("corrected shape: " + str( rxBits_corrected.shape))
 
 

@@ -17,10 +17,10 @@ Pa = np.sum(parityLengthVector)     # Total number of parity check bits
 Ml = np.sum(messageLengthVector)    # Total number of information bits
 K = 100                             # number of active users
 N = int((30000 / 2**16)*M)          # number of channel uses (real d.o.f)
-numAMPIter = 2                      # number of AMP iterations to perform
+numAMPIter = 10                      # number of AMP iterations to perform
 listSize = int(K + 5)               # list size retained per section after AMP converges
 sigma_n = 1                         # AWGN noise standard deviation
-SNR = 5                             # SNR (in dB) to play with
+SNR = 7                             # SNR (in dB) to play with
 sigma_Rayleigh = 1                  # Rayleigh fading paremater
 EbNo = 10**(SNR/10)                 # Eb/No
 P = 2*w*EbNo/N                      # Power calculated
@@ -87,7 +87,11 @@ print(" 1st phase: correctly recovers " + str(thisIter) + " out of " +str(rxBits
 
 
 #  Corrector
-rxBits_corrected = Tree_corrector_fader(decBetaSignificants, decBetaSignificantsPos, L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex)
+rxBits_corrected = Tree_corrector_fader(decBetaNoised=decBetaSignificants, decBetaPos=decBetaSignificantsPos, 
+                                        L=L, J=J, B=w, 
+                                        parityLengthVector=parityLengthVector, messageLengthVector=messageLengthVector,
+                                        listSize=listSize, parityDistribution=parityDistribution, usedRootsIndex= usedRootsIndex, 
+                                        useWhichMatrix= useWhichMatrix)
 print("corrected shape: " + str( rxBits_corrected.shape))
 print("txBits_remained shape is :" + str(txBits_remained.shape))
 

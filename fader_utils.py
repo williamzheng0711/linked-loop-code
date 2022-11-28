@@ -8,10 +8,10 @@ import matplotlib.pyplot as pyplot
 import timeit
 from scipy.linalg import hadamard
 from utils import *
+from binmatrix import *
 
 
-
-def Tree_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex, useWhichMatrix = []):
+def Tree_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex, useWhichMatrix):
     # decBetaSignificants size is (listSize, 16)
     cs_decoded_tx_message = np.zeros( (listSize, L*J) ) # (listSize, 256)
     for id_row in range(decBetaPos.shape[0]):
@@ -80,7 +80,7 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
 
 
 
-def Tree_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messageLengthVector,listSize, parityDistribution, useWhichMatrix = []):
+def Tree_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messageLengthVector,listSize, parityDistribution, useWhichMatrix):
     # decBetaSignificants size is (listSize, 16)
     cs_decoded_tx_message = np.zeros( (listSize, L*J) ) # (listSize, 256)
     for id_row in range(decBetaPos.shape[0]):
@@ -164,18 +164,16 @@ def compute_permissible_parity_fader(Path,cs_decoded_tx_message,J, messageLength
     # print("parityDependents = " + str(parityDependents))
     Parity_computed = np.array([]).reshape(1,-1)      
 
-    for l in parityDependents: 
+    for l in parityDependents:      # l labels the sections we gonna check to fix section2Check's parities
         if l >= currentl: 
-            continue
-        # if section2Check = 2, l = 0, 1
-        # l labels the sections we gonna check to fix section2Check's parities
-        # cs_decoded_tx_message (listSize, 256)
-        # print("l= " + str(l) + ", section2Check= " + str(section2Check))
-        # print(l*J+sum(parityDistribution[l,0:section2Check]))
-        # print(l*J+sum(parityDistribution[l,0:section2Check+1]))
-        # print(Path)
+            continue        # if section2Check = 2, l = 0, 1  Remember  cs_decoded_tx_message (listSize, 256)
         if (Path[0][l] != -1):
-            toAppend = np.matmul(matrix_repo(parityDistribution[l][section2Check])[useWhichMatrix[l][section2Check]],cs_decoded_tx_message[Path[0][l],l*J+sum(parityDistribution[l,0:section2Check]): l*J+sum(parityDistribution[l,0:section2Check+1])]).reshape(1,-1)[0]
+            startPoint = l*J+sum(parityDistribution[l,0:section2Check])
+            endPoint = l*J+sum(parityDistribution[l,0:section2Check+1])
+            # print("l=" + str(l) + "  section2Check=" + str(section2Check))
+            # print("useWhichMatrix[l][section2Check] = "  + str(useWhichMatrix[l][section2Check]))
+            gen_mat = matrix_repo(parityDistribution[l][section2Check])[useWhichMatrix[l][section2Check]] 
+            toAppend = np.matmul( gen_mat , cs_decoded_tx_message[Path[0][l], startPoint: endPoint ]).reshape(1,-1)[0]
             toAppend = np.mod(toAppend, 2)
         elif Path[0][l] == -1:
             toAppend = -1 * np.ones(1, parityDistribution[l,section2Check])[0]
@@ -194,14 +192,15 @@ def recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthV
         # print("ll=" +str(ll) )
         if ll not in sectionLost:
             recovered_msg = np.concatenate( (recovered_msg, decoded_message[0][ ll*J : ll*J+messageLengthVector[ll] ].reshape(1,-1)[0]) , axis=None )
-        else: # ll  in sectoinLost:
-            # suppose ll = 5. we first check section 5 determines what? 
-            saverSections = np.nonzero(parityDistribution[ll])[0]
-            # then saverSections = [6, 7, 8, 9]
+        else: # ll  in sectoinLost:              # suppose ll = 5. we first check section 5 determines what? 
+            saverSections = np.nonzero(parityDistribution[ll])[0]        # then saverSections = [6, 7, 8, 9]
             theLostPart = np.array([], dtype=int).reshape(1,-1)
             for l in saverSections:
-                toAppend = decoded_message[0][ ( l*J + messageLengthVector[l] + int(sum(parityDistribution[0:ll,l])) ) :( l*J+messageLengthVector[l]+int(sum(parityDistribution[0:ll+1,l])) ) ].reshape(1,-1)[0]
+                gen_mat = matrix_repo(parityDistribution[ll][l])[useWhichMatrix[ll][l]]
+                gen_binmat = BinMatrix(gen_mat)
+                gen_binmat_inv = np.array(gen_binmat.inv())
+                toAppend = np.matmul( gen_binmat_inv, decoded_message[0][ l*J + messageLengthVector[l] + sum(parityDistribution[0:ll,l]) : l*J+messageLengthVector[l]+sum(parityDistribution[0:ll+1,l]) ]).reshape(1,-1)[0]
+                toAppend = np.mod(toAppend, 2)
                 theLostPart = np.concatenate( (theLostPart, toAppend  )  , axis=None  )
             recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
-
     return recovered_msg.reshape(1,-1)
