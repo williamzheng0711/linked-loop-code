@@ -17,10 +17,10 @@ Pa = np.sum(parityLengthVector)     # Total number of parity check bits
 Ml = np.sum(messageLengthVector)    # Total number of information bits
 K = 100                             # number of active users
 N = int((30000 / 2**16)*M)          # number of channel uses (real d.o.f)
-numAMPIter = 7                      # number of AMP iterations to perform
+numAMPIter = 2                      # number of AMP iterations to perform
 listSize = int(K + 5)               # list size retained per section after AMP converges
 sigma_n = 1                         # AWGN noise standard deviation
-SNR = 7                             # SNR (in dB) to play with
+SNR = 5                             # SNR (in dB) to play with
 sigma_Rayleigh = 1                  # Rayleigh fading paremater
 EbNo = 10**(SNR/10)                 # Eb/No
 P = 2*w*EbNo/N                      # Power calculated
@@ -30,9 +30,11 @@ Phat = N*P/L                        # Power hat
 # Outer code encoder and Rayleigh at users sides
 parityDistribution, useWhichMatrix = generate_parity_distribution() 
 txBits = np.random.randint(low=2, size=(K, w))                                      # Generate random messages for K active users
-txBitsParitized = Tree_error_correct_encode(txBits, K,L,J,Pa,Ml,
-                        messageLengthVector, parityLengthVector,parityDistribution) # add parities to txBits, get txBitsParitized
-BETA = convert_bits_to_sparse_Rayleigh(txBitsParitized, L, J, K, sigma_Rayleigh)    # Rayleigh noises    
+txBitsParitized = Tree_error_correct_encode(tx_message=txBits, K=K, L=L, J=J, P=Pa, Ml=Ml, 
+                                            messageLengthVector= messageLengthVector, 
+                                            parityLengthVector= parityLengthVector, parityDistribution= parityDistribution, 
+                                            useWhichMatrix=useWhichMatrix) # add parities to txBits, get txBitsParitized
+BETA = convert_bits_to_sparse_Rayleigh(txBitsParitized, L, J, K, sigma_Rayleigh)    # Rayleigh noises applied    
 
 
 # Inner encode
@@ -46,9 +48,10 @@ z = np.random.randn(N, 1) * sigma_n
 y = (x + z).reshape(-1, 1)
 
 
-# Inner code Decoder.
+# Inner code Decoder. The Approximate message passing part.
 p0 = 1-(1-1/M)**K
 decTempBETA = amp_prior_art_Rayleigh(y, sigma_n, P, L, M, numAMPIter, Ab, Az, p0, K, sigma_Rayleigh, False) 
+
 
 ## calculate and report genie statistics
 analyze_genie_metrics(decTempBETA=decTempBETA, L=L, J=J, listSize=listSize, txBitsParitized=txBitsParitized, K=K)
@@ -60,7 +63,10 @@ decBetaSignificants, decBetaSignificantsPos = get_signi_values_and_positions(dec
 
 # Outer code (tree code) decoder 
 tic = time.time()
-rxBits, usedRootsIndex = Tree_decoder_fader(decBetaSignificants, decBetaSignificantsPos, L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution)
+rxBits, usedRootsIndex = Tree_decoder_fader(L=L, J=J, B=w, 
+                                            decBetaNoised=decBetaSignificants, decBetaPos=decBetaSignificantsPos, 
+                                            parityLengthVector=parityLengthVector, messageLengthVector=messageLengthVector,
+                                            listSize=listSize, parityDistribution=parityDistribution, useWhichMatrix=useWhichMatrix)
 toc = time.time()
 print("Time of new algo " + str(toc-tic))
 if rxBits.shape[0] > K: 
@@ -76,7 +82,7 @@ for i in range(txBits.shape[0]):
     thisIter += int(incre)
     if (incre == False):
         txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
-print("correctly recovers " + str(thisIter) + " out of " +str(rxBits.shape[0]) )
+print(" 1st phase: correctly recovers " + str(thisIter) + " out of " +str(rxBits.shape[0]) )
 
 
 

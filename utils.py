@@ -1293,9 +1293,9 @@ def analyze_genie_metrics(decTempBETA, L, J, listSize, txBitsParitized, K):
         thisTimeGenie += flag_i
         if (flag_i ==0):
             error_box.append(num_not_match_i)
-    print("Genie recovers " + str(thisTimeGenie) +" out of " + str(K))
+    print(" ** genie recovers " + str(thisTimeGenie) +" out of " + str(K))
     print(error_box)
-    print("error_box mean is " + str(np.mean(error_box))  )
+    print(" ** by genie analysis: error_box mean is " + str(np.mean(error_box))  )
 
 
 
