@@ -1277,6 +1277,40 @@ def Tree_decoder_uninformative_fading_growinglS(decBetaSignificants, decBetaSign
 
 
 
+def analyze_genie_metrics(decTempBETA, L, J, listSize, txBitsParitized, K):
+    thisTimeGenie = 0
+    decOutMsg = convert_sparse_to_bits(decTempBETA, L, J, listSize, ) 
+    error_box = []
+    for i in range(txBitsParitized.shape[0]): # Recall txBitsParitized shape (100,256)
+        flag_i = 1
+        num_not_match_i = 0
+        for l in range(L):                
+            tmp = np.equal(txBitsParitized[i, l*J: (l+1)*J ], 
+                            decOutMsg[:, l*J: (l+1)*J ]).all(axis=1).any()
+            if tmp != True:
+                flag_i = 0
+                num_not_match_i += 1
+        thisTimeGenie += flag_i
+        if (flag_i ==0):
+            error_box.append(num_not_match_i)
+    print("Genie recovers " + str(thisTimeGenie) +" out of " + str(K))
+    print(error_box)
+    print("error_box mean is " + str(np.mean(error_box))  )
+
+
+
+def get_signi_values_and_positions(decTempBETA, L, J, listSize):
+    decBETA_erase_small_values = postprocess_evenlS(decTempBETA,L,J,listSize)
+    decBetaSignificants = np.zeros((L, listSize) )
+    decBetaSignificantsPos = np.zeros((L, listSize), dtype=int )
+    for l in np.arange(L):
+        for n in np.arange(listSize):
+            decBeta_l = decBETA_erase_small_values[l*2**J : (l+1)*2**J]
+            decBetaSignificants[l] = decBeta_l[decBeta_l!=0]
+            decBetaSignificantsPos[l] = [pos for decBeta_l_element, pos in zip(decBeta_l,np.arange(len(decBeta_l))) if decBeta_l_element!=0]
+    decBetaSignificants = decBetaSignificants.transpose() # shape is (listSize, 16)
+    decBetaSignificantsPos = decBetaSignificantsPos.transpose() # shape is (listSize, 16)
+    return decBetaSignificants, decBetaSignificantsPos
 
 
 

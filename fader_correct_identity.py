@@ -6,9 +6,6 @@ from fader_utils import *
 
 w = 128     # is called B in uninformative         # length of each user's uncoded message
 L = 16      # Number of sections/sub-blocks
-
-
-
 parityLengthVector = np.array([0,7,7,8,8,8,8,8,8,8,8,8,8,9,9,16],dtype=int)
 
 parityDistribution, useWhichMatrix = generate_parity_distribution()
@@ -112,7 +109,6 @@ tic = time.time()
 rxBits, usedRootsIndex = Tree_decoder_fader(decBetaSignificants, decBetaSignificantsPos, L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution)
 toc = time.time()
 print("Time of new algo " + str(toc-tic))
-
 if rxBits.shape[0] > K: 
     rxBits = rxBits[np.arange(K)]
 
@@ -151,7 +147,6 @@ print("error_box mean is " + str(np.mean(error_box))  )
 
 
 rxBits_corrected = Tree_corrector_fader(decBetaSignificants, decBetaSignificantsPos, L,J, w, parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex)
-
 print("corrected shape: " + str( rxBits_corrected.shape))
 
 
