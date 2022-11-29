@@ -42,7 +42,7 @@ def Tree_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
                 noCandidates = True
                 for k in range(listSize):
                     # Verify parity constraints for the children of surviving path
-                    index = parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthVector, parityDistribution)
+                    index = parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthVector, parityDistribution, useWhichMatrix)
                     # If parity constraints are satisfied, update the path
                     if index:
                         noCandidates = False
@@ -108,7 +108,7 @@ def Tree_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
                 # print("Parity_computed is: " + str(Parity_computed) )
                 for k in range(listSize):
                     # Verify parity constraints for the children of surviving path
-                    index = parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthVector, parityDistribution)
+                    index = parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthVector, parityDistribution, useWhichMatrix)
                     # If parity constraints are satisfied, update the path
                     if index:
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))

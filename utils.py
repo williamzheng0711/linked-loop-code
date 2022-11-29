@@ -97,7 +97,7 @@ def matrix_repo(dim):
 # parity and info bits get mixed
 # P is sum( paritylenthVector ) 
 
-def generate_parity_distribution(identity=True):
+def generate_parity_distribution(identity=False):
     parityDistribution = np.zeros((16,16),dtype=int)
     parityDistribution[0][1] = 7; parityDistribution[0][2] = 4; parityDistribution[0][3] = 3; parityDistribution[0][4] = 2; 
     parityDistribution[1][2] = 3; parityDistribution[1][3] = 2; parityDistribution[1][4] = 2; parityDistribution[1][5] = 2; 
@@ -134,12 +134,33 @@ def generate_parity_distribution(identity=True):
     return parityDistribution, useWhichMatrix
 
 
-def generate_parity_distribution_evenly():
+def generate_parity_distribution_evenly(identity=False):
     parityDistribution = np.zeros((16,16),dtype=int)
     for l in np.arange(16):
         for i in [1,2,3,4]:
             parityDistribution[l][(l + i) % 16] = 2
-    return parityDistribution
+
+    if identity!= True:
+        useWhichMatrix = np.zeros((16,16),dtype=int)
+        for row in np.arange(0,16):
+            for col in np.arange(0, 16):
+                if parityDistribution[row][col]!=0:
+                    dim = parityDistribution[row][col]
+                    choices = matrix_repo(dim=dim)
+                    # print(choices)
+                    useWhichMatrix[row][col] = np.random.randint(low=0, high=len(choices))
+
+    elif identity == True:
+        useWhichMatrix = np.zeros((16,16),dtype=int)
+        for row in np.arange(0,16):
+            for col in np.arange(0, 16):
+                if parityDistribution[row][col]!=0:
+                    dim = parityDistribution[row][col]
+                    choices = matrix_repo(dim=dim)
+                    # print(choices)
+                    useWhichMatrix[row][col] = 0
+
+    return parityDistribution, useWhichMatrix
 
 
 
@@ -881,7 +902,7 @@ def compute_permissible_parity(Path,cs_decoded_tx_message,G1,L,J,parityLengthVec
     Parity_computed = np.array([list(np.binary_repr(int(x),parityLengthVector[Lpath])) for x in Parity_computed_integer], dtype=int)
     return Parity_computed
 
-def parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthvector, parityDistribution):
+def parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthvector, parityDistribution, useWhichMatrix):
     index1 = 0
     index2 = 1
     Lpath = Path.shape[1]
@@ -908,8 +929,11 @@ def parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVe
                 # print(l*J        + sum(parityDistribution[l,0:section]))
                 # print(l*J        + sum(parityDistribution[l,0:section+1]))
 
+                gen_mat = matrix_repo(parityDistribution[l][section])[useWhichMatrix[l][section]]
+                # gen_binmat = BinMatrix(gen_mat)
+
                 oldPart = cs_decoded_L_sections[0][section*J + messageLengthvector[section] + sum(parityDistribution[0:l,section]) : section*J + messageLengthvector[section] + sum(parityDistribution[0:l+1,section])].reshape(1,-1)[0]
-                newPart = cs_decoded_L_sections[0][      l*J                                + sum(parityDistribution[l,0:section]) :       l*J                                + sum(parityDistribution[l,0:section+1])].reshape(1,-1)[0]
+                newPart = np.matmul(gen_mat ,cs_decoded_L_sections[0][      l*J                                + sum(parityDistribution[l,0:section]) :       l*J                                + sum(parityDistribution[l,0:section+1])] ).reshape(1,-1)[0]
 
                 check_args_old = np.where(oldPart >=0)[0]
                 # print("check_args_old" + str(check_args_old))
