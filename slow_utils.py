@@ -35,7 +35,7 @@ def Slow_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
             cs_decoded_tx_message[ id_row, id_col*J: (id_col+1)*J ] = b[0, 0:J]
 
     # decBetaNoised shape is (listSize, 16)
-    listSizeOrder = np.argsort( decBetaNoised[:,0] )
+    listSizeOrder = np.flip(np.argsort( decBetaNoised[:,0] ))
     tree_decoded_tx_message = np.empty(shape=(0,0))
     usedRootsIndex = []
 
@@ -48,18 +48,19 @@ def Slow_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
             new=np.empty( shape=(0,0))
             for j in range(Paths.shape[0]):
                 Path=Paths[j].reshape(1,-1) 
-                Parity_computed= np.ones((1,8),dtype=int) if Path.shape[1]<4 else slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribution, l, useWhichMatrix=useWhichMatrix)
+                Parity_computed= np.ones((1,8),dtype=int) if l<4 else slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribution, l, useWhichMatrix=useWhichMatrix)
                 # print("Parity_computed is: " + str(Parity_computed) )
                 for k in range(listSize):
                     # Verify parity constraints for the children of surviving path
-                    index = parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthVector, parityDistribution, useWhichMatrix)
+                    index = l<4 or parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthVector, parityDistribution, useWhichMatrix)
                     # If parity constraints are satisfied, update the path
                     if index:
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
             Paths = new 
-            print("l=" + str(l))
+            print("l=" + str(l) + ' path number: ' + str(Paths.shape[0]))
         
         # let's do tail biting!!!
+        print("跑到這了 有多少條path？" + str(Paths.shape[0]))
         PathsUpdated = np.empty( shape=(0,0))
         for j in range(Paths.shape[0]):
             isOkay = True
@@ -73,6 +74,8 @@ def Slow_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
             if isOkay:
                 PathsUpdated = np.vstack(PathsUpdated, Path)
         Paths = PathsUpdated
+        print("跑到這了!!!")
+
 
         if Paths.shape[0] >= 1:  
             if Paths.shape[0] >= 2:
@@ -93,8 +96,10 @@ def Slow_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
             elif Paths.shape[0] == 1:
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
 
-            usedRootsIndex.append(i)
-        print("proceeding: " + str(i/listSize))
+            usedRootsIndex.append(i)     
+            print("有一條消息~")   
+        
+        print(str(arg_i) + " 又跑完了一個root")
 
     return tree_decoded_tx_message, usedRootsIndex
 
