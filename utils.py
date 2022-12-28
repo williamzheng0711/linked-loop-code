@@ -92,6 +92,72 @@ def matrix_repo(dim):
                   [0, 1, 1, 0, 0, 1, 1]] ]
 
 
+    if dim == 8:
+        return [   [[0, 1, 1, 0, 0, 1, 0, 1],
+                    [0, 0, 0, 0, 1, 1, 0, 1],
+                    [0, 1, 1, 1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 0, 1, 1, 1],
+                    [0, 0, 1, 0, 0, 1, 1, 1],
+                    [0, 1, 1, 1, 0, 1, 0, 0],
+                    [0, 0, 1, 0, 1, 0, 0, 0],
+                    [0, 0, 1, 0, 1, 1, 1, 1]],
+
+                    [[1, 1, 0, 0, 1, 0, 1, 1],
+                    [1, 0, 0, 1, 1, 1, 0, 0],
+                    [1, 1, 0, 1, 0, 0, 0, 1],
+                    [0, 0, 1, 0, 1, 0, 1, 0],
+                    [0, 1, 0, 1, 1, 0, 1, 0],
+                    [1, 0, 1, 0, 0, 1, 0, 1],
+                    [1, 1, 0, 0, 1, 0, 1, 0],
+                    [0, 1, 0, 0, 1, 1, 1, 0]],
+
+                    [[1, 0, 1, 1, 0, 0, 1, 1],
+                    [0, 1, 1, 1, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 1, 1, 1, 0],
+                    [1, 1, 0, 1, 0, 1, 1, 0],
+                    [0, 0, 1, 1, 0, 0, 0, 1],
+                    [1, 0, 1, 0, 1, 1, 1, 0],
+                    [0, 1, 0, 1, 0, 0, 1, 1],
+                    [0, 0, 1, 0, 0, 1, 0, 1]],
+
+                    [[0, 0, 1, 1, 1, 0, 0, 1],
+                    [0, 1, 0, 1, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 1, 1, 1, 0],
+                    [1, 0, 1, 1, 0, 1, 0, 0],
+                    [0, 1, 0, 1, 0, 0, 1, 1],
+                    [0, 1, 0, 0, 1, 1, 1, 0],
+                    [1, 0, 1, 1, 0, 1, 0, 1],
+                    [1, 1, 0, 0, 0, 1, 0, 1]],
+
+                    [[1, 0, 1, 1, 0, 0, 0, 0],
+                    [1, 0, 1, 1, 0, 0, 1, 1],
+                    [1, 0, 0, 0, 1, 1, 1, 0],
+                    [1, 1, 0, 1, 0, 0, 1, 1],
+                    [0, 0, 1, 1, 0, 0, 1, 0],
+                    [0, 1, 0, 0, 1, 1, 0, 1],
+                    [0, 1, 1, 0, 1, 1, 0, 1],
+                    [1, 0, 0, 0, 0, 1, 0, 1]],
+
+                    [[1, 0, 0, 1, 0, 1, 0, 1],
+                    [0, 1, 1, 1, 0, 0, 1, 1],
+                    [1, 0, 1, 0, 1, 1, 0, 0],
+                    [0, 1, 0, 0, 1, 0, 0, 1],
+                    [1, 1, 0, 1, 1, 0, 1, 0],
+                    [1, 1, 0, 1, 1, 0, 1, 1],
+                    [0, 1, 0, 0, 0, 0, 0, 1],
+                    [0, 1, 0, 1, 0, 1, 0, 0]],
+
+                    [[0, 1, 0, 1, 1, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 1, 1, 1],
+                    [0, 0, 1, 0, 1, 0, 0, 1],
+                    [1, 0, 1, 1, 1, 0, 1, 0],
+                    [0, 1, 0, 0, 0, 1, 1, 1],
+                    [1, 0, 0, 1, 0, 0, 1, 0],
+                    [1, 0, 1, 1, 1, 0, 0, 0],
+                    [1, 0, 0, 1, 1, 0, 1, 1]],
+
+                                                ]
+
 
 
 # parity and info bits get mixed
@@ -138,8 +204,10 @@ def generate_parity_distribution_evenly(identity=False):
     parityDistribution = np.zeros((16,16),dtype=int)
     for l in np.arange(16):
         for i in [1,2,3,4]:
-            parityDistribution[l][(l + i) % 16] = 2
+            parityDistribution[l][(l + i) % 16] = 8     
+            # in slow scheme, 2 does not mean we fully determine 2 parity bits. 2 is just an indicator of "parity related"
 
+    # Choose G_{row, col}, note that row, col means info in (row), that related to (col) is by an matrix "choice"
     if identity!= True:
         useWhichMatrix = np.zeros((16,16),dtype=int)
         for row in np.arange(0,16):
@@ -147,7 +215,6 @@ def generate_parity_distribution_evenly(identity=False):
                 if parityDistribution[row][col]!=0:
                     dim = parityDistribution[row][col]
                     choices = matrix_repo(dim=dim)
-                    # print(choices)
                     useWhichMatrix[row][col] = np.random.randint(low=0, high=len(choices))
 
     elif identity == True:
@@ -287,6 +354,8 @@ def sparc_codebook(L, M, n):
     def Az(z):
         return Ay(z).reshape(-1, 1)/ np.sqrt(n)
     return Ab, Az
+
+
 
 def block_sub_fht(n, m, l, seed=0, ordering=None, new_embedding=False):
     """

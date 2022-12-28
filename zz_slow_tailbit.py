@@ -30,6 +30,7 @@ Phat = N*P/L                        # Power hat
 # Outer code encoder and Rayleigh at users sides
 parityDistribution, useWhichMatrix = generate_parity_distribution_evenly(identity=True) 
 print(parityDistribution)
+# in this code, first row of parityDistribution will be [0 8 8 8 8 0 0 0 0 0 0 0 0 0 0 0]
 
 
 txBits = np.random.randint(low=2, size=(K, w))                                      # Generate random messages for K active users

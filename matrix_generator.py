@@ -8,7 +8,7 @@ def check_all_possiblility(dim, trials):
         A = np.random.randint(2, size=(N,N))
         checking = check_conditions(A)
         if checking: 
-            print(A)
+            print(np.array(A))
         i += 1
 
 def check_conditions(A):
@@ -25,5 +25,5 @@ def check_conditions(A):
     return True
 
 
-# check_all_possiblility(4,10)
+check_all_possiblility(8,10000000)
 
