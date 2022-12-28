@@ -2,8 +2,7 @@ import numpy as np
 from utils import *
 import time
 from fader_utils import *
-
-
+from slow_utils import *
 
 
 # Parameter settings
@@ -17,7 +16,7 @@ Pa = np.sum(parityLengthVector)     # Total number of parity check bits
 Ml = np.sum(messageLengthVector)    # Total number of information bits
 K = 100                             # number of active users
 N = int((30000 / 2**16)*M)          # number of channel uses (real d.o.f)
-numAMPIter = 10                      # number of AMP iterations to perform
+numAMPIter = 2                      # number of AMP iterations to perform
 listSize = int(K + 5)               # list size retained per section after AMP converges
 sigma_n = 1                         # AWGN noise standard deviation
 SNR = 5                             # SNR (in dB) to play with
@@ -34,10 +33,12 @@ print(parityDistribution)
 
 
 txBits = np.random.randint(low=2, size=(K, w))                                      # Generate random messages for K active users
-txBitsParitized = Tree_error_correct_encode(tx_message=txBits, K=K, L=L, J=J, P=Pa, Ml=Ml, 
+txBitsParitized = Slow_encode(tx_message=txBits, K=K, L=L, J=J, P=Pa, Ml=Ml, 
                                             messageLengthVector= messageLengthVector, 
                                             parityLengthVector= parityLengthVector, parityDistribution= parityDistribution, 
                                             useWhichMatrix=useWhichMatrix) # add parities to txBits, get txBitsParitized
+
+
 BETA = convert_bits_to_sparse_Rayleigh(txBitsParitized, L, J, K, sigma_Rayleigh)    # Rayleigh noises applied    
 
 
@@ -67,7 +68,7 @@ decBetaSignificants, decBetaSignificantsPos = get_signi_values_and_positions(dec
 
 # Outer code (tree code) decoder 
 tic = time.time()
-rxBits, usedRootsIndex = Tree_decoder_fader(L=L, J=J, B=w, 
+rxBits, usedRootsIndex = Slow_decoder_fader(L=L, J=J, B=w, 
                                             decBetaNoised=decBetaSignificants, decBetaPos=decBetaSignificantsPos, 
                                             parityLengthVector=parityLengthVector, messageLengthVector=messageLengthVector,
                                             listSize=listSize, parityDistribution=parityDistribution, useWhichMatrix=useWhichMatrix)
