@@ -41,18 +41,17 @@ def Slow_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
 
     for i, arg_i in zip(listSizeOrder, np.arange(len(listSizeOrder))):
         Paths = np.array([[i]])
-
         # not tail bit yet
         for l in range(1, L):
             # Grab the parity generator matrix corresponding to this section  
             new=np.empty( shape=(0,0))
             for j in range(Paths.shape[0]):
                 Path=Paths[j].reshape(1,-1) 
-                Parity_computed= np.ones((1,8),dtype=int) if l<4 else slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribution, l, useWhichMatrix=useWhichMatrix)
+                Parity_computed= np.ones((1,8),dtype=int) if l<4 else slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityDistribution, l, useWhichMatrix)
                 # print("Parity_computed is: " + str(Parity_computed) )
                 for k in range(listSize):
                     # Verify parity constraints for the children of surviving path
-                    index = l<4 or parity_check(Parity_computed,Path,k,cs_decoded_tx_message,L,J,parityLengthVector,messageLengthVector, parityDistribution, useWhichMatrix)
+                    index = l<4 or slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector)
                     # If parity constraints are satisfied, update the path
                     if index:
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
@@ -115,9 +114,20 @@ def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribu
     Parity_computed = np.zeros(8, dtype=int)
 
     focusPath = Path[0]
-
     for l in parityDependents:      # l labels the sections we gonna check to fix section2Check's parities
         gen_mat = matrix_repo(dim=8)[useWhichMatrix[l][section2Check]] 
         Parity_computed = Parity_computed + np.matmul( cs_decoded_tx_message[focusPath[l], l*J : l*J+8], gen_mat)
 
     return Parity_computed
+
+
+
+def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLengthvector):
+    index1 = 0
+    index2 = 1
+    Lpath = Path.shape[1]
+    Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthvector[Lpath]:(Lpath+1)*J]
+    if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
+        index1 = 1
+
+    return index1 * index2
