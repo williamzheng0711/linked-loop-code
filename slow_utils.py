@@ -63,10 +63,10 @@ def Slow_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
         PathsUpdated = np.empty( shape=(0,0))
         for j in range(Paths.shape[0]):
             isOkay = True
-            Path = Paths[j].reshape(1,-1)[0]
+            Path = Paths[j].reshape(1,-1)
             for ll in [0,1,2,3]:
                 Parity_computed_ll = slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribution, ll, useWhichMatrix=useWhichMatrix)
-                flag_ll = sum(np.abs(Parity_computed_ll - cs_decoded_tx_message[Path[ll], ll*J:ll*J+8]))
+                flag_ll = sum(np.abs(Parity_computed_ll - cs_decoded_tx_message[Path[0][ll], ll*J:ll*J+8]))
                 if flag_ll !=0: 
                     isOkay = False
                     break
@@ -109,15 +109,16 @@ def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribu
     section2Check = toCheck
     parityDist = parityDistribution[:,section2Check].reshape(1,-1)[0]
     # print("----------parityDist: " + str(parityDist))
-    parityDependents = np.nonzero(parityDist)[0]
+    deciders = np.nonzero(parityDist)[0]
     # print("parityDependents = " + str(parityDependents))
     Parity_computed = np.zeros(8, dtype=int)
 
     focusPath = Path[0]
-    for l in parityDependents:      # l labels the sections we gonna check to fix section2Check's parities
-        gen_mat = matrix_repo(dim=8)[useWhichMatrix[l][section2Check]] 
-        Parity_computed = Parity_computed + np.matmul( cs_decoded_tx_message[focusPath[l], l*J : l*J+8], gen_mat)
+    for decider in deciders:      # l labels the sections we gonna check to fix section2Check's parities
+        gen_mat = matrix_repo(dim=8)[useWhichMatrix[decider][section2Check]] 
+        Parity_computed = Parity_computed + np.matmul( cs_decoded_tx_message[focusPath[decider], decider*J : decider*J+8], gen_mat)
 
+    Parity_computed = np.mod(Parity_computed, 2)
     return Parity_computed
 
 
