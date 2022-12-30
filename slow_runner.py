@@ -14,9 +14,9 @@ M=2**J                              # base case M = 2**16
 messageLengthVector = np.subtract(J*np.ones(L, dtype = 'int'), parityLengthVector).astype(int)
 Pa = np.sum(parityLengthVector)     # Total number of parity check bits
 Ml = np.sum(messageLengthVector)    # Total number of information bits
-K = 100                             # number of active users
+K = 20                             # number of active users
 N = int((30000 / 2**16)*M)          # number of channel uses (real d.o.f)
-numAMPIter = 3                      # number of AMP iterations to perform
+numAMPIter = 5                      # number of AMP iterations to perform
 listSize = int(K + 5)               # list size retained per section after AMP converges
 sigma_n = 1                         # AWGN noise standard deviation
 SNR = 5                             # SNR (in dB) to play with
@@ -28,7 +28,7 @@ Phat = N*P/L                        # Power hat
 
 # Outer code encoder and Rayleigh at users sides
 parityDistribution, useWhichMatrix = generate_parity_distribution_evenly(identity=True) 
-print(parityDistribution)
+# print(parityDistribution)
 # in this code, first row of parityDistribution will be [0 8 8 8 8 0 0 0 0 0 0 0 0 0 0 0]
 
 
@@ -78,6 +78,7 @@ if rxBits.shape[0] > K:
     rxBits = rxBits[np.arange(K)]       # rxBits is what we decoded out in the first phase.
 
 
+
 # Check how many is correct amongst the recover (recover means first phase)
 thisIter = 0
 txBits_remained = np.empty(shape=(0,0))
@@ -92,19 +93,24 @@ print(" 1st phase: correctly recovers " + str(thisIter) + " out of " +str(rxBits
 
 
 #  Corrector
-rxBits_corrected = Tree_corrector_fader(decBetaNoised=decBetaSignificants, decBetaPos=decBetaSignificantsPos, 
+rxBits_corrected = Slow_corrector_fader(decBetaNoised=decBetaSignificants, decBetaPos=decBetaSignificantsPos, 
                                         L=L, J=J, B=w, 
                                         parityLengthVector=parityLengthVector, messageLengthVector=messageLengthVector,
                                         listSize=listSize, parityDistribution=parityDistribution, usedRootsIndex= usedRootsIndex, 
                                         useWhichMatrix= useWhichMatrix)
 print("corrected shape: " + str( rxBits_corrected.shape))
 print("txBits_remained shape is :" + str(txBits_remained.shape))
+# print(rxBits_corrected)
 
 # Check how many are true amongst those "corrected"
 corrected = 0
-for i in range(txBits_remained.shape[0]):
-    incre = 0
-    incre = np.equal(txBits_remained[i,:],rxBits_corrected).all(axis=1).any()
-    corrected += int(incre)
-print("!!!!! CORRECTED " + str(corrected) + " out of " +str(rxBits_corrected.shape[0]) )
+if rxBits_corrected.size:
+    for i in range(txBits_remained.shape[0]):
+        incre = 0
+        incre = np.equal(txBits_remained[i,:],rxBits_corrected).all(axis=1).any()
+        corrected += int(incre)
+    print("!!!!! CORRECTED " + str(corrected) + " out of " +str(rxBits_corrected.shape[0]) )
+else: 
+    print("Nothing was corrected")
 
+# print(txBits_remained)
