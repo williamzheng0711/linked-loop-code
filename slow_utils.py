@@ -1,4 +1,5 @@
 import numpy as np
+from utils import *
 
 def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribution, toCheck, useWhichMatrix):
     # if path length  = 2
