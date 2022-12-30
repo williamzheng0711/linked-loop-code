@@ -14,9 +14,9 @@ M=2**J                              # base case M = 2**16
 messageLengthVector = np.subtract(J*np.ones(L, dtype = 'int'), parityLengthVector).astype(int)
 Pa = np.sum(parityLengthVector)     # Total number of parity check bits
 Ml = np.sum(messageLengthVector)    # Total number of information bits
-K = 20                             # number of active users
+K = 10                             # number of active users
 N = int((30000 / 2**16)*M)          # number of channel uses (real d.o.f)
-numAMPIter = 5                      # number of AMP iterations to perform
+numAMPIter = 2                      # number of AMP iterations to perform
 listSize = int(K + 5)               # list size retained per section after AMP converges
 sigma_n = 1                         # AWGN noise standard deviation
 SNR = 5                             # SNR (in dB) to play with
@@ -100,7 +100,7 @@ rxBits_corrected = Slow_corrector_fader(decBetaNoised=decBetaSignificants, decBe
                                         useWhichMatrix= useWhichMatrix)
 print("corrected shape: " + str( rxBits_corrected.shape))
 print("txBits_remained shape is :" + str(txBits_remained.shape))
-# print(rxBits_corrected)
+print(rxBits_corrected)
 
 # Check how many are true amongst those "corrected"
 corrected = 0

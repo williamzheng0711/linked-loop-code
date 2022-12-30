@@ -123,6 +123,7 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
     tree_decoded_tx_message = np.empty(shape=(0,0))
 
     for i, arg_i in zip(listSizeOrder_remained, np.arange(len(listSizeOrder_remained))):
+        print(i, arg_i)
         Paths = np.array([[i]])
         for l in range(1,L):
             new=np.empty( shape=(0,0))
@@ -144,7 +145,6 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
             Paths = new 
 
         if Paths.shape[0] >= 1: # 我們在這裡容許所有 有一個 outage的
-            # print("也许有correct!!!") 
             optimalOne = 0
             if Paths.shape[0] >= 2:
                 pathVar = np.zeros((Paths.shape[0]))

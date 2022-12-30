@@ -50,10 +50,10 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
 
 
 
+
 def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L, useWhichMatrix):
     recovered_msg = np.array([], dtype= int).reshape(1,-1)
     for ll in np.arange(L):
-        # print("ll=" +str(ll) )
         if ll not in sectionLost:
             recovered_msg = np.concatenate( (recovered_msg, decoded_message[0][ ll*J : ll*J+messageLengthVector[ll] ].reshape(1,-1)[0]) , axis=None )
         else: # ll  in sectoinLost:              # suppose ll = 5. we first check section 5 determines what? 
@@ -78,7 +78,10 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
                 
                 solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
 
-
+            print(" -------- ")
+            print(solutions)
+            print(decoded_message)
+            
             if np.all(solutions == solutions[0]):
                 recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
     
