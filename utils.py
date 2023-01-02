@@ -1409,6 +1409,7 @@ def analyze_genie_metrics(decTempBETA, L, J, listSize, txBitsParitized, K):
     decOutMsg = convert_sparse_to_bits(decTempBETA, L, J, listSize, ) 
     error_box = []
     for i in range(txBitsParitized.shape[0]): # Recall txBitsParitized shape (100,256)
+        oneOutageSection = 0
         flag_i = 1
         num_not_match_i = 0
         for l in range(L):                
@@ -1417,9 +1418,13 @@ def analyze_genie_metrics(decTempBETA, L, J, listSize, txBitsParitized, K):
             if tmp != True:
                 flag_i = 0
                 num_not_match_i += 1
+                if num_not_match_i == 1: 
+                    oneOutageSection = l
         thisTimeGenie += flag_i
         if (flag_i ==0):
             error_box.append(num_not_match_i)
+            if (num_not_match_i == 1): 
+                print("One outage at section:"  + str(oneOutageSection))
     print(" ** genie recovers " + str(thisTimeGenie) +" out of " + str(K))
     print(error_box)
     print(" ** by genie analysis: error_box mean is " + str(np.mean(error_box))  )

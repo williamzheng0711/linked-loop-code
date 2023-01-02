@@ -12,12 +12,12 @@ parityLengthVector = np.array([8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8],dtype=int)
 J=((w+np.sum(parityLengthVector))/L).astype(int) # Length of each coded sub-block
 M=2**J                              # base case M = 2**16
 messageLengthVector = np.subtract(J*np.ones(L, dtype = 'int'), parityLengthVector).astype(int)
-Pa = np.sum(parityLengthVector)     # Total number of parity check bits
-Ml = np.sum(messageLengthVector)    # Total number of information bits
-K = 10                             # number of active users
-N = int((30000 / 2**16)*M)          # number of channel uses (real d.o.f)
-numAMPIter = 2                      # number of AMP iterations to perform
-listSize = K + np.ceil(K/20)        # list size retained per section after AMP converges
+Pa = np.sum(parityLengthVector)          # Total number of parity check bits
+Ml = np.sum(messageLengthVector)         # Total number of information bits
+K = 8                                   # number of active users
+N = int((30000 / 2**16)*M)               # number of channel uses (real d.o.f)
+numAMPIter = 1                           # number of AMP iterations to perform
+listSize = K + int(np.ceil(K/20))        # list size retained per section after AMP converges
 sigma_n = 1                         # AWGN noise standard deviation
 SNR = 5                             # SNR (in dB) to play with
 sigma_Rayleigh = 1                  # Rayleigh fading paremater

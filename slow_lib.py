@@ -118,53 +118,62 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
             cs_decoded_tx_message[ id_row, id_col*J: (id_col+1)*J ] = b[0, 0:J]
 
     # decBetaNoised shape is (listSize, 16)
-    listSizeOrder = np.flip(np.argsort( decBetaNoised[:,0] ))
-    listSizeOrder_remained = [x for x in listSizeOrder if x not in usedRootsIndex]
+    listSizeOrder = np.flip(np.argsort( decBetaNoised[:,0] )) # flip 之後就是從大到小
+    listSizeOrder_remained = [x for x in listSizeOrder if x not in usedRootsIndex] # 去掉之前用過的root
+
     tree_decoded_tx_message = np.empty(shape=(0,0))
 
+
+    targetingSections = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0]
+
     for i, arg_i in zip(listSizeOrder_remained, np.arange(len(listSizeOrder_remained))):
-        # print("i, arg_i = " + str(i) +", " + str(arg_i))
         Paths = np.array([[i]])
-        for l, arg_l in zip( [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3], range(16+3)):
+        for l, arg_l in zip( targetingSections, range(len(targetingSections))):
             # print("under " + str(arg_i) + " l=" + str(l))
+            print( "Now targeting section: " + str(l) + " No. of paths: " + str(Paths.shape[0]) + " How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
+            if Paths.shape[1] == 0: # 沒path了 換下一個root吧
+                print("-------")
+                break
+
             new=np.empty( shape=(0,0))
             if arg_l < 15:  # 至多增加15個長度
                 for j in range(Paths.shape[0]):
-                    print("(arg_i, l, j, PathsNum) = " + str(arg_i) + " " + str(l) + " " + str(j) +" " +  str(Paths.shape[0]))
-                    Path=Paths[j].reshape(1,-1)
-                    pathArgNa = np.where( Path[0] < 0 )[0]
+                    Path = Paths[j].reshape(1,-1)
+                    # print(Path[0])
+                    pathArgNa = np.where( Path[0] < 0 )[0]          # print("pathArgNa" + str(pathArgNa))   打印出來是 [3] 這樣
                     Parity_computed = -1 * np.ones((1,8),dtype=int)
                     
-                    calculatedParity = False
-                    if l >= 4 and ( len(pathArgNa) == 0 or pathArgNa[0]+2<Path.shape[1] ): # 只有在這些條件下 才需要算出parity
-                        calculatedParity = True
+                    if l >= 4 and ( len(pathArgNa) == 0 or pathArgNa[0]+ 4 < l ): # 只有在這些條件下 才算parity （否則壓根算不出）
                         Parity_computed, _ = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityDistribution, l, useWhichMatrix, {})
                     
                     for k in range(listSize):
-                        if calculatedParity == False:   # 壓根沒算過parity， 直接接上
+                        if l < 4 or (len(pathArgNa) > 0 and pathArgNa[0] == l-1): # 一定沒算過 parity
                             new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-                        else: # Parity_computed 必須是有意義的
+                        else :  # now l >= 4:
                             index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector, parityDistribution, useWhichMatrix) 
                             if index:
                                 new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-                            elif len(pathArgNa)== 0:
-                                new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
+                    
+                    if len(pathArgNa) == 0:
+                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
+
                 Paths = new 
             
-            else: 
+            else: # 不再增加長度了
+                print("開始檢查完整的path們")
                 PathsUpdated = np.empty( shape=(0,0))
                 for j in range(Paths.shape[0]):
                     isOkay = False
                     Path = Paths[j].reshape(1,-1)
-                    if np.where( Path[0] < 0 )[0][0] < 16 - 4:
-                        isOkay = True
-                    else: 
-                        isOkay = slow_parity_check(_, Path,k, cs_decoded_tx_message,J,messageLengthVector, parityDistribution, useWhichMatrix)
+                    isOkay = slow_parity_check(_, Path,_, cs_decoded_tx_message,J,messageLengthVector, parityDistribution, useWhichMatrix)
                     if isOkay:
                         PathsUpdated = np.vstack((PathsUpdated, Path)) if PathsUpdated.size else Path
                 Paths = PathsUpdated
 
+
+
         if Paths.shape[0] >= 1: # 我們在這裡容許所有 有一個 outage的
+            print("有candidate！！")
             optimalOne = 0
             if Paths.shape[0] >= 2:
                 pathVar = np.zeros((Paths.shape[0]))
