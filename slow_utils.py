@@ -38,16 +38,70 @@ def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribu
     return Parity_computed2, pathDict
 
 
-def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLengthvector):
+def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLengthVector, parityDistribution, useWhichMatrix):
     index1 = 0
-    index2 = 1
     Lpath = Path.shape[1]
-    Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthvector[Lpath]:(Lpath+1)*J]
-    if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
-        index1 = 1
 
-    return index1 * index2
+    if Lpath < 16:
+        losts = np.where( Path[0] < 0 )[0]
+        if len(losts) == 0:
+            Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthVector[Lpath]:(Lpath+1)*J]
+            if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
+                index1 = 1    
+        else: 
+            lostSection = losts[0]
+            # if lostSection is section 4, then we gonna check
+            # (w1, w2, w3, w4) => w5    # (w2, w3, w4, w5) => w6    # (w3, w4, w5, w6) => w7    # (w4, w5, w6, w7) => w8
+            # w5, w6, w7 and w8 are "saverSections" of lostSections
+            saverSections = np.nonzero(parityDistribution[lostSection])[0]        # then saverSections = [6, 7, 8, 9]
+            availSavers = [ saver for saver in saverSections if (saver < Lpath and np.mod(saver-1,16) < Lpath) ]
+            if len(availSavers) <= 1:
+                return True
 
+            solutions = np.empty((0,0), dtype=int)
+            for saver in availSavers:
+                parityDist = parityDistribution[:,saver].reshape(1,-1)[0]
+                saverDeciders = np.nonzero(parityDist)[0]
+                minuend = cs_decoded_tx_message[Path[saver]][ saver*J+messageLengthVector[saver] : (1+saver)*J ].reshape(1,-1)[0]   
+                subtrahend = np.zeros(8, dtype=int)
+                for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
+                    if (saverDecider != lostSection):
+                        gen_mat = matrix_repo(dim=8)[useWhichMatrix[saverDecider][saver]] 
+                        subtrahend = subtrahend + np.matmul( cs_decoded_tx_message[Path[saver]][saverDecider*J : saverDecider*J+8], gen_mat)
+                
+                subtrahend = np.mod(subtrahend, 2)
+                gen_binmat = BinMatrix(gen_mat)
+                gen_binmat_inv = np.array(gen_binmat.inv())
+                theLostPart = np.mod( np.matmul(  np.mod(minuend - subtrahend,2) , gen_binmat_inv ), 2)
+                solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
+            if np.all(solutions == solutions[0]):
+                index1 = 1
+
+    else: # Path is already full, only possibility is section 12, 13, 14 or 15 lost
+        lostSection = losts[0] # can only be 12 or 13 or 14 or 15
+        availSavers = np.nonzero(parityDistribution[lostSection])[0]        # then availSavers = [6, 7, 8, 9]
+        solutions = np.empty((0,0), dtype=int)
+        for saver in availSavers:
+            parityDist = parityDistribution[:,saver].reshape(1,-1)[0]
+            saverDeciders = np.nonzero(parityDist)[0]
+            minuend = cs_decoded_tx_message[Path[saver]][ saver*J+messageLengthVector[saver] : (1+saver)*J ].reshape(1,-1)[0]   
+
+            subtrahend = np.zeros(8, dtype=int)
+            for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
+                if (saverDecider != lostSection):
+                    gen_mat = matrix_repo(dim=8)[useWhichMatrix[saverDecider][saver]] 
+                    subtrahend = subtrahend + np.matmul( cs_decoded_tx_message[Path[saver]][saverDecider*J : saverDecider*J+8], gen_mat)
+            
+            subtrahend = np.mod(subtrahend, 2)
+            gen_binmat = BinMatrix(gen_mat)
+            gen_binmat_inv = np.array(gen_binmat.inv())
+            theLostPart = np.mod( np.matmul(  np.mod(minuend - subtrahend,2) , gen_binmat_inv ), 2)
+            solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
+        
+        if np.all(solutions == solutions[0]):
+            index1 = 1
+
+    return index1
 
 
 
