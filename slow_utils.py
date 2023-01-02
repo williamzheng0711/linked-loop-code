@@ -42,14 +42,16 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
     index1 = 0
     Lpath = Path.shape[1]
 
-    if Lpath < 16:
+    if Lpath < 16:  # Path 還在生長階段
         losts = np.where( Path[0] < 0 )[0]
-        if len(losts) == 0:
+        if len(losts) == 0: # 沒有 lost 最簡單的情況
             Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthVector[Lpath]:(Lpath+1)*J]
             if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
                 index1 = 1    
-        else: 
+        else:   # 有lost
             lostSection = losts[0]
+            if (Lpath-1) - lostSection > 4:     # 目前section - lostSection > 4 說明lost已經在過去被處理好了
+                return True
             # if lostSection is section 4, then we gonna check
             # (w1, w2, w3, w4) => w5    # (w2, w3, w4, w5) => w6    # (w3, w4, w5, w6) => w7    # (w4, w5, w6, w7) => w8
             # w5, w6, w7 and w8 are "saverSections" of lostSections

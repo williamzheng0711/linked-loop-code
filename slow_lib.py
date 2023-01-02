@@ -55,7 +55,7 @@ def Slow_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
                 # print("Parity_computed is: " + str(Parity_computed) )
                 for k in range(listSize):
                     # Verify parity constraints for the children of surviving path
-                    index = l<4 or slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector)
+                    index = l<4 or slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector, parityDistribution, useWhichMatrix)
                     # If parity constraints are satisfied, update the path
                     if index:
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
@@ -123,27 +123,34 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
     tree_decoded_tx_message = np.empty(shape=(0,0))
 
     for i, arg_i in zip(listSizeOrder_remained, np.arange(len(listSizeOrder_remained))):
-        # print(i, arg_i)
+        # print("i, arg_i = " + str(i) +", " + str(arg_i))
         Paths = np.array([[i]])
         for l, arg_l in zip( [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3], range(16+3)):
+            # print("under " + str(arg_i) + " l=" + str(l))
             new=np.empty( shape=(0,0))
             if arg_l < 15:  # 至多增加15個長度
                 for j in range(Paths.shape[0]):
+                    print("(arg_i, l, j, PathsNum) = " + str(arg_i) + " " + str(l) + " " + str(j) +" " +  str(Paths.shape[0]))
                     Path=Paths[j].reshape(1,-1)
-                    Parity_computed= np.zeros((1,8),dtype=int)
-                    if l >= 4:
+                    pathArgNa = np.where( Path[0] < 0 )[0]
+                    Parity_computed = -1 * np.ones((1,8),dtype=int)
+                    
+                    calculatedParity = False
+                    if l >= 4 and ( len(pathArgNa) == 0 or pathArgNa[0]+2<Path.shape[1] ): # 只有在這些條件下 才需要算出parity
+                        calculatedParity = True
                         Parity_computed, _ = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityDistribution, l, useWhichMatrix, {})
-                    # print("Parity_computed is: " + str(Parity_computed) )
-                    PathContainNa = len( np.where( Path[0] < 0 )[0] )
-                    hasCandidates = False
+                    
                     for k in range(listSize):
-                        index = l<4 or slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector)                    # If parity constraints are satisfied, update the path
-                        if index:
-                            hasCandidates = True
+                        if calculatedParity == False:   # 壓根沒算過parity， 直接接上
                             new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-                    if hasCandidates== False  and PathContainNa== 0:
-                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
+                        else: # Parity_computed 必須是有意義的
+                            index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector, parityDistribution, useWhichMatrix) 
+                            if index:
+                                new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+                            elif len(pathArgNa)== 0:
+                                new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
                 Paths = new 
+            
             else: 
                 PathsUpdated = np.empty( shape=(0,0))
                 for j in range(Paths.shape[0]):
