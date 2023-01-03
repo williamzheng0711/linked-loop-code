@@ -9,7 +9,10 @@ import matplotlib.pyplot as pyplot
 import timeit
 from scipy.linalg import hadamard
 # from stolen_things import *
+import random
 
+
+random.seed(42)
 
 def matrix_repo(dim): 
     if dim == 2:

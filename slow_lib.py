@@ -103,9 +103,13 @@ def Slow_decoder_fader(decBetaNoised, decBetaPos, L,J,B,parityLengthVector,messa
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
 
             usedRootsIndex.append(i)     
-            print(str(arg_i) + " 又跑完了一個root" + "  ******* 有一條消息 *******")   
+            # print(str(arg_i) + " 又跑完了一個root" + "  ******* 有一條消息 *******")   
 
     return tree_decoded_tx_message, usedRootsIndex
+
+
+
+
 
 
 def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,messageLengthVector,listSize, parityDistribution, usedRootsIndex, useWhichMatrix):
@@ -123,7 +127,6 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
 
     tree_decoded_tx_message = np.empty(shape=(0,0))
 
-
     targetingSections = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0]
 
     for i, arg_i in zip(listSizeOrder_remained, np.arange(len(listSizeOrder_remained))):
@@ -136,18 +139,17 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
                 break
 
             new=np.empty( shape=(0,0))
-            if arg_l < 15:  # 至多增加15個長度
+            if l!=0 :  # 至多增加15個長度
                 for j in range(Paths.shape[0]):
-                    Path = Paths[j].reshape(1,-1)
-                    # print(Path[0])
+                    Path = Paths[j].reshape(1,-1)                   # print(Path[0])
                     pathArgNa = np.where( Path[0] < 0 )[0]          # print("pathArgNa" + str(pathArgNa))   打印出來是 [3] 這樣
                     Parity_computed = -1 * np.ones((1,8),dtype=int)
                     
-                    if l >= 4 and ( len(pathArgNa) == 0 or pathArgNa[0]+ 4 < l ): # 只有在這些條件下 才算parity （否則壓根算不出）
+                    if l >= 4: 
                         Parity_computed, _ = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityDistribution, l, useWhichMatrix, {})
                     
                     for k in range(listSize):
-                        if l < 4 or (len(pathArgNa) > 0 and pathArgNa[0] == l-1): # 一定沒算過 parity
+                        if l < 4:
                             new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
                         else :  # now l >= 4:
                             index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector, parityDistribution, useWhichMatrix) 

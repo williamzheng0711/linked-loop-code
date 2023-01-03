@@ -1,9 +1,11 @@
+import random
 import numpy as np
 from utils import *
 import time
 from fader_utils import *
 from slow_lib import *
 
+random.seed(42)
 
 # Parameter settings
 w = 128                             # length of each user's uncoded message
@@ -14,9 +16,9 @@ M=2**J                              # base case M = 2**16
 messageLengthVector = np.subtract(J*np.ones(L, dtype = 'int'), parityLengthVector).astype(int)
 Pa = np.sum(parityLengthVector)          # Total number of parity check bits
 Ml = np.sum(messageLengthVector)         # Total number of information bits
-K = 8                                   # number of active users
+K = 10                                   # number of active users
 N = int((30000 / 2**16)*M)               # number of channel uses (real d.o.f)
-numAMPIter = 1                           # number of AMP iterations to perform
+numAMPIter = 2                           # number of AMP iterations to perform
 listSize = K + int(np.ceil(K/20))        # list size retained per section after AMP converges
 sigma_n = 1                         # AWGN noise standard deviation
 SNR = 5                             # SNR (in dB) to play with

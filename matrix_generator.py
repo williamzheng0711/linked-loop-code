@@ -1,4 +1,6 @@
 import numpy as np
+import random
+
 
 
 def check_all_possiblility(dim, trials):
