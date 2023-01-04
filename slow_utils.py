@@ -5,10 +5,10 @@ from binmatrix import *
 
 def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribution, toCheck, useWhichMatrix, pathDict):
     # if path length  = 2
-    # then we wanna have parity for section 2. section2Check = 2
+    # then we wanna have parity for section 2. toCheck = 2
     parityDist = parityDistribution[:,toCheck].reshape(1,-1)[0]
     # print("----------parityDist: " + str(parityDist))
-    deciders = np.nonzero(parityDist)[0]
+    deciders = np.nonzero(parityDist)[0] # deciders  是toCheck的deciders
     # print("parityDependents = " + str(parityDependents))
     focusPath = Path[0]
 
@@ -29,23 +29,23 @@ def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribu
 
 def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLengthVector, parityDistribution, useWhichMatrix):
     
-    Lpath = Path.shape[1] # 當Lpath<=15 也是 現在targeting的section 的意思
+    Lpath = Path.shape[1] # 當Lpath<16 也是 現在target的section 的意思
     focusPath = Path[0]
     losts = np.where( focusPath < 0 )[0]
 
     if Lpath < 16:  # Path 還在生長階段
         if len(losts) == 0: # 沒有 lost 最簡單的情況
-            Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthVector[Lpath]:(Lpath+1)*J]
+            Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthVector[Lpath]:(Lpath+1)*J]    # 第k行的第Lpath section的parity
             if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
                 return True  
             else: 
-                return False
+                return False 
         
         else:   # 有lost
             # 先考慮 lost 發生在很久之前
             lostSection = losts[0]          # 有且僅有一個lost
             if Lpath - lostSection > 4:     # 目前section - lostSection > 4 說明lost已經在過去被處理好了
-                Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthVector[Lpath]:(Lpath+1)*J]
+                Parity = cs_decoded_tx_message[k,Lpath*J+messageLengthVector[Lpath]:(Lpath+1)*J]  # 第k行的第Lpath section的parity
                 if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
                     return True
                 else: 
@@ -57,15 +57,23 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
             saverSections = np.nonzero(parityDistribution[lostSection])[0]        # then saverSections = [5, 6, 7, 8]
             availSavers = [ saver for saver in saverSections if (saver <= Lpath and np.mod(saver-1,16) <= Lpath and np.mod(saver-2,16) <= Lpath and np.mod(saver-3,16) <= Lpath and np.mod(saver-4,16) <= Lpath) ]
             # print("Lpath=" + str(Lpath) + "  availSavers=" + str(availSavers) + "  lostSection=" + str(lostSection) + "  Path:" + str(focusPath))
+            assert len(availSavers) > 0
+
             if len(availSavers) <= 1: # e.g. [5, 6]
                 return True
 
             # 考慮至少有兩個以供驗算：
             solutions = np.empty((0,0), dtype=int)
             for saver in availSavers: # saver != lostSection
+                assert saver==k or saver==np.mod(lostSection+1,16) or saver==np.mod(lostSection+2,16) or saver==np.mod(lostSection+3,16) or saver==np.mod(lostSection+4,16)
+                
+                row = 0
+                if saver < Lpath:
+                    row = focusPath[saver]
+                else:
+                    assert saver == Lpath
+                    row = k
 
-                row = focusPath[saver] if saver < Lpath else k
-                assert row >=0
                 parityDist = parityDistribution[:,saver].reshape(1,-1)[0]
                 saverDeciders = np.nonzero(parityDist)[0]
                 minuend = cs_decoded_tx_message[row, saver*J+messageLengthVector[saver] : (1+saver)*J ]  # 被減數 Aka p(saver)
@@ -73,8 +81,12 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                 for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
                     if (saverDecider != lostSection):
                         gen_mat = matrix_repo(dim=8)[useWhichMatrix[saverDecider][saver]] 
-                        subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[row, saverDecider*J : saverDecider*J+messageLengthVector[saverDecider]],gen_mat) # 都是 info * G
-                
+                        if saverDecider != Lpath:
+                            subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLengthVector[saverDecider]],gen_mat) # 都是 info * G
+                        else:
+                            assert saverDecider == Lpath
+                            subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[k,saverDecider*J:saverDecider*J+messageLengthVector[saverDecider]],gen_mat) # 都是 info * G
+
                 subtrahend = np.mod(subtrahend, 2)
                 gen_mat = matrix_repo(dim=8)[useWhichMatrix[lostSection][saver]]
                 gen_binmat = BinMatrix(gen_mat)
@@ -82,6 +94,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                 theLostPart = np.mod( np.matmul(  np.mod(minuend - subtrahend,2) , gen_binmat_inv ), 2)
                 solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
             
+            # print(solutions)
             if np.all(solutions == solutions[0]):
                 return True
             else: 
@@ -94,15 +107,15 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
             Recovered_info = -1 * np.ones((1,8),dtype=int)
             solutions = np.empty((0,0), dtype=int)
             saverSections = np.nonzero(parityDistribution[lostSection])[0]
-            for saver in saverSections:
+            for saver in saverSections:         # if lostSection = 12, saverSections = [13, 14, 15, 16]
                 parityDist = parityDistribution[:,saver].reshape(1,-1)[0]
-                saverDeciders = np.nonzero(parityDist)[0]
+                saverDeciders = np.nonzero(parityDist)[0]   # if saver = 13, saverDeciders = [9, 10, 11, 12]
                 minuend = cs_decoded_tx_message[ focusPath[saver], saver*J+messageLengthVector[saver] : (1+saver)*J ]  # 被減數 Aka p(saver)
                 subtrahend = np.zeros(8, dtype=int) # 減數
                 for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
                     if (saverDecider != lostSection):
                         gen_mat = matrix_repo(dim=8)[useWhichMatrix[saverDecider][saver]] 
-                        subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[ focusPath[saver], saverDecider*J:saverDecider*J+messageLengthVector[saverDecider]],gen_mat)
+                        subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[ focusPath[saverDecider], saverDecider*J:saverDecider*J+messageLengthVector[saverDecider]],gen_mat)
                 
                 subtrahend = np.mod(subtrahend, 2)
                 gen_mat = matrix_repo(dim=8)[useWhichMatrix[lostSection][saver]] 
@@ -119,20 +132,21 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
 
             # 走到這裡的一定已經算過 info了
             for ll in range(16): # 每個section都直接算一遍
-                llParityDist = parityDistribution[:,ll].reshape(1,-1)[0]
-                llDeciders = np.nonzero(llParityDist)[0]
-                Parity_computed_ll = np.zeros((1,8),dtype=int)
-                for llDecider in llDeciders:
-                    gen_mat = matrix_repo(dim=8)[useWhichMatrix[llDecider][ll]] 
-                    if llDecider == lostSection:
-                        Parity_computed_ll = Parity_computed_ll + np.matmul(Recovered_info, gen_mat)
-                    else: 
-                        Parity_computed_ll = Parity_computed_ll + np.matmul(cs_decoded_tx_message[Path[0][llDecider], llDecider*J:llDecider*J+8], gen_mat)
-                Parity_computed_ll = np.mod(Parity_computed_ll, 2)
-                flag_ll = sum( np.abs(Parity_computed_ll - cs_decoded_tx_message[Path[0][ll], ll*J+messageLengthVector[ll]: (ll+1)*J]) )
-                if flag_ll!=0:
-                    print("一條完整（有lost）的path 在這個section出錯" + str(ll))
-                    return False
+                if ll!=lostSection:
+                    llParityDist = parityDistribution[:,ll].reshape(1,-1)[0]
+                    llDeciders = np.nonzero(llParityDist)[0]
+                    Parity_computed_ll = np.zeros((1,8),dtype=int)
+                    for llDecider in llDeciders:
+                        gen_mat = matrix_repo(dim=8)[useWhichMatrix[llDecider][ll]] 
+                        if llDecider == lostSection:
+                            Parity_computed_ll = Parity_computed_ll + np.matmul(Recovered_info, gen_mat)
+                        else: 
+                            Parity_computed_ll = Parity_computed_ll + np.matmul(cs_decoded_tx_message[Path[0][llDecider], llDecider*J:llDecider*J+8], gen_mat)
+                    Parity_computed_ll = np.mod(Parity_computed_ll, 2)
+                    flag_ll = sum( np.abs(Parity_computed_ll.reshape(-1) - cs_decoded_tx_message[Path[0][ll], ll*J+messageLengthVector[ll]: (ll+1)*J].reshape(-1) ))
+                    if flag_ll!=0:
+                        print("一條完整(有lost)的path 在這個section出錯" + str(ll))
+                        return False
             return True
         else:
             # 沒有lost的
@@ -144,9 +158,9 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                     gen_mat = matrix_repo(dim=8)[useWhichMatrix[llDecider][ll]] 
                     Parity_computed_ll = Parity_computed_ll + np.matmul(cs_decoded_tx_message[Path[0][llDecider], llDecider*J:llDecider*J+8], gen_mat)
                 Parity_computed_ll = np.mod(Parity_computed_ll, 2)
-                flag_ll = sum( np.abs(Parity_computed_ll - cs_decoded_tx_message[Path[0][ll], ll*J+messageLengthVector[ll]: (ll+1)*J]) )
+                flag_ll = sum( np.abs(Parity_computed_ll.reshape(-1) - cs_decoded_tx_message[Path[0][ll], ll*J+messageLengthVector[ll]: (ll+1)*J].reshape(-1) ))
                 if flag_ll!=0:
-                    print("一條完整（沒lost）的path 在這個section出錯" + str(ll))
+                    print("一條完(沒lost)的path 在這個section出錯" + str(ll))
                     return False
             return True
 

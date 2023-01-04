@@ -133,7 +133,7 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
         Paths = np.array([[i]])
         for l, arg_l in zip( targetingSections, range(len(targetingSections))):
             # print("under " + str(arg_i) + " l=" + str(l))
-            print( "Now targeting section: " + str(l) + " No. of paths: " + str(Paths.shape[0]) + " How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
+            print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
             if Paths.shape[1] == 0: # 沒path了 換下一個root吧
                 print("-------")
                 break
