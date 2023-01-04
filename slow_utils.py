@@ -101,7 +101,6 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                 return False
 
     else: # Path is already full
-        print("開始檢查一條完整的")
         if len(losts) >0: # 有lost的
             lostSection = losts[0]
             Recovered_info = -1 * np.ones((1,8),dtype=int)
@@ -170,6 +169,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
 
 def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L, useWhichMatrix):
     recovered_msg = np.array([], dtype= int).reshape(1,-1)
+    lostSection = sectionLost[0]
     for ll in np.arange(L):
         if ll not in sectionLost:
             recovered_msg = np.concatenate( (recovered_msg, decoded_message[0][ ll*J : ll*J+messageLengthVector[ll] ].reshape(1,-1)[0]) , axis=None )
@@ -184,20 +184,19 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
 
                 subtrahend = np.zeros(8, dtype=int)
                 for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
-                    if (saverDecider != sectionLost):
+                    if (saverDecider != lostSection):
                         gen_mat = matrix_repo(dim=8)[useWhichMatrix[saverDecider][saver]] 
                         subtrahend = subtrahend + np.matmul( decoded_message[0, saverDecider*J : saverDecider*J+8], gen_mat)
                 
                 subtrahend = np.mod(subtrahend, 2)
-                gen_mat = matrix_repo(dim=8)[useWhichMatrix[sectionLost][saver]] 
+                gen_mat = matrix_repo(dim=8)[useWhichMatrix[lostSection][saver]] 
                 gen_binmat = BinMatrix(gen_mat)
                 gen_binmat_inv = np.array(gen_binmat.inv())
                 theLostPart = np.mod( np.matmul(  np.mod(minuend - subtrahend,2) , gen_binmat_inv ), 2)
                 solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
 
-            print(" -------- ")
-            print(solutions)
-            print(decoded_message)
+            # print(" -------- ")
+            # print(solutions)
             
             if np.all(solutions == solutions[0]):
                 recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)

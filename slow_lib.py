@@ -162,9 +162,10 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
                 Paths = new 
             
             else: # 不再增加長度了
-                print("開始檢查完整的path們")
+                print("!!!!開始檢查完整的path們!!!")
                 PathsUpdated = np.empty( shape=(0,0))
                 for j in range(Paths.shape[0]):
+                    print("****開始檢查一條完整的**** 第" + str(j) +"條path")
                     isOkay = False
                     Path = Paths[j].reshape(1,-1)
                     isOkay = slow_parity_check(_, Path,_, cs_decoded_tx_message,J,messageLengthVector, parityDistribution, useWhichMatrix)
