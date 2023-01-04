@@ -126,7 +126,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
             if np.all(solutions == solutions[0]):
                 Recovered_info = solutions[0]
             else: 
-                print("因為沒有解，不行")
+                # print("因為沒有解，不行")
                 return False
 
             # 走到這裡的一定已經算過 info了
@@ -159,7 +159,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                 Parity_computed_ll = np.mod(Parity_computed_ll, 2)
                 flag_ll = sum( np.abs(Parity_computed_ll.reshape(-1) - cs_decoded_tx_message[Path[0][ll], ll*J+messageLengthVector[ll]: (ll+1)*J].reshape(-1) ))
                 if flag_ll!=0:
-                    print("一條完(沒lost)的path 在這個section出錯" + str(ll))
+                    # print("一條完(沒lost)的path 在這個section出錯" + str(ll))
                     return False
             return True
 

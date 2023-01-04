@@ -28,6 +28,9 @@ P = 2*w*EbNo/N                      # Power calculated
 Phat = N*P/L                        # Power hat
 
 
+print("----------Start Rocking----------")
+
+
 # Outer code encoder and Rayleigh at users sides
 parityDistribution, useWhichMatrix = generate_parity_distribution_evenly(identity=True) 
 # print(parityDistribution)
@@ -103,6 +106,8 @@ rxBits_corrected = Slow_corrector_fader(decBetaNoised=decBetaSignificants, decBe
 print("corrected shape: " + str( rxBits_corrected.shape))
 print("txBits_remained shape is :" + str(txBits_remained.shape))
 print(rxBits_corrected)
+if txBits_remained.shape[0] == w:
+    txBits_remained = txBits_remained.reshape(1,-1)
 
 # Check how many are true amongst those "corrected"
 corrected = 0
