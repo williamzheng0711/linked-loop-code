@@ -144,7 +144,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                     Parity_computed_ll = np.mod(Parity_computed_ll, 2)
                     flag_ll = sum( np.abs(Parity_computed_ll.reshape(-1) - cs_decoded_tx_message[Path[0][ll], ll*J+messageLengthVector[ll]: (ll+1)*J].reshape(-1) ))
                     if flag_ll!=0:
-                        print("一條完整(有lost)的path 在這個section出錯" + str(ll))
+                        # print("一條完整(有lost)的path 在這個section出錯" + str(ll))
                         return False
             return True
         else:
@@ -200,5 +200,6 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
             
             if np.all(solutions == solutions[0]):
                 recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
+                print("This candidate is valid.")
     
     return recovered_msg.reshape(1,-1)

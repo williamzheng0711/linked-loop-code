@@ -133,7 +133,7 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
         Paths = np.array([[i]])
         for l, arg_l in zip( targetingSections, range(len(targetingSections))):
             # print("under " + str(arg_i) + " l=" + str(l))
-            print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
+            # print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
             if Paths.shape[1] == 0: # 沒path了 換下一個root吧
                 print("-------")
                 break
@@ -162,10 +162,10 @@ def Slow_corrector_fader(decBetaNoised, decBetaPos,L,J,B,parityLengthVector,mess
                 Paths = new 
             
             else: # 不再增加長度了
-                print("!!!!開始檢查完整的path們!!!")
+                # print("!!!!開始檢查完整的path們!!!")
                 PathsUpdated = np.empty( shape=(0,0))
                 for j in range(Paths.shape[0]):
-                    print("****開始檢查一條完整的**** 第" + str(j) +"條path")
+                    # print("****第" + str(j) +"條path, 檢查開始")
                     isOkay = False
                     Path = Paths[j].reshape(1,-1)
                     isOkay = slow_parity_check(_, Path,_, cs_decoded_tx_message,J,messageLengthVector, parityDistribution, useWhichMatrix)
