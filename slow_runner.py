@@ -2,7 +2,6 @@ import random
 import numpy as np
 from utils import *
 import time
-from fader_utils import *
 from slow_lib import *
 
 random.seed(42)
