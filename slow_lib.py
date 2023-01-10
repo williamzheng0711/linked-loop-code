@@ -187,7 +187,7 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
                 Paths = PathsUpdated
 
         if Paths.shape[0] >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
-            print(" ** We obtained some candidate!!")
+            print(" | We obtained some candidate!!")
             optimalOne = 0
             if Paths.shape[0] >= 2:
                 pathVar = np.zeros((Paths.shape[0]))

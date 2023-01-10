@@ -575,7 +575,7 @@ def amp_prior_art_Rayleigh(y, σ_n, P, L, M, T, Ab, Az, p0, K, sigma_R, convertT
     for t in range(T):
         
         τ = np.sqrt(np.sum(z**2)/n)
-        print(" ** now is iter" + str(t) + " and tau is: " + str(τ))
+        print(" | now is iter" + str(t) + " and tau is: " + str(τ))
 
         # effective observation
         r = (np.sqrt(Phat)*β + Az(z)).astype(np.longdouble) 
@@ -1220,10 +1220,9 @@ def analyze_genie_metrics(decTempBETA, L, J, listSize, txBitsParitized, K):
         if (flag_i ==0):
             error_box.append(num_not_match_i)
             if (num_not_match_i == 1): 
-                print(" ** Some one-outage message has that one-outage at section:"  + str(oneOutageSection))
-    print(" ** genie recovers " + str(thisTimeGenie) +" out of " + str(K))
-    print(" ** How many sections do they lose? " + str(error_box))
-    # print(" ** by genie analysis: error_box mean is " + str(np.mean(error_box))  )
+                print(" | Some one-outage message has that one-outage at section:"  + str(oneOutageSection))
+    print(" | genie recovers " + str(thisTimeGenie) +" out of " + str(K))
+    print(" | How many sections do they lose? " + str(error_box))
 
 
 

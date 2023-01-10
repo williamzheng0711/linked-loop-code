@@ -67,15 +67,15 @@ y = (x + z).reshape(-1, 1)
 
 # *Inner code decoder part. The Approximate message passing (AMP) that deals with Rayleigh. No need to change.
 p0 = 1-(1-1/M)**K
-print("-AMP starts.")
+print(" -AMP starts.")
 estimated_β = amp_prior_art_Rayleigh(y,σ_n,P,L,M,numAMPIter,Ab,Az,p0,K,σ_R,False) 
-print("-AMP calculation is done.")
+print(" -AMP part is done.")
 
 
 ## *calculate and report genie statistics. No need to change. 
-print("-Genie part starts:")
+print(" -Genie part starts:")
 analyze_genie_metrics(estimated_β,L,J,listSize,txBitsParitized,K)
-print("-Genie part is done.")
+print(" -Genie part is done.")
 
 
 
@@ -87,11 +87,11 @@ sigValues, sigPos = get_sig_values_and_positions(estimated_β, L, J, listSize)
 
 
 # *Outer code decoder. PAINPOINT
-print("-Phase 1 (decoding) now starts.")
+print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
 rxBits, usedRootsIndex = slow_decoder(sigValues,sigPos,L,J,w,parityLengthVector,messageLengthVector,listSize,parityInvolved,whichGMatrix)
 toc = time.time()
-print(" ** Time of new algo " + str(toc-tic))
+print(" | Time of new algo " + str(toc-tic))
 if rxBits.shape[0] > K: 
     rxBits = rxBits[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
 
@@ -105,17 +105,17 @@ for i in range(txBits.shape[0]):
     thisIter += int(incre)
     if (incre == False):
         txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
-print(" ** In phase 1, we decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
-print("-Phase 1 is done.")
+print(" | In phase 1, we decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
+print(" -Phase 1 is done.")
 
 
 
 # *Corrector. PAINPOINT
-print("-Phase 2 correction now starts.")
+print(" -Phase 2 (correction) now starts.")
 rxBits_corrected= slow_corrector(sigValues,sigPos,L,J,w,parityLengthVector,messageLengthVector,
                                 listSize,parityInvolved,usedRootsIndex,whichGMatrix)
-print(" ** corrected shape: " + str( rxBits_corrected.shape))
-print(" ** txBits_remained shape is :" + str(txBits_remained.shape))
+print(" | corrected shape: " + str( rxBits_corrected.shape))
+print(" | txBits_remained shape is :" + str(txBits_remained.shape))
 
 if txBits_remained.shape[0] == w:
     txBits_remained = txBits_remained.reshape(1,-1)
@@ -129,8 +129,8 @@ if rxBits_corrected.size:
         incre = 0
         incre = np.equal(txBits_remained[i,:],rxBits_corrected).all(axis=1).any()
         corrected += int(incre)
-    print(" ** In phase 2, we corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected.shape[0]) )
+    print(" | In phase 2, we corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected.shape[0]) )
 else: 
-    print(" ** Nothing was corrected")
+    print(" | Nothing was corrected")
 
-print("-Phase 2 is done, this simulation terminates.")
+print(" -Phase 2 is done, this simulation terminates.")

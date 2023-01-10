@@ -194,6 +194,6 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
             
             if np.all(solutions == solutions[0]):
                 recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
-                print(" ** This candidate is valid.")
+                print(" | This candidate is valid.")
     
     return recovered_msg.reshape(1,-1)
