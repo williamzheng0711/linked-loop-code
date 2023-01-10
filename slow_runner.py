@@ -28,22 +28,31 @@ EbNo = 10**(SNR/10)                                 # Eb/No
 P = 2*w*EbNo/N                                      # Power calculated
 Phat = N*P/L                                        # Power hat
 sigma_Rayleigh = 1                                  # (standard) Rayleigh fading paremater, 
-                                                        # or σ in the formula given in https://en.wikipedia.org/wiki/Rayleigh_distribution#Definition
-parityDistribution, useWhichMatrix = generate_parity_distribution_evenly(identity=False) 
+                                                        # or σ in the formula given in 
+                                                        # https://en.wikipedia.org/wiki/Rayleigh_distribution#Definition
 
+parityInvolved=get_parity_involvement_matrix(L)     # An L x L matrix.
+                                                        # For each row i, the j-th entry = w/L(=8), iff, w(i) involves the construction of p(j). 
+                                                        # E.g., parityInvolved[0] = [0,8,8,8,8,0,0,0,0,0,0,0,0,0,0,0]
+whichGMatrix=get_G_matrices(parityInvolved)         # An L x L matrix. Only (i,j) s.t. parityInvolved[i][j]!=0 matters.
+                                                        # For (i,j) of our interest, 
+                                                        # whichGMatrix[i][j] returns a code (an index) for some specific G_{i,j} matrix.
+                                                        # Where G_{i,j} matrix is the parity generating matrix needed to 
+                                                        # calculate the contribution of w(i) while calculating p(j)
+print(whichGMatrix)
 
 
 print("----------Start Rocking----------")          # Simulation starts!!!!!
 
 
 # Outer-code encoding
-txBits = np.random.randint(low=2, size=(K, w))      # Generate random messages for K active users. txBits.size is (K,w)
+txBits = np.random.randint(low=2, size=(K, w))      # Generate random binary messages for K active users. Hence txBits.shape is [K,w]
 txBitsParitized = Slow_encode(tx_message=txBits,    # Add parities. txBitsParitized.size is (K,w+Pa)
                                 K=K, L=L, J=J, P=Pa, Ml=Ml, 
                                 messageLengthVector=messageLengthVector, 
                                 parityLengthVector=parityLengthVector, 
-                                parityDistribution=parityDistribution, 
-                                useWhichMatrix=useWhichMatrix) 
+                                parityDistribution=parityInvolved, 
+                                useWhichMatrix=whichGMatrix) 
 
 BETA = convert_bits_to_sparse_Rayleigh(txBitsParitized, L, J, K, sigma_Rayleigh)    # Rayleigh noises applied    
 
@@ -53,13 +62,13 @@ Ab, Az = sparc_codebook(L, M, N)                        # Generate the binned SP
 innerOutput=Ab(BETA)    
 
 
-# Channel Part.                               
+# The channel Part.                               
 x = np.sqrt(Phat)*innerOutput                           # x shape: (38400, 1) = (N, 1)
 z = np.random.randn(N, 1) * sigma_n
 y = (x + z).reshape(-1, 1)
 
 
-# Inner code Decoder. The Approximate message passing part.
+# Inner code Decoder. The Approximate message passing (AMP) part.
 p0 = 1-(1-1/M)**K
 decTempBETA = amp_prior_art_Rayleigh(y, sigma_n, P, L, M, numAMPIter, Ab, Az, p0, K, sigma_Rayleigh, False) 
 
@@ -77,7 +86,7 @@ tic = time.time()
 rxBits, usedRootsIndex = Slow_decoder_fader(L=L, J=J, B=w, 
                                             decBetaNoised=decBetaSignificants, decBetaPos=decBetaSignificantsPos, 
                                             parityLengthVector=parityLengthVector, messageLengthVector=messageLengthVector,
-                                            listSize=listSize, parityDistribution=parityDistribution, useWhichMatrix=useWhichMatrix)
+                                            listSize=listSize, parityDistribution=parityInvolved, useWhichMatrix=whichGMatrix)
 toc = time.time()
 print("Time of new algo " + str(toc-tic))
 if rxBits.shape[0] > K: 
@@ -102,8 +111,8 @@ print(" 1st phase: correctly recovers " + str(thisIter) + " out of " +str(rxBits
 rxBits_corrected = Slow_corrector_fader(decBetaNoised=decBetaSignificants, decBetaPos=decBetaSignificantsPos, 
                                         L=L, J=J, B=w, 
                                         parityLengthVector=parityLengthVector, messageLengthVector=messageLengthVector,
-                                        listSize=listSize, parityDistribution=parityDistribution, usedRootsIndex= usedRootsIndex, 
-                                        useWhichMatrix= useWhichMatrix)
+                                        listSize=listSize, parityDistribution=parityInvolved, usedRootsIndex= usedRootsIndex, 
+                                        useWhichMatrix= whichGMatrix)
 print("corrected shape: " + str( rxBits_corrected.shape))
 print("txBits_remained shape is :" + str(txBits_remained.shape))
 print(rxBits_corrected)

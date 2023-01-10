@@ -204,78 +204,72 @@ def generate_parity_distribution(identity=False):
 
 
 
-def generate_parity_distribution_evenly(identity=False):
+def get_parity_involvement_matrix(L):
     """
-    Sum of array elements over a given axis.
+    Construct the parity involvement matrix.
 
     Parameters
     ----------
-    a : array_like
-        Elements to sum.
-    axis : None or int or tuple of ints, optional
-        Axis or axes along which a sum is performed.  The default,
-        axis=None, will sum all of the elements of the input array.  If
-        axis is negative it counts from the last to the first axis.
-
-        .. versionadded:: 1.7.0
-
-        If axis is a tuple of ints, a sum is performed on all of the axes
-        specified in the tuple instead of a single axis or all the axes as
-        before.
-    dtype : dtype, optional
-        The type of the returned array and of the accumulator in which the
-        elements are summed.  The dtype of `a` is used by default unless `a`
-        has an integer dtype of less precision than the default platform
-        integer.  In that case, if `a` is signed then the platform integer
-        is used while if `a` is unsigned then an unsigned integer of the
-        same precision as the platform integer is used.
-    out : ndarray, optional
-        Alternative output array in which to place the result. It must have
-        the same shape as the expected output, but the type of the output
-        values will be cast if necessary.
-    keepdims : bool, optional
-        If this is set to True, the axes which are reduced are left
-        in the result as dimensions with size one. With this option,
-        the result will broadcast correctly against the input array.
-
-        If the default value is passed, then `keepdims` will not be
-        passed through to the `sum` method of sub-classes of
-        `ndarray`, however any non-default value will be.  If the
-        sub-class' method does not implement `keepdims` any
-        exceptions will be raised.
-    initial : scalar, optional
-        Starting value for the sum. See `~numpy.ufunc.reduce` for details.
-
-        .. versionadded:: 1.15.0
-
-    where : array_like of bool, optional
-        Elements to include in the sum. See `~numpy.ufunc.reduce` for details.
-
-        .. versionadded:: 1.17.0
+    None.
 
     Returns
     -------
-    sum_along_axis : ndarray
-        An array with the same shape as `a`, with the specified
-        axis removed.   If `a` is a 0-d array, or if `axis` is None, a scalar
-        is returned.  If an output array is specified, a reference to
-        `out` is returned.
-    """
-    parityDistribution = np.zeros((16,16),dtype=int)
-    for l in np.arange(16):
-        for i in [1,2,3,4]:
-            parityDistribution[l][(l+i) % 16] = 8     
+    parityInvolved : ndarray (L by L matrix)
+        For each row i, the j-th entry equals w/L(=8) if w(i) involves the construction of p(j). 
+        Otherwise equals 0.
 
+    Notes
+    -----
+    E.g., 
+        parityInvolved[0] = [0,8,8,8,8,0,0,0,0,0,0,0,0,0,0,0]. As w(0) is involved in determining p(1), p(2), p(3) and p(4).
+        
+        For the same reason, parityInvolved[1] = [0,0,8,8,8,8,0,0,0,0,0,0,0,0,0,0], etc..
+
+    """
+    parityInvolved = np.zeros((L,L),dtype=int)
+    for l in np.arange(L):
+        for i in [1,2,3,4]:
+            parityInvolved[l][ (l+i) % L] = 8     
+
+    return parityInvolved
+
+
+def get_G_matrices(parityInvolved):
+    """
+    Construct a index matrix that specifies G_{i,j} matrices for all valid (i,j) pair.
+
+    Parameters
+    ----------
+    parityInvolved : ndarray (L by L matrix)
+        For each row i, the j-th entry equals w/L(=8) if w(i) involves the construction of p(j). 
+        Otherwise equals 0.
+
+    Returns
+    -------
+    whichGMatrix : ndarray (L by L matrix)
+        Only (i,j) s.t. parityInvolved[i][j] != 0 matters. Otherwise whichGMatrix[i][j] = -1.
+        
+        For (i,j) of our interest, whichGMatrix[i][j] returns a code (an index) for some specific G_{i,j} matrix stored in matrix_repo(8).
+        
+        Where G_{i,j} matrix is the parity generating matrix needed to 
+        calculate the contribution of w(i) while calculating p(j)
+
+    Notes
+    -----
+    For instance, 
+        whichGMatrix[0] can be [-1  3  1  0  0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1]. 
+        Only those >-1 entries matter.
+    """
     # Choose G_{row, col}, note that row, col means info in (row), that related to (col) is by an matrix "choice"
-    useWhichMatrix = np.zeros((16,16),dtype=int)
+
+    whichGMatrix = -1 * np.ones((16,16),dtype=int)
     for row in np.arange(0,16):
         for col in np.arange(0, 16):
-            if parityDistribution[row][col]!=0:
-                dim = parityDistribution[row][col]
+            if parityInvolved[row][col]!=0:
+                dim = parityInvolved[row][col]
                 choices = matrix_repo(dim)
-                useWhichMatrix[row][col] = np.random.randint(low=0, high=len(choices))
-    return parityDistribution, useWhichMatrix
-
+                whichGMatrix[row][col] = np.random.randint(low=0, high=len(choices))
+    return whichGMatrix
 
 
 # P : Total number of parity check bits
