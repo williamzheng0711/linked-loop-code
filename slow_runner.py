@@ -29,27 +29,26 @@ P = 2*w*EbNo/N                                      # Power calculated
 Phat = N*P/L                                        # Power hat
 sigma_Rayleigh = 1                                  # (standard) Rayleigh fading paremater, 
                                                         # or σ in the formula given in https://en.wikipedia.org/wiki/Rayleigh_distribution#Definition
+parityDistribution, useWhichMatrix = generate_parity_distribution_evenly(identity=False) 
 
 
-print("----------Start Rocking----------")
 
-# Outer code encoder and Rayleigh at users sides
-parityDistribution, useWhichMatrix = generate_parity_distribution_evenly(identity=True) 
-# print(parityDistribution)
-# in this code, first row of parityDistribution will be [0 8 8 8 8 0 0 0 0 0 0 0 0 0 0 0]
+print("----------Start Rocking----------")          # Simulation starts!!!!!
 
 
-txBits = np.random.randint(low=2, size=(K, w))                                      # Generate random messages for K active users
-txBitsParitized = Slow_encode(tx_message=txBits, K=K, L=L, J=J, P=Pa, Ml=Ml, 
-                                            messageLengthVector= messageLengthVector, 
-                                            parityLengthVector= parityLengthVector, parityDistribution= parityDistribution, 
-                                            useWhichMatrix=useWhichMatrix) # add parities to txBits, get txBitsParitized
-
+# Outer-code encoding
+txBits = np.random.randint(low=2, size=(K, w))      # Generate random messages for K active users. txBits.size is (K,w)
+txBitsParitized = Slow_encode(tx_message=txBits,    # Add parities. txBitsParitized.size is (K,w+Pa)
+                                K=K, L=L, J=J, P=Pa, Ml=Ml, 
+                                messageLengthVector=messageLengthVector, 
+                                parityLengthVector=parityLengthVector, 
+                                parityDistribution=parityDistribution, 
+                                useWhichMatrix=useWhichMatrix) 
 
 BETA = convert_bits_to_sparse_Rayleigh(txBitsParitized, L, J, K, sigma_Rayleigh)    # Rayleigh noises applied    
 
 
-# Inner encode
+# Inner-code encoding
 Ab, Az = sparc_codebook(L, M, N)                        # Generate the binned SPARC codebook
 innerOutput=Ab(BETA)    
 
