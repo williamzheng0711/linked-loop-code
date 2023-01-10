@@ -3,28 +3,22 @@ from utils import *
 from binmatrix import *
 
 
-def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityDistribution, toCheck, useWhichMatrix, pathDict):
-    # if path length  = 2
-    # then we wanna have parity for section 2. toCheck = 2
-    parityDist = parityDistribution[:,toCheck].reshape(1,-1)[0]
+def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityInvolved, toCheck, whichGMatrix):
+    # If path length  = 2, then we wanna have parity for section 2. toCheck = 2
+    parityDist = parityInvolved[:,toCheck].reshape(1,-1)[0]
     # print("----------parityDist: " + str(parityDist))
-    deciders = np.nonzero(parityDist)[0] # deciders  是toCheck的deciders
-    # print("parityDependents = " + str(parityDependents))
+    deciders = np.nonzero(parityDist)[0] # w(decider), where decider \in deciders, decide p(toCheck) collectively
     focusPath = Path[0]
 
-    Parity_computed2 = np.zeros(8, dtype=int)
-
+    Parity_computed = np.zeros(8, dtype=int)
     for decider in deciders:      # l labels the sections we gonna check to fix toCheck's parities
         if focusPath[decider] == -1:
-            return -1 * np.ones((1,8),dtype=int) , pathDict
-        gen_mat = matrix_repo(dim=8)[useWhichMatrix[decider][toCheck]] 
-        Parity_computed2 = Parity_computed2 + np.matmul( cs_decoded_tx_message[focusPath[decider], decider*J : decider*J+8], gen_mat)
+            return -1 * np.ones((1,8),dtype=int)
+        gen_mat = matrix_repo(dim=8)[whichGMatrix[decider][toCheck]] 
+        Parity_computed = Parity_computed + np.matmul( cs_decoded_tx_message[focusPath[decider], decider*J : decider*J+8], gen_mat)
+    Parity_computed = np.mod(Parity_computed, 2)
 
-    Parity_computed2 = np.mod(Parity_computed2, 2)
-    # newAddedKey = "#".join([str(item) for item in focusPath[0:len(focusPath)]])
-    # pathDict[newAddedKey] = Parity_computed2
-
-    return Parity_computed2, pathDict
+    return Parity_computed
 
 
 def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLengthVector, parityDistribution, useWhichMatrix):
@@ -200,6 +194,6 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
             
             if np.all(solutions == solutions[0]):
                 recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
-                print("This candidate is valid.")
+                print(" ** This candidate is valid.")
     
     return recovered_msg.reshape(1,-1)

@@ -260,7 +260,6 @@ def get_G_matrices(parityInvolved):
         whichGMatrix[0] can be [-1  3  1  0  0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1]. 
         Only those >-1 entries matter.
     """
-    # Choose G_{row, col}, note that row, col means info in (row), that related to (col) is by an matrix "choice"
 
     whichGMatrix = -1 * np.ones((16,16),dtype=int)
     for row in np.arange(0,16):
@@ -351,14 +350,13 @@ def generate_parity_matrix(L,messageLengthVector,parityLengthVector):
 
 def convert_bits_to_sparse_Rayleigh(encoded_tx_message,L,J,K, sigma_R):
     encoded_tx_message_sparse=np.zeros((L*2**J,1),dtype=float)
-    fading_coefficients = np.random.rayleigh(scale = sigma_R, size=K)
-    # print(fading_coefficients)
+    # Here we generate K iid random variables, each ~ Rayleigh(sigma_R)
+    fading_coefficients = np.random.rayleigh(scale = sigma_R, size=K) 
     for i in range(L):
         A = encoded_tx_message[:,i*J:(i+1)*J]
         B = A.dot(2**np.arange(J)[::-1]).reshape([K,1])
         for k in range(K):
             encoded_tx_message_sparse[i*2**J+B[k]] += fading_coefficients[k]      
-
     return encoded_tx_message_sparse
 
 def convert_bits_to_sparse(encoded_tx_message,L,J,K):
@@ -577,7 +575,7 @@ def amp_prior_art_Rayleigh(y, σ_n, P, L, M, T, Ab, Az, p0, K, sigma_R, convertT
     for t in range(T):
         
         τ = np.sqrt(np.sum(z**2)/n)
-        print("now is iter" + str(t) + " and tau is: " + str(τ))
+        print(" ** now is iter" + str(t) + " and tau is: " + str(τ))
 
         # effective observation
         r = (np.sqrt(Phat)*β + Az(z)).astype(np.longdouble) 
@@ -1222,14 +1220,14 @@ def analyze_genie_metrics(decTempBETA, L, J, listSize, txBitsParitized, K):
         if (flag_i ==0):
             error_box.append(num_not_match_i)
             if (num_not_match_i == 1): 
-                print("One outage at section:"  + str(oneOutageSection))
+                print(" ** Some one-outage message has that one-outage at section:"  + str(oneOutageSection))
     print(" ** genie recovers " + str(thisTimeGenie) +" out of " + str(K))
-    print(error_box)
-    print(" ** by genie analysis: error_box mean is " + str(np.mean(error_box))  )
+    print(" ** How many sections do they lose? " + str(error_box))
+    # print(" ** by genie analysis: error_box mean is " + str(np.mean(error_box))  )
 
 
 
-def get_signi_values_and_positions(decTempBETA, L, J, listSize):
+def get_sig_values_and_positions(decTempBETA, L, J, listSize):
     decBETA_erase_small_values = postprocess_evenlS(decTempBETA,L,J,listSize)
     decBetaSignificants = np.zeros((L, listSize) )
     decBetaSignificantsPos = np.zeros((L, listSize), dtype=int )
