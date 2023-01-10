@@ -1,34 +1,37 @@
-import random
 import numpy as np
-from utils import *
 import time
+from utils import *
 from slow_lib import *
 
-random.seed(42)
 
 # Parameter settings
-w = 128                             # length of each user's uncoded message
-L = 16                              # Number of sections/sub-blocks
-parityLengthVector = np.array([8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8],dtype=int)
-J=((w+np.sum(parityLengthVector))/L).astype(int) # Length of each coded sub-block
-M=2**J                              # base case M = 2**16
-messageLengthVector = np.subtract(J*np.ones(L, dtype = 'int'), parityLengthVector).astype(int)
-Pa = np.sum(parityLengthVector)          # Total number of parity check bits
-Ml = np.sum(messageLengthVector)         # Total number of information bits
-K = 30                                   # number of active users
-N = int((30000 / 2**16)*M)               # number of channel uses (real d.o.f)
-numAMPIter = 2                           # number of AMP iterations to perform
-listSize = K + int(np.ceil(K/20))        # list size retained per section after AMP converges
-sigma_n = 1                         # AWGN noise standard deviation
-SNR = 5                             # SNR (in dB) to play with
-sigma_Rayleigh = 1                  # Rayleigh fading paremater
-EbNo = 10**(SNR/10)                 # Eb/No
-P = 2*w*EbNo/N                      # Power calculated
-Phat = N*P/L                        # Power hat
+w = 128                                             # Length of each user's uncoded message
+L = 16                                              # Number of sections
+parityLengthVector=int(w/L)*np.ones(L,dtype=int)    # As (outer code) rate is 1/2 at this moment
+                                                        # and parities are distributed evenly into each section, 
+                                                        # the number of info bits = 
+                                                        # the number of parity bits for all sections.
+J=((w+np.sum(parityLengthVector))/L).astype(int)    # Length of each coded sub-block
+M=2**J                                              # Each coded sub-block is J-length binary, 
+                                                        # to represent it in decimal, 
+                                                        # it ranges in [0, M] = [0, 2**J].
+messageLengthVector=np.subtract(J*np.ones(L,dtype='int'),parityLengthVector).astype(int)
+Pa = np.sum(parityLengthVector)                     # Total number of parity check bits, in this case Pa=w=128
+Ml = np.sum(messageLengthVector)                    # Total number of information bits
+K = 10                                              # number of active users
+N = int((30000 / 2**16)*M)                          # number of channel uses (real d.o.f)
+numAMPIter = 2                                      # number of AMP iterations desired
+listSize = K + int(np.ceil(K/20))                   # list size retained per section after AMP converges
+sigma_n = 1                                         # AWGN noise standard deviation, hence set to 1
+SNR = 5                                             # SNR (in dB)
+EbNo = 10**(SNR/10)                                 # Eb/No
+P = 2*w*EbNo/N                                      # Power calculated
+Phat = N*P/L                                        # Power hat
+sigma_Rayleigh = 1                                  # (standard) Rayleigh fading paremater, 
+                                                        # or σ in the formula given in https://en.wikipedia.org/wiki/Rayleigh_distribution#Definition
 
 
 print("----------Start Rocking----------")
-
 
 # Outer code encoder and Rayleigh at users sides
 parityDistribution, useWhichMatrix = generate_parity_distribution_evenly(identity=True) 
