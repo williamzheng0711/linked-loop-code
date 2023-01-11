@@ -4,7 +4,12 @@ from utils import *
 from slow_lib import *
 
 
-# Parameter settings. No need to change at this moment.
+# No. of active users & SNR settles the system
+K = 10                                              # number of active users
+SNR = 5                                             # SNR (in dB)
+
+
+# Other parameter settings. No need to change at this moment.
 w = 128                                             # Length of each user's uncoded message
 L = 16                                              # Number of sections
 parityLengthVector = int(w/L)*np.ones(L,dtype=int)  # As (outer code) rate is 1/2 at this moment
@@ -18,12 +23,10 @@ M = 2**J                                            # Each coded sub-block is J-
 messageLengthVector = np.subtract(J*np.ones(L,dtype='int'),parityLengthVector).astype(int)
 Pa = np.sum(parityLengthVector)                     # Total number of parity check bits, in this case Pa=w=128
 Ml = np.sum(messageLengthVector)                    # Total number of information bits (=w)
-K = 10                                              # number of active users
 N = int((30000 / 2**16)*M)                          # number of channel uses (real d.o.f)
 numAMPIter = 2                                      # number of AMP iterations desired
 listSize = K + int(np.ceil(K/20))                   # list size retained per section after AMP converges
 σ_n = 1                                             # AWGN noise standard deviation, hence set to 1. "n" stands for "normal"
-SNR = 5                                             # SNR (in dB)
 EbNo = 10**(SNR/10)                                 # Eb/No
 P = 2*w*EbNo/N                                      # Power calculated
 Phat = N*P/L                                        # Power hat
@@ -76,7 +79,6 @@ print(" -AMP part is done.")
 print(" -Genie part starts:")
 analyze_genie_metrics(estimated_β,L,J,listSize,txBitsParitized,K)
 print(" -Genie part is done.")
-
 
 
 # *drop non-significant things in each section of estimated_β. Get ready for the decoder. No need to change.
