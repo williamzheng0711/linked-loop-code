@@ -75,10 +75,12 @@ def slow_decoder(sigValues, sigPos, L, J, B, parityLengthVector, messageLengthVe
         if tree_decoded_tx_message.size:
             if sum(result[0]) >= 0: 
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,result))
+            else: 
                 usedRootsIndex.append(listSizeOrder[idx])
         else:
             if sum(result[0]) >= 0: 
                 tree_decoded_tx_message = result
+            else: 
                 usedRootsIndex.append(listSizeOrder[idx])
 
     return tree_decoded_tx_message, usedRootsIndex
