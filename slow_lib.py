@@ -1,7 +1,7 @@
 import numpy as np
 from utils import *
 from slow_utils import *
-
+from joblib import Parallel, delayed
 
 
 
@@ -70,64 +70,18 @@ def slow_decoder(sigValues, sigPos, L, J, B, parityLengthVector, messageLengthVe
     tree_decoded_tx_message = np.empty(shape=(0,0))
     usedRootsIndex = []
 
-
-    for i, arg_i in zip(listSizeOrder, np.arange(len(listSizeOrder))):
-        # Every i is a root.
-        Paths = np.array([[i]])
-        for l in range(1, L):
-            # Grab the parity generator matrix corresponding to this section  
-            new=np.empty( shape=(0,0))
-            for j in range(Paths.shape[0]):
-                Path=Paths[j].reshape(1,-1)     # Here I used a for-loop to check validity of every Path in Paths. This is extremely slow!!!
-                Parity_computed= np.ones((1,8),dtype=int)
-                if l >= 4:
-                    Parity_computed = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityInvolved, l, whichGMatrix)
-                for k in range(listSize):
-                    index = l<4 or slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector, parityInvolved, whichGMatrix)
-                    if index: # If parity constraints are satisfied, update the path
-                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-            Paths = new 
-            # print("l=" + str(l) + ' path number now: ' + str(Paths.shape[0]))
-            if Paths.shape[0] == 0:
-                break
-        
-
-        # Let us go to check section 0, 1, 2 and 3. They are not checked in above.
-        PathsUpdated = np.empty( shape=(0,0))
-        for j in range(Paths.shape[0]):
-            isOkay = True
-            Path = Paths[j].reshape(1,-1)
-            for ll in [0,1,2,3]: # we check if p(ll) is same as what we calculated. If any doesn't match, path is discarded.
-                Parity_computed_ll = slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityInvolved, ll, whichGMatrix)
-                flag_ll = sum( np.abs(Parity_computed_ll - cs_decoded_tx_message[Path[0][ll], ll*J+messageLengthVector[ll]: (ll+1)*J]) )
-                if flag_ll !=0: 
-                    isOkay = False
-                    break
-            if isOkay:
-                PathsUpdated = np.vstack((PathsUpdated, Path)) if PathsUpdated.size else Path
-        Paths = PathsUpdated
-
-
-        # Handle multiple valid paths
-        if Paths.shape[0] >= 1:  
-            if Paths.shape[0] >= 2:
-                flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
-                if flag:
-                    tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
-                else:
-                    optimalOne = 0
-                    pathVar = np.zeros((Paths.shape[0]))
-                    for whichPath in range(Paths.shape[0]):
-                        fadingValues = []
-                        for l in range(Paths.shape[1]):     
-                            fadingValues.append( sigValues[ Paths[whichPath][l] ][l] ) 
-                        pathVar[whichPath] = np.var(fadingValues)
-                    optimalOne = np.argmin(pathVar)
-                    tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[optimalOne].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[optimalOne].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
-            elif Paths.shape[0] == 1:
-                tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthVector)
-
-            usedRootsIndex.append(i)    # update the usedRootsIndex
+    results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)(i,L,cs_decoded_tx_message, J,parityInvolved, whichGMatrix, messageLengthVector, listSize,parityLengthVector, sigValues) for i in listSizeOrder)
+    for result, idx in zip(results, range(len(results))):
+        if tree_decoded_tx_message.size:
+            if sum(result[0]) >= 0: 
+                tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,result))
+            else: 
+                usedRootsIndex.append(listSizeOrder[idx])
+        else:
+            if sum(result[0]) >= 0: 
+                tree_decoded_tx_message = result
+            else: 
+                usedRootsIndex.append(listSizeOrder[idx])
 
     return tree_decoded_tx_message, usedRootsIndex
 
@@ -211,3 +165,10 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
 
     return tree_decoded_tx_message
+
+
+
+
+
+
+
