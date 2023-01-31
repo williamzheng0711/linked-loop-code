@@ -5,7 +5,7 @@ from slow_lib import *
 
 
 # No. of active users & SNR settles the system
-K = 20                                              # number of active users
+K = 10                                              # number of active users
 SNR = 5                                             # SNR (in dB)
 
 
@@ -97,7 +97,7 @@ print(" | Time of decode " + str(toc-tic))
 if rxBits.shape[0] > K: 
     rxBits = rxBits[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
 
-print(usedRootsIndex)
+# print(usedRootsIndex)
 
 # *Check how many is correct amongst the recover (recover means first phase). No need to change.
 thisIter = 0

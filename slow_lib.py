@@ -75,12 +75,10 @@ def slow_decoder(sigValues, sigPos, L, J, B, parityLengthVector, messageLengthVe
         if tree_decoded_tx_message.size:
             if sum(result[0]) >= 0: 
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,result))
-            else: 
                 usedRootsIndex.append(listSizeOrder[idx])
         else:
             if sum(result[0]) >= 0: 
                 tree_decoded_tx_message = result
-            else: 
                 usedRootsIndex.append(listSizeOrder[idx])
 
     return tree_decoded_tx_message, usedRootsIndex
@@ -111,24 +109,15 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
                 print("-------")
                 break
 
-            new=np.empty( shape=(0,0))
+            newAll=np.empty( shape=(0,0))
             if l!=0 :  # We still need to enlarge lenth of Paths.
-                for j in range(Paths.shape[0]):
-                    Path = Paths[j].reshape(1,-1)               
-                    pathArgNa = np.where( Path[0] < 0 )[0]    
-                    Parity_computed = -1 * np.ones((1,8),dtype=int)
-                    if l >= 4: 
-                        Parity_computed = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityInvolved, l, whichGMatrix)
-                    for k in range(listSize):
-                        if l < 4:
-                            new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-                        else :  # now l >= 4:
-                            index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector, parityInvolved, whichGMatrix) 
-                            if index:
-                                new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-                    if len(pathArgNa) == 0:
-                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
-                Paths = new 
+                
+                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLengthVector) for j in range(Paths.shape[0]))
+                for survivePath in survivePaths:
+                    if survivePath.size:
+                        newAll = np.vstack((newAll, survivePath)) if newAll.size else survivePath
+
+                Paths = newAll 
             
             else: # We dont enlarge length of Paths anymore
                 PathsUpdated = np.empty( shape=(0,0))
@@ -171,4 +160,21 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
 
 
 
+def slow_correct_each_section_and_path(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLengthVector):
+    new = np.empty( shape=(0,0), dtype=int)
+    Path = Paths[j].reshape(1,-1)
+    pathArgNa = np.where( Path[0] < 0 )[0]    
+    Parity_computed = -1 * np.ones((1,8),dtype=int)
+    if l >= 4: 
+        Parity_computed = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityInvolved, l, whichGMatrix)
+    for k in range(listSize):
+        if l < 4:
+            new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+        else :  # now l >= 4:
+            index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector, parityInvolved, whichGMatrix) 
+            if index:
+                new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+    if len(pathArgNa) == 0:
+        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
 
+    return new
