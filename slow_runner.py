@@ -93,10 +93,11 @@ print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
 rxBits, usedRootsIndex = slow_decoder(sigValues,sigPos,L,J,w,parityLengthVector,messageLengthVector,listSize,parityInvolved,whichGMatrix)
 toc = time.time()
-print(" | Time of new algo " + str(toc-tic))
+print(" | Time of decode " + str(toc-tic))
 if rxBits.shape[0] > K: 
     rxBits = rxBits[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
 
+print(usedRootsIndex)
 
 # *Check how many is correct amongst the recover (recover means first phase). No need to change.
 thisIter = 0
@@ -114,8 +115,11 @@ print(" -Phase 1 is done.")
 
 # *Corrector. PAINPOINT
 print(" -Phase 2 (correction) now starts.")
+tic = time.time()
 rxBits_corrected= slow_corrector(sigValues,sigPos,L,J,w,parityLengthVector,messageLengthVector,
                                 listSize,parityInvolved,usedRootsIndex,whichGMatrix)
+toc = time.time()
+print(" | Time of correct " + str(toc-tic))
 print(" | corrected shape: " + str( rxBits_corrected.shape))
 print(" | txBits_remained shape is :" + str(txBits_remained.shape))
 

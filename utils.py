@@ -456,10 +456,10 @@ def check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,parityLengthVector
 
 
 def extract_msg_bits(Paths,cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector):
-    msg_bits = np.empty(shape=(0,0))
+    msg_bits = np.empty(shape=(0,0), dtype=int)
     L1 = Paths.shape[0]
     for i in range(L1):
-        msg_bit=np.empty(shape=(0,0))
+        msg_bit=np.empty(shape=(0,0), dtype=int)
         path = Paths[i].reshape(1,-1)
         for j in range(path.shape[1]):
             msg_bit = np.hstack((msg_bit,cs_decoded_tx_message[path[0,j],J*j:J*j+messageLengthvector[j]].reshape(1,-1))) if msg_bit.size else cs_decoded_tx_message[path[0,j],J*(j):J*(j)+messageLengthvector[j]]
