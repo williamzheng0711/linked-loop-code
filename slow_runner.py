@@ -5,7 +5,7 @@ from slow_lib import *
 
 
 # No. of active users & SNR settles the system
-K = 20                                              # number of active users
+K = 10                                              # number of active users
 SNR = 5                                             # SNR (in dB)
 
 
