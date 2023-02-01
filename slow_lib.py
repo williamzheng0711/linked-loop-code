@@ -34,9 +34,9 @@ def slow_encode(tx_message, K, L, J, Pa, Ml, messageLengthVector, parityLengthVe
         whoDecidesI = np.where(parityDistribution[:, i])[0]
         parity_i = np.zeros((K, m), dtype=int)
         for decider in whoDecidesI:
-            parity_i += (tx_message[:,i*m:(i+1)*m] @ generatorMatrices[useWhichMatrix[decider, i]])
+            parity_i += (tx_message[:,decider*m:(decider+1)*m] @ generatorMatrices[useWhichMatrix[decider, i]])
         encoded_tx_message[:, i*J+m:(i+1)*J] = np.mod(parity_i, 2)
-
+        
     # One can check what a outer-encoded message looks like in the csv file.
     np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
 
