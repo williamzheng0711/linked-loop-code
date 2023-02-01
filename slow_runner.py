@@ -8,7 +8,6 @@ from slow_lib import *
 K = 10                                              # number of active users
 SNR = 5                                             # SNR (in dB)
 
-
 # Other parameter settings. No need to change at this moment.
 w = 128                                             # Length of each user's uncoded message
 L = 16                                              # Number of sections
@@ -26,12 +25,12 @@ Ml = np.sum(messageLengthVector)                    # Total number of informatio
 N = int((30000 / 2**16)*M)                          # number of channel uses (real d.o.f)
 numAMPIter = 2                                      # number of AMP iterations desired
 listSize = K + int(np.ceil(K/20))                   # list size retained per section after AMP converges
-σ_n = 1                                             # AWGN noise standard deviation, hence set to 1. "n" stands for "normal"
+sigma_n = 1                                         # AWGN noise standard deviation, hence set to 1. "n" stands for "normal"
 EbNo = 10**(SNR/10)                                 # Eb/No
 P = 2*w*EbNo/N                                      # Power calculated
 Phat = N*P/L                                        # Power hat
-σ_R = 1                                             # (standard) Rayleigh fading paremater. "R" stands for "Rayleigh"
-                                                        # or σ in the formula given in 
+sigma_R = 1                                             # (standard) Rayleigh fading paremater. "R" stands for "Rayleigh"
+                                                        # or sigma in the formula given in 
                                                         # https://en.wikipedia.org/wiki/Rayleigh_distribution#Definition
 
 parityInvolved = get_parity_involvement_matrix(L)    # An L x L matrix.
@@ -44,49 +43,41 @@ whichGMatrix = get_G_matrices(parityInvolved)        # An L x L matrix. Only (i,
                                                         # Where G_{i,j} matrix is the parity generating matrix needed to 
                                                         # calculate the contribution of w(i) while calculating p(j)
 
-
 print("####### Start Rocking #######")          # Simulation starts!!!!!
-
 
 # Outer-code encoding. No need to change.
 txBits = np.random.randint(low=2, size=(K, w))   
-    # Generate random binary messages for K active users. Hence txBits.shape is [K,w]
+# Generate random binary messages for K active users. Hence txBits.shape is [K,w]
 txBitsParitized = slow_encode(txBits,K,L,J,Pa,Ml,messageLengthVector,parityLengthVector,parityInvolved,whichGMatrix) 
-    # Add parities. txBitsParitized.size is (K,w+Pa)
-β = convert_bits_to_sparse_Rayleigh(txBitsParitized,L,J,K,σ_R)     
-    # Convert bits to sparse. Every user is multiplied by an iid Rayleigh distributed value
-
+# Add parities. txBitsParitized.size is (K,w+Pa)
+beta = convert_bits_to_sparse_Rayleigh(txBitsParitized,L,J,M,K,sigma_R)     
+# Convert bits to sparse. Every user is multiplied by an iid Rayleigh distributed value
 
 # *Inner-code encoding. No need to change.
 Ab, Az = sparc_codebook(L, M, N)                    # Generate the SPARC codebook               
-innerOutput = Ab(β)    
-
+innerOutput = Ab(beta)    
 
 # *The channel Part. No need to change.                             
 x = np.sqrt(Phat)*innerOutput                       # x is of size: (N, 1)
-z = np.random.randn(N, 1) * σ_n                     # z is the Gaussian additive noise
+z = np.random.randn(N, 1) * sigma_n                 # z is the Gaussian additive noise
 y = (x + z).reshape(-1, 1)                         
-
 
 # *Inner code decoder part. The Approximate message passing (AMP) that deals with Rayleigh. No need to change.
 p0 = 1-(1-1/M)**K
 print(" -AMP starts.")
-estimated_β = amp_prior_art_Rayleigh(y,σ_n,P,L,M,numAMPIter,Ab,Az,p0,K,σ_R,False) 
+estimated_beta = amp_prior_art_Rayleigh(y,sigma_n,P,L,M,numAMPIter,Ab,Az,p0,K,sigma_R,False) 
 print(" -AMP part is done.")
-
 
 ## *calculate and report genie statistics. No need to change. 
 print(" -Genie part starts:")
-analyze_genie_metrics(estimated_β,L,J,listSize,txBitsParitized,K)
+analyze_genie_metrics(estimated_beta, L, J, listSize, txBitsParitized, K)
 print(" -Genie part is done.")
 
-
-# *drop non-significant things in each section of estimated_β. Get ready for the decoder. No need to change.
-sigValues, sigPos = get_sig_values_and_positions(estimated_β, L, J, listSize)
-    # Note that in non-fading case, only the positions of significant values in estimated_β matter. 
+# *drop non-significant things in each section of estimated_beta. Get ready for the decoder. No need to change.
+sigValues, sigPos = get_sig_values_and_positions(estimated_beta, L, J, listSize)
+    # Note that in non-fading case, only the positions of significant values in estimated_beta matter. 
     # However, when considering fading, the values themselves are also important because each individual has a fading number associated with him.
     # This can help us rule out (in a soft manner) some wrong paths when we come up with multiple valid paths.
-
 
 # *Outer code decoder. PAINPOINT
 print(" -Phase 1 (decoding) now starts.")
