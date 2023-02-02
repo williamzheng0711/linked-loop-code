@@ -214,7 +214,7 @@ def matrix_inv_repo(dim):
                     [0, 0, 0, 1, 0, 0, 1, 0],
                     [0, 0, 1, 1, 0, 1, 0, 0]] ]
 
-def get_parity_involvement_matrix(L):
+def get_parity_involvement_matrix(L, windowSize):
     """
     Construct the parity involvement matrix.
 
@@ -237,7 +237,7 @@ def get_parity_involvement_matrix(L):
 
     """
     parityInvolved = np.zeros((L,L), dtype=int)
-    offsets = np.array([1, 2, 3, 4])
+    offsets = np.arange(1, windowSize+1)
     for l in range(L):
         parityInvolved[l, (l + offsets) % L] = 8
     return parityInvolved

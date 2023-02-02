@@ -28,7 +28,7 @@ def slow_encode(tx_message, K, L, J, Pa, Ml, messageLengthVector, parityLengthVe
 
     encoded_tx_message = np.zeros((K, Ml+Pa), dtype=int)
     m = messageLengthVector[0]
-    generatorMatrices = matrix_repo(dim=8)
+    generatorMatrices = matrix_repo(dim=m)
     for i in range(L):
         encoded_tx_message[:,i*J:i*J+m] = tx_message[:,i*m:(i+1)*m]
         whoDecidesI = np.where(parityDistribution[:, i])[0]
@@ -42,7 +42,7 @@ def slow_encode(tx_message, K, L, J, Pa, Ml, messageLengthVector, parityLengthVe
 
     return encoded_tx_message
 
-def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVector, listSize, parityInvolved, whichGMatrix):
+def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVector, listSize, parityInvolved, whichGMatrix, windowSize):
     """
     Phase 1 decoder (no erasure correction)
 
@@ -72,14 +72,17 @@ def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVe
 
     # Step 2: find parity consistent paths
     listSizeOrder = np.argsort(sigValues[:, 0])[::-1]
-    results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)(idx, L, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, messageLengthVector, listSize, parityLengthVector, sigValues) for idx in listSizeOrder) 
-    results = np.array(results).squeeze()
+    results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)(idx, L, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, messageLengthVector, listSize, parityLengthVector, sigValues, windowSize) for idx in listSizeOrder) 
+    results = np.array(results).squeeze()   
+    # If our code performs good in false alarm, we should update usedRootsIndex before squeeze()
+    # Now every root has ONE element in results, hence okay.
+     
     flag_good_results = (np.sum(results, axis=1) > 0).astype(int)
     idx_good_results = np.where(flag_good_results)[0]
     tree_decoded_tx_message = results[idx_good_results, :]
     return tree_decoded_tx_message, listSizeOrder[idx_good_results]
 
-def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLengthVector, listSize, parityInvolved, usedRootsIndex, whichGMatrix):
+def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLengthVector, listSize, parityInvolved, usedRootsIndex, whichGMatrix, windowSize):
     cs_decoded_tx_message = np.zeros( (listSize, L*J) )
     for id_row in range(sigPos.shape[0]):
         for id_col in range(sigPos.shape[1]):
@@ -103,7 +106,7 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
             newAll=np.empty( shape=(0,0))
             if l!=0 :  # We still need to enlarge lenth of Paths.
                 
-                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLengthVector) for j in range(Paths.shape[0]))
+                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLengthVector, L, windowSize) for j in range(Paths.shape[0]))
                 for survivePath in survivePaths:
                     if survivePath.size:
                         newAll = np.vstack((newAll, survivePath)) if newAll.size else survivePath
@@ -115,7 +118,7 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
                 for j in range(Paths.shape[0]):
                     isOkay = False
                     Path = Paths[j].reshape(1,-1)
-                    isOkay = slow_parity_check( None, Path, None, cs_decoded_tx_message,J,messageLengthVector, parityInvolved, whichGMatrix)
+                    isOkay = slow_parity_check( None, Path, None, cs_decoded_tx_message,J,messageLengthVector, parityInvolved, whichGMatrix, L, windowSize)
                     if isOkay:
                         PathsUpdated = np.vstack((PathsUpdated, Path)) if PathsUpdated.size else Path
                 Paths = PathsUpdated
@@ -146,21 +149,4 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
 
     return tree_decoded_tx_message
 
-def slow_correct_each_section_and_path(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLengthVector):
-    new = np.empty( shape=(0,0), dtype=int)
-    Path = Paths[j].reshape(1,-1)
-    pathArgNa = np.where( Path[0] < 0 )[0]    
-    Parity_computed = -1 * np.ones((1,8),dtype=int)
-    if l >= 4: 
-        Parity_computed = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityInvolved, l, whichGMatrix)
-    for k in range(listSize):
-        if l < 4:
-            new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-        else :  # now l >= 4:
-            index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLengthVector, parityInvolved, whichGMatrix) 
-            if index:
-                new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-    if len(pathArgNa) == 0:
-        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
 
-    return new

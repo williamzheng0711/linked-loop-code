@@ -19,6 +19,9 @@ J = ((w+np.sum(parityLengthVector))/L).astype(int)  # Length of each coded sub-b
 M = 2**J                                            # Each coded sub-block is J-length binary, 
                                                         # to represent it in decimal, 
                                                         # it ranges in [0, M] = [0, 2**J].
+windowSize = 4                                      # How many previous sections p(j) depends on
+assert windowSize > 0
+
 messageLengthVector = np.subtract(J*np.ones(L,dtype='int'),parityLengthVector).astype(int)
 Pa = np.sum(parityLengthVector)                     # Total number of parity check bits, in this case Pa=w=128
 Ml = np.sum(messageLengthVector)                    # Total number of information bits (=w)
@@ -33,7 +36,9 @@ sigma_R = 1                                             # (standard) Rayleigh fa
                                                         # or sigma in the formula given in 
                                                         # https://en.wikipedia.org/wiki/Rayleigh_distribution#Definition
 
-parityInvolved = get_parity_involvement_matrix(L)    # An L x L matrix.
+
+parityInvolved = get_parity_involvement_matrix(L,windowSize)    
+                                                        # An L x L matrix.
                                                         # For each row i, the j-th entry = w/L(=8), iff, w(i) involves the construction of p(j). 
                                                         # E.g., parityInvolved[0] = [0,8,8,8,8,0,0,0,0,0,0,0,0,0,0,0]
 
@@ -82,7 +87,7 @@ sigValues, sigPos = get_sig_values_and_positions(estimated_beta, L, J, listSize)
 # *Outer code decoder. PAINPOINT
 print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
-rxBits, usedRootsIndex = slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVector, listSize, parityInvolved, whichGMatrix)
+rxBits, usedRootsIndex = slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVector, listSize, parityInvolved, whichGMatrix, windowSize)
 toc = time.time()
 print(" | Time of decode " + str(toc-tic))
 if rxBits.shape[0] > K: 
@@ -106,7 +111,7 @@ print(" -Phase 1 is done.")
 print(" -Phase 2 (correction) now starts.")
 tic = time.time()
 rxBits_corrected= slow_corrector(sigValues,sigPos,L,J,w,parityLengthVector,messageLengthVector,
-                                listSize,parityInvolved,usedRootsIndex,whichGMatrix)
+                                listSize,parityInvolved,usedRootsIndex,whichGMatrix, windowSize)
 toc = time.time()
 print(" | Time of correct " + str(toc-tic))
 print(" | corrected shape: " + str( rxBits_corrected.shape))
