@@ -1,7 +1,5 @@
 import numpy as np
 from utils import *
-from binmatrix import *
-
 
 def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityInvolved, toCheck, whichGMatrix):
     # If path length  = 2, then we wanna have parity for section 2. toCheck = 2
@@ -20,12 +18,13 @@ def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityInvolved
 
     return Parity_computed
 
-
 def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLengthVector, parityDistribution, useWhichMatrix):
-    
     Lpath = Path.shape[1] # 當Lpath<16 也是 現在target的section 的意思
     focusPath = Path[0]
     losts = np.where( focusPath < 0 )[0]
+
+    generator_matrices = matrix_repo(dim=8)
+    inv_generator_matrices = matrix_inv_repo(dim=8)
 
     if Lpath < 16:  # Path 還在生長階段
         if len(losts) == 0: # 沒有 lost 最簡單的情況
@@ -74,7 +73,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                 subtrahend = np.zeros(8, dtype=int) # 減數
                 for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
                     if (saverDecider != lostSection):
-                        gen_mat = matrix_repo(dim=8)[useWhichMatrix[saverDecider][saver]] 
+                        gen_mat = generator_matrices[useWhichMatrix[saverDecider][saver]] 
                         if saverDecider != Lpath:
                             subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLengthVector[saverDecider]],gen_mat) # 都是 info * G
                         else:
@@ -82,9 +81,8 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                             subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[k,saverDecider*J:saverDecider*J+messageLengthVector[saverDecider]],gen_mat) # 都是 info * G
 
                 subtrahend = np.mod(subtrahend, 2)
-                gen_mat = matrix_repo(dim=8)[useWhichMatrix[lostSection][saver]]
-                gen_binmat = BinMatrix(gen_mat)
-                gen_binmat_inv = np.array(gen_binmat.inv())
+                gen_mat = generator_matrices[useWhichMatrix[lostSection][saver]]
+                gen_binmat_inv = np.array(inv_generator_matrices[useWhichMatrix[lostSection, saver]])
                 theLostPart = np.mod( np.matmul(  np.mod(minuend - subtrahend,2) , gen_binmat_inv ), 2)
                 solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
             
@@ -107,13 +105,12 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                 subtrahend = np.zeros(8, dtype=int) # 減數
                 for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
                     if (saverDecider != lostSection):
-                        gen_mat = matrix_repo(dim=8)[useWhichMatrix[saverDecider][saver]] 
+                        gen_mat = generator_matrices[useWhichMatrix[saverDecider][saver]] 
                         subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[ focusPath[saverDecider], saverDecider*J:saverDecider*J+messageLengthVector[saverDecider]],gen_mat)
                 
                 subtrahend = np.mod(subtrahend, 2)
-                gen_mat = matrix_repo(dim=8)[useWhichMatrix[lostSection][saver]] 
-                gen_binmat = BinMatrix(gen_mat)
-                gen_binmat_inv = np.array(gen_binmat.inv())
+                gen_mat = generator_matrices[useWhichMatrix[lostSection][saver]] 
+                gen_binmat_inv = np.array(inv_generator_matrices[useWhichMatrix[lostSection, saver]])
                 theLostPart = np.mod( np.matmul(  np.mod(minuend - subtrahend,2) , gen_binmat_inv ), 2)
                 solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
             
@@ -130,7 +127,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                     llDeciders = np.nonzero(llParityDist)[0]
                     Parity_computed_ll = np.zeros((1,8),dtype=int)
                     for llDecider in llDeciders:
-                        gen_mat = matrix_repo(dim=8)[useWhichMatrix[llDecider][ll]] 
+                        gen_mat = generator_matrices[useWhichMatrix[llDecider][ll]] 
                         if llDecider == lostSection:
                             Parity_computed_ll = Parity_computed_ll + np.matmul(Recovered_info, gen_mat)
                         else: 
@@ -148,7 +145,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                 llDeciders = np.nonzero(llParityDist)[0]
                 Parity_computed_ll = np.zeros((1,8),dtype=int)
                 for llDecider in llDeciders:
-                    gen_mat = matrix_repo(dim=8)[useWhichMatrix[llDecider][ll]] 
+                    gen_mat = generator_matrices[useWhichMatrix[llDecider][ll]] 
                     Parity_computed_ll = Parity_computed_ll + np.matmul(cs_decoded_tx_message[Path[0][llDecider], llDecider*J:llDecider*J+8], gen_mat)
                 Parity_computed_ll = np.mod(Parity_computed_ll, 2)
                 flag_ll = sum( np.abs(Parity_computed_ll.reshape(-1) - cs_decoded_tx_message[Path[0][ll], ll*J+messageLengthVector[ll]: (ll+1)*J].reshape(-1) ))
@@ -157,11 +154,9 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLeng
                     return False
             return True
 
-
-
-
-
 def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLengthVector, J, L, useWhichMatrix):
+    generator_matrices = matrix_repo(dim=8)
+    inv_generator_matrices = matrix_inv_repo(dim=8)
     recovered_msg = np.array([], dtype= int).reshape(1,-1)
     lostSection = sectionLost[0]
     for ll in np.arange(L):
@@ -179,13 +174,12 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
                 subtrahend = np.zeros(8, dtype=int)
                 for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
                     if (saverDecider != lostSection):
-                        gen_mat = matrix_repo(dim=8)[useWhichMatrix[saverDecider][saver]] 
+                        gen_mat = generator_matrices[useWhichMatrix[saverDecider][saver]] 
                         subtrahend = subtrahend + np.matmul( decoded_message[0, saverDecider*J : saverDecider*J+8], gen_mat)
                 
                 subtrahend = np.mod(subtrahend, 2)
-                gen_mat = matrix_repo(dim=8)[useWhichMatrix[lostSection][saver]] 
-                gen_binmat = BinMatrix(gen_mat)
-                gen_binmat_inv = np.array(gen_binmat.inv())
+                gen_mat = generator_matrices[useWhichMatrix[lostSection][saver]] 
+                gen_binmat_inv = np.array(inv_generator_matrices[useWhichMatrix[lostSection, saver]])
                 theLostPart = np.mod( np.matmul(  np.mod(minuend - subtrahend,2) , gen_binmat_inv ), 2)
                 solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
 
@@ -197,8 +191,6 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
                 print(" | This candidate is valid.")
     
     return recovered_msg.reshape(1,-1)
-
-
 
 def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, whichGMatrix, messageLengthVector, listSize,parityLengthVector, sigValues  ):
     # Every i is a root.

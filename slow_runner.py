@@ -82,15 +82,13 @@ sigValues, sigPos = get_sig_values_and_positions(estimated_beta, L, J, listSize)
 # *Outer code decoder. PAINPOINT
 print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
-rxBits, usedRootsIndex = slow_decoder(sigValues,sigPos,L,J,w,parityLengthVector,messageLengthVector,listSize,parityInvolved,whichGMatrix)
+rxBits, usedRootsIndex = slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVector, listSize, parityInvolved, whichGMatrix)
 toc = time.time()
 print(" | Time of decode " + str(toc-tic))
 if rxBits.shape[0] > K: 
     rxBits = rxBits[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
 
-# print(usedRootsIndex)
-
-# *Check how many is correct amongst the recover (recover means first phase). No need to change.
+# Check how many are correct amongst the recover (recover means first phase). No need to change.
 thisIter = 0
 txBits_remained = np.empty(shape=(0,0))
 for i in range(txBits.shape[0]):

@@ -36,16 +36,15 @@ def slow_encode(tx_message, K, L, J, Pa, Ml, messageLengthVector, parityLengthVe
         for decider in whoDecidesI:
             parity_i += (tx_message[:,decider*m:(decider+1)*m] @ generatorMatrices[useWhichMatrix[decider, i]])
         encoded_tx_message[:, i*J+m:(i+1)*J] = np.mod(parity_i, 2)
-        
+
     # One can check what a outer-encoded message looks like in the csv file.
-    np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
+    # np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
 
     return encoded_tx_message
 
 def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVector, listSize, parityInvolved, whichGMatrix):
     """
     Phase 1 decoder (no erasure correction)
-    The decoder in phase 1. Inside which I used the very stupid brute force mathod to proceed to next section.
 
         Arguments:
             sigValues (ndarray): listSize x L matrix of significant values per section of recovered codeword
@@ -59,14 +58,11 @@ def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVe
             parityInvolved (ndarray): indicator matrix of parity to information section connections
             whichGMatrix (ndarray): matrix indicating which generator matrix connects parity to info sections
 
-    Returns
-    -------
-    tree_decoded_tx_message : ndarray
-        Each row contains a decoded message.  
-
-    usedRootsIndex : a 1D np.array. 
-        Contains index of all roots that already leads to >=1 valid (fully parity consistent) path(s). 
+        Returns:
+            tree_decoded_tx_message (ndarray): decoded messages
+            usedRootsIndex (ndarray): indices of roots that lead to parity consistent paths  
     """
+    # Step 1: reconstruct L lists of listSize message fragments
     cs_decoded_tx_message = np.zeros((listSize, L*J))
     for id_row in range(listSize):
         for id_col in range(L):
@@ -74,24 +70,14 @@ def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVe
             b = np.array([int(n) for n in a] ).reshape(1,-1)         # print("b = " + str(b))
             cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
 
-    # sigValues.shape is (listSize, 16)
-    listSizeOrder = np.flip(np.argsort(sigValues[:,0]))  # larger ones come first
-    tree_decoded_tx_message = np.empty(shape=(0,0))
-    usedRootsIndex = []
-
-    results = Parallel(n_jobs=-1)(delayed(
-        slow_decode_deal_with_root_i)(i,L,cs_decoded_tx_message, J,parityInvolved, whichGMatrix, messageLengthVector, listSize,parityLengthVector, sigValues) for i in listSizeOrder)
-    for result, idx in zip(results, range(len(results))):
-        if tree_decoded_tx_message.size:
-            if sum(result[0]) >= 0: 
-                tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,result))
-                usedRootsIndex.append(listSizeOrder[idx])
-        else:
-            if sum(result[0]) >= 0: 
-                tree_decoded_tx_message = result
-                usedRootsIndex.append(listSizeOrder[idx])
-
-    return tree_decoded_tx_message, usedRootsIndex
+    # Step 2: find parity consistent paths
+    listSizeOrder = np.argsort(sigValues[:, 0])[::-1]
+    results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)(idx, L, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, messageLengthVector, listSize, parityLengthVector, sigValues) for idx in listSizeOrder) 
+    results = np.array(results).squeeze()
+    flag_good_results = (np.sum(results, axis=1) > 0).astype(int)
+    idx_good_results = np.where(flag_good_results)[0]
+    tree_decoded_tx_message = results[idx_good_results, :]
+    return tree_decoded_tx_message, listSizeOrder[idx_good_results]
 
 def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLengthVector, listSize, parityInvolved, usedRootsIndex, whichGMatrix):
     cs_decoded_tx_message = np.zeros( (listSize, L*J) )
