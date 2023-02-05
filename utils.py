@@ -214,7 +214,7 @@ def matrix_inv_repo(dim):
                     [0, 0, 0, 1, 0, 0, 1, 0],
                     [0, 0, 1, 1, 0, 1, 0, 0]] ]
 
-def get_parity_involvement_matrix(L, windowSize):
+def get_parity_involvement_matrix(L, windowSize, messageLen):
     """
     Construct the parity involvement matrix.
 
@@ -233,13 +233,13 @@ def get_parity_involvement_matrix(L, windowSize):
     E.g., 
         parityInvolved[0] = [0,8,8,8,8,0,0,0,0,0,0,0,0,0,0,0]. As w(0) is involved in determining p(1), p(2), p(3) and p(4).
         
-        For the same reason, parityInvolved[1] = [0,0,8,8,8,8,0,0,0,0,0,0,0,0,0,0], etc..
+        For the same reason, if messageLen=8 windowSize=4, parityInvolved[1] = [0,0,8,8,8,8,0,0,0,0,0,0,0,0,0,0], etc..
 
     """
     parityInvolved = np.zeros((L,L), dtype=int)
     offsets = np.arange(1, windowSize+1)
     for l in range(L):
-        parityInvolved[l, (l + offsets) % L] = 8
+        parityInvolved[l, (l + offsets) % L] = messageLen
     return parityInvolved
 
 def get_G_matrices(parityInvolved):
@@ -360,19 +360,19 @@ def amp_prior_art_Rayleigh(y, sigma_n, P, L, M, T, Ab, Az, p0, K, sigma_R, conve
 
     return beta
 
-def check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector):   
-    msg_bits = extract_msg_bits(Paths,cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
+def check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,messageLen):   
+    msg_bits = extract_msg_bits(Paths,cs_decoded_tx_message, L,J,messageLen)
     flag = (msg_bits == msg_bits[0]).all()    
     return flag
 
-def extract_msg_bits(Paths,cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector):
+def extract_msg_bits(Paths,cs_decoded_tx_message, L,J,messageLen):
     msg_bits = np.empty(shape=(0,0), dtype=int)
     L1 = Paths.shape[0]
     for i in range(L1):
         msg_bit=np.empty(shape=(0,0), dtype=int)
         path = Paths[i].reshape(1,-1)
         for j in range(path.shape[1]):
-            msg_bit = np.hstack((msg_bit,cs_decoded_tx_message[path[0,j],J*j:J*j+messageLengthvector[j]].reshape(1,-1))) if msg_bit.size else cs_decoded_tx_message[path[0,j],J*(j):J*(j)+messageLengthvector[j]]
+            msg_bit = np.hstack((msg_bit,cs_decoded_tx_message[path[0,j],J*j:J*j+messageLen].reshape(1,-1))) if msg_bit.size else cs_decoded_tx_message[path[0,j],J*(j):J*(j)+messageLen]
             msg_bit=msg_bit.reshape(1,-1)
         msg_bits = np.vstack((msg_bits,msg_bit)) if msg_bits.size else msg_bit           
     return msg_bits

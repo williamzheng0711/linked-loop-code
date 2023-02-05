@@ -9,23 +9,21 @@ K = 10                                              # number of active users
 SNR = 5                                             # SNR (in dB)
 
 # Other parameter settings. No need to change at this moment.
-w = 128                                             # Length of each user's uncoded message
+w = 128                                             # Length of each user's uncoded message (total number of info bits)
 L = 16                                              # Number of sections
-parityLengthVector = int(w/L)*np.ones(L,dtype=int)  # As (outer code) rate is 1/2 at this moment
-                                                        # and parities are distributed evenly into each section, 
-                                                        # the number of info bits = 
-                                                        # the number of parity bits for all sections.
-J = ((w+np.sum(parityLengthVector))/L).astype(int)  # Length of each coded sub-block
+assert w % L ==0
+parityLen = 8
+assert (w+L*parityLen) % L ==0
+J = int((w + L*parityLen)/L)                             # Length of each coded sub-block
+messageLen = int(J - parityLen)
+assert messageLen * L == w
 M = 2**J                                            # Each coded sub-block is J-length binary, 
                                                         # to represent it in decimal, 
                                                         # it ranges in [0, M] = [0, 2**J].
 windowSize = 4                                      # How many previous sections p(j) depends on
 assert windowSize > 0
-
-messageLengthVector = np.subtract(J*np.ones(L,dtype='int'),parityLengthVector).astype(int)
-Pa = np.sum(parityLengthVector)                     # Total number of parity check bits, in this case Pa=w=128
-Ml = np.sum(messageLengthVector)                    # Total number of information bits (=w)
-N = int((30000 / 2**16)*M)                          # number of channel uses (real d.o.f)
+Pa = L*parityLen                                    # Total number of parity check bits, in this case Pa=w=128
+N = int((30000/2**J)*M)                             # number of channel uses (real d.o.f)
 numAMPIter = 2                                      # number of AMP iterations desired
 listSize = K + int(np.ceil(K/20))                   # list size retained per section after AMP converges
 sigma_n = 1                                         # AWGN noise standard deviation, hence set to 1. "n" stands for "normal"
@@ -35,9 +33,7 @@ Phat = N*P/L                                        # Power hat
 sigma_R = 1                                             # (standard) Rayleigh fading paremater. "R" stands for "Rayleigh"
                                                         # or sigma in the formula given in 
                                                         # https://en.wikipedia.org/wiki/Rayleigh_distribution#Definition
-
-
-parityInvolved = get_parity_involvement_matrix(L,windowSize)    
+parityInvolved = get_parity_involvement_matrix(L,windowSize,messageLen)    
                                                         # An L x L matrix.
                                                         # For each row i, the j-th entry = w/L(=8), iff, w(i) involves the construction of p(j). 
                                                         # E.g., parityInvolved[0] = [0,8,8,8,8,0,0,0,0,0,0,0,0,0,0,0]
@@ -53,7 +49,7 @@ print("####### Start Rocking #######")          # Simulation starts!!!!!
 # Outer-code encoding. No need to change.
 txBits = np.random.randint(low=2, size=(K, w))   
 # Generate random binary messages for K active users. Hence txBits.shape is [K,w]
-txBitsParitized = slow_encode(txBits,K,L,J,Pa,Ml,messageLengthVector,parityLengthVector,parityInvolved,whichGMatrix) 
+txBitsParitized = slow_encode(txBits,K,L,J,Pa,w,messageLen,parityLen,parityInvolved,whichGMatrix) 
 # Add parities. txBitsParitized.size is (K,w+Pa)
 beta = convert_bits_to_sparse_Rayleigh(txBitsParitized,L,J,M,K,sigma_R)     
 # Convert bits to sparse. Every user is multiplied by an iid Rayleigh distributed value
@@ -87,7 +83,7 @@ sigValues, sigPos = get_sig_values_and_positions(estimated_beta, L, J, listSize)
 # *Outer code decoder. PAINPOINT
 print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
-rxBits, usedRootsIndex = slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVector, listSize, parityInvolved, whichGMatrix, windowSize)
+rxBits, usedRootsIndex = slow_decoder(sigValues, sigPos, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize)
 toc = time.time()
 print(" | Time of decode " + str(toc-tic))
 if rxBits.shape[0] > K: 
@@ -110,8 +106,7 @@ print(" -Phase 1 is done.")
 # *Corrector. PAINPOINT
 print(" -Phase 2 (correction) now starts.")
 tic = time.time()
-rxBits_corrected= slow_corrector(sigValues,sigPos,L,J,w,parityLengthVector,messageLengthVector,
-                                listSize,parityInvolved,usedRootsIndex,whichGMatrix, windowSize)
+rxBits_corrected= slow_corrector(sigValues,sigPos,L,J,messageLen,parityLen,listSize,parityInvolved,usedRootsIndex,whichGMatrix,windowSize)
 toc = time.time()
 print(" | Time of correct " + str(toc-tic))
 print(" | corrected shape: " + str( rxBits_corrected.shape))

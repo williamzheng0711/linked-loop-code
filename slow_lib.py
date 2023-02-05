@@ -3,9 +3,9 @@ from utils import *
 from slow_utils import *
 from joblib import Parallel, delayed
 
-def slow_encode(tx_message, K, L, J, Pa, Ml, messageLengthVector, parityLengthVector, parityDistribution, useWhichMatrix):
+def slow_encode(tx_message, K, L, J, Pa, w, messageLen, parityLen, parityDistribution, useWhichMatrix):
     """
-    Encode tx_message ( of size (K,w) ) into (K, 2*w). 
+    Encode tx_message ( of size (K,w) ) into (K, w + Pa). 
     Each row, aka each message by an user, is paritized hence longer.
 
     Parameters
@@ -15,9 +15,8 @@ def slow_encode(tx_message, K, L, J, Pa, Ml, messageLengthVector, parityLengthVe
     L (int): number of sections in codeword
     J (int): number of bits/section
     Pa (int): total number of parity bits
-    Ml (int): total number of message bits
-    messageLengthVector (ndarray): 1 x L vector indicating # message bits/section
-    parityLengthVector (ndarray): 1 x L vector indicating # parity bits/section
+    w (int): total number of message bits
+    messageLen (int): 
     parityDistribution (ndarray): L x L matrix of info/parity bit connections
     useWhichMatrix (ndarray): L x L matrix indicating which generator to use 
 
@@ -26,23 +25,22 @@ def slow_encode(tx_message, K, L, J, Pa, Ml, messageLengthVector, parityLengthVe
     encoded_tx_message : ndarray (K by (w+Pa) matrix, or 100 by 256 in usual case)
     """
 
-    encoded_tx_message = np.zeros((K, Ml+Pa), dtype=int)
-    m = messageLengthVector[0]
-    generatorMatrices = matrix_repo(dim=m)
+    encoded_tx_message = np.zeros((K, w+Pa), dtype=int)
+    generatorMatrices = matrix_repo(dim=messageLen)
     for i in range(L):
-        encoded_tx_message[:,i*J:i*J+m] = tx_message[:,i*m:(i+1)*m]
+        encoded_tx_message[:,i*J:i*J+messageLen] = tx_message[:,i*messageLen:(i+1)*messageLen]
         whoDecidesI = np.where(parityDistribution[:, i])[0]
-        parity_i = np.zeros((K, m), dtype=int)
+        parity_i = np.zeros((K, parityLen), dtype=int)
         for decider in whoDecidesI:
-            parity_i += (tx_message[:,decider*m:(decider+1)*m] @ generatorMatrices[useWhichMatrix[decider, i]])
-        encoded_tx_message[:, i*J+m:(i+1)*J] = np.mod(parity_i, 2)
+            parity_i += (tx_message[:,decider*messageLen:(decider+1)*messageLen] @ generatorMatrices[useWhichMatrix[decider, i]])
+        encoded_tx_message[:, i*J+parityLen:(i+1)*J] = np.mod(parity_i, 2)
 
     # One can check what a outer-encoded message looks like in the csv file.
     # np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
 
     return encoded_tx_message
 
-def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVector, listSize, parityInvolved, whichGMatrix, windowSize):
+def slow_decoder(sigValues, sigPos, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize):
     """
     Phase 1 decoder (no erasure correction)
 
@@ -52,8 +50,6 @@ def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVe
             L (int): number of sections in recovered codeword
             J (int): number of bits/section in codeword
             w (int): number of information bits
-            parityLengthVector (ndarray): number of parity bits/section
-            messageLengthVector (ndarray): number of information bits/section
             listSize (int): number of entries to retain per section in recovered codeword
             parityInvolved (ndarray): indicator matrix of parity to information section connections
             whichGMatrix (ndarray): matrix indicating which generator matrix connects parity to info sections
@@ -72,17 +68,21 @@ def slow_decoder(sigValues, sigPos, L, J, w, parityLengthVector, messageLengthVe
 
     # Step 2: find parity consistent paths
     listSizeOrder = np.argsort(sigValues[:, 0])[::-1]
-    results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)(idx, L, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, messageLengthVector, listSize, parityLengthVector, sigValues, windowSize) for idx in listSizeOrder) 
-    results = np.array(results).squeeze()   
-    # If our code performs good in false alarm, we should update usedRootsIndex before squeeze()
-    # Now every root has ONE element in results, hence okay.
-     
-    flag_good_results = (np.sum(results, axis=1) > 0).astype(int)
-    idx_good_results = np.where(flag_good_results)[0]
-    tree_decoded_tx_message = results[idx_good_results, :]
-    return tree_decoded_tx_message, listSizeOrder[idx_good_results]
+    results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)(idx, L, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize) for idx in listSizeOrder)     
+    good_index = [a for a in range(len(results)) if sum(np.sum(results[a],axis=1)) >=0 ]
+    tree_decoded_tx_message = np.empty((0,0), dtype=int)
+    for gd_idx in good_index:
+        tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,results[gd_idx])) if tree_decoded_tx_message.size else results[gd_idx]
 
-def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLengthVector, listSize, parityInvolved, usedRootsIndex, whichGMatrix, windowSize):
+    return tree_decoded_tx_message, listSizeOrder[good_index]
+
+
+
+
+
+
+
+def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, parityInvolved, usedRootsIndex, whichGMatrix, windowSize):
     cs_decoded_tx_message = np.zeros( (listSize, L*J) )
     for id_row in range(sigPos.shape[0]):
         for id_col in range(sigPos.shape[1]):
@@ -93,7 +93,9 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
     listSizeOrder = np.flip(np.argsort( sigValues[:,0] )) 
     listSizeOrder_remained = [x for x in listSizeOrder if x not in usedRootsIndex] # exclude used roots.
     tree_decoded_tx_message = np.empty(shape=(0,0))
-    targetingSections = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0]
+    targetingSections = np.mod(np.arange(1,L+1),L)
+    # print("Sections targeting!!")
+    # print(targetingSections)
 
     for i, arg_i in zip(listSizeOrder_remained, np.arange(len(listSizeOrder_remained))):
         Paths = np.array([[i]])
@@ -106,7 +108,7 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
             newAll=np.empty( shape=(0,0))
             if l!=0 :  # We still need to enlarge lenth of Paths.
                 
-                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLengthVector, L, windowSize) for j in range(Paths.shape[0]))
+                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLen, parityLen, L, windowSize) for j in range(Paths.shape[0]))
                 for survivePath in survivePaths:
                     if survivePath.size:
                         newAll = np.vstack((newAll, survivePath)) if newAll.size else survivePath
@@ -118,7 +120,7 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
                 for j in range(Paths.shape[0]):
                     isOkay = False
                     Path = Paths[j].reshape(1,-1)
-                    isOkay = slow_parity_check( None, Path, None, cs_decoded_tx_message,J,messageLengthVector, parityInvolved, whichGMatrix, L, windowSize)
+                    isOkay = slow_parity_check( None, Path, None, cs_decoded_tx_message,J,messageLen, parityInvolved, whichGMatrix, L, windowSize)
                     if isOkay:
                         PathsUpdated = np.vstack((PathsUpdated, Path)) if PathsUpdated.size else Path
                 Paths = PathsUpdated
@@ -143,7 +145,7 @@ def slow_corrector(sigValues, sigPos, L, J, B, parityLengthVector, messageLength
                 if (l not in sectionLost):
                     decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
 
-            recovered_message = slow_recover_msg(sectionLost, decoded_message, parityInvolved, messageLengthVector, J, L, whichGMatrix)
+            recovered_message = slow_recover_msg(sectionLost, decoded_message, parityInvolved, messageLen, J, L, whichGMatrix)
             if recovered_message != np.array([], dtype= int).reshape(1,-1):
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
 
