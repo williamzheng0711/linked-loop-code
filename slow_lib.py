@@ -77,11 +77,6 @@ def slow_decoder(sigValues, sigPos, L, J, parityLen, messageLen, listSize, parit
     return tree_decoded_tx_message, listSizeOrder[good_index]
 
 
-
-
-
-
-
 def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, parityInvolved, usedRootsIndex, whichGMatrix, windowSize):
     cs_decoded_tx_message = np.zeros( (listSize, L*J) )
     for id_row in range(sigPos.shape[0]):
@@ -94,37 +89,33 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
     listSizeOrder_remained = [x for x in listSizeOrder if x not in usedRootsIndex] # exclude used roots.
     tree_decoded_tx_message = np.empty(shape=(0,0))
     targetingSections = np.mod(np.arange(1,L+1),L)
-    # print("Sections targeting!!")
-    # print(targetingSections)
 
-    for i, arg_i in zip(listSizeOrder_remained, np.arange(len(listSizeOrder_remained))):
+    for i in listSizeOrder_remained:
         Paths = np.array([[i]])
-        for l, arg_l in zip( targetingSections, range(len(targetingSections))):
+        for l in targetingSections:
             # print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
             if Paths.shape[1] == 0: 
-                print("-------")
-                break
-
+                print("-------"); break
             newAll=np.empty( shape=(0,0))
+            
             if l!=0 :  # We still need to enlarge lenth of Paths.
-                
                 survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLen, parityLen, L, windowSize) for j in range(Paths.shape[0]))
                 for survivePath in survivePaths:
                     if survivePath.size:
                         newAll = np.vstack((newAll, survivePath)) if newAll.size else survivePath
-
                 Paths = newAll 
-            
             else: # We dont enlarge length of Paths anymore
                 PathsUpdated = np.empty( shape=(0,0))
                 for j in range(Paths.shape[0]):
                     isOkay = False
                     Path = Paths[j].reshape(1,-1)
-                    isOkay = slow_parity_check( None, Path, None, cs_decoded_tx_message,J,messageLen, parityInvolved, whichGMatrix, L, windowSize)
+                    isOkay = slow_parity_check( None, Path, None, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L, windowSize)
                     if isOkay:
                         PathsUpdated = np.vstack((PathsUpdated, Path)) if PathsUpdated.size else Path
                 Paths = PathsUpdated
 
+
+        # For phase 2 correction, each root node at most give birth to ONE message corrected.
         if Paths.shape[0] >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             print(" | We obtained some candidate!!")
             optimalOne = 0
@@ -145,7 +136,7 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
                 if (l not in sectionLost):
                     decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
 
-            recovered_message = slow_recover_msg(sectionLost, decoded_message, parityInvolved, messageLen, J, L, whichGMatrix)
+            recovered_message = slow_recover_msg(sectionLost, decoded_message, parityInvolved, messageLen,parityLen, J, L, whichGMatrix)
             if recovered_message != np.array([], dtype= int).reshape(1,-1):
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
 

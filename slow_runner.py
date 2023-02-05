@@ -37,7 +37,6 @@ parityInvolved = get_parity_involvement_matrix(L,windowSize,messageLen)
                                                         # An L x L matrix.
                                                         # For each row i, the j-th entry = w/L(=8), iff, w(i) involves the construction of p(j). 
                                                         # E.g., parityInvolved[0] = [0,8,8,8,8,0,0,0,0,0,0,0,0,0,0,0]
-
 whichGMatrix = get_G_matrices(parityInvolved)        # An L x L matrix. Only (i,j) s.t. parityInvolved[i][j]!=0 matters.
                                                         # For (i,j) of our interest, 
                                                         # whichGMatrix[i][j] returns a code (an index) for some specific G_{i,j} matrix.
