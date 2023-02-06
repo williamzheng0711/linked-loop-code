@@ -16,7 +16,8 @@ def slow_encode(tx_message, K, L, J, Pa, w, messageLen, parityLen, parityDistrib
     J (int): number of bits/section
     Pa (int): total number of parity bits
     w (int): total number of message bits
-    messageLen (int): 
+    messageLen (int): number of info bits in each section
+    parityLen (int): number of parity bits in each section (L = parityLen + messageLen)
     parityDistribution (ndarray): L x L matrix of info/parity bit connections
     useWhichMatrix (ndarray): L x L matrix indicating which generator to use 
 
