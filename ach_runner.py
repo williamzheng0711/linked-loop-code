@@ -5,10 +5,7 @@ from slow_lib import *
 from a_channel_utils import *
 
 
-# No. of active users & SNR settles the system
 K = 100                                              # number of active users
-SNR = 5                                             # SNR (in dB)
-
 # Other parameter settings. No need to change at this moment.
 w = 128                                             # Length of each user's uncoded message (total number of info bits)
 L = 16                                              # Number of sections
@@ -24,16 +21,7 @@ M = 2**J                                            # Each coded sub-block is J-
 windowSize = 2                                      # How many previous sections p(j) depends on
 assert windowSize > 0
 Pa = L*parityLen                                    # Total number of parity check bits, in this case Pa=w=128
-N = int((30000/2**J)*M)                             # number of channel uses (real d.o.f)
-numAMPIter = 10                                      # number of AMP iterations desired
 listSize = K                                        # list size retained per section after AMP converges
-sigma_n = 1                                         # AWGN noise standard deviation, hence set to 1. "n" stands for "normal"
-EbNo = 10**(SNR/10)                                 # Eb/No
-P = 2*w*EbNo/N                                      # Power calculated
-Phat = N*P/L                                        # Power hat
-sigma_R = 1                                             # (standard) Rayleigh fading paremater. "R" stands for "Rayleigh"
-                                                        # or sigma in the formula given in 
-                                                        # https://en.wikipedia.org/wiki/Rayleigh_distribution#Definition
 parityInvolved = get_parity_involvement_matrix(L,windowSize,messageLen)    
                                                         # An L x L matrix.
                                                         # For each row i, the j-th entry = w/L(=8), iff, w(i) involves the construction of p(j). 
@@ -45,7 +33,6 @@ whichGMatrix = get_G_matrices(parityInvolved)        # An L x L matrix. Only (i,
                                                         # calculate the contribution of w(i) while calculating p(j)
 
 print("####### Start Rocking #######")          # Simulation starts!!!!!
-
 # Outer-code encoding. No need to change.
 txBits = np.random.randint(low=2, size=(K, w))   
 # Generate random binary messages for K active users. Hence txBits.shape is [K,w]
@@ -57,7 +44,7 @@ tx_symbols = ach_binary_to_symbol(txBitsParitized, L, K, J)
 
 
 # * A-Channel with Error
-p_e = 1/100
+p_e = 1/10
 rx_coded_symbols = ach_with_error(tx_symbols, L, K, J, p_e)
 sigValues = np.ones((listSize,L), dtype=int)
 
