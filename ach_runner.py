@@ -18,7 +18,7 @@ assert p_e >= 0
 K = options.ka                                      # number of active users
 assert K > 0 
 
-print("K=" + str(K) +" and p_e= " + str(p_e))
+print("####### K=" + str(K) +" and p_e= " + str(p_e))
 
 # Other parameter settings. No need to change at this moment.
 w = 128                                             # Length of each user's uncoded message (total number of info bits)
