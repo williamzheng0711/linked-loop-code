@@ -1,3 +1,4 @@
+from optparse import OptionParser
 import numpy as np
 import time
 from utils import *
@@ -5,7 +6,20 @@ from slow_lib import *
 from a_channel_utils import *
 
 
-K = 100                                              # number of active users
+
+parser = OptionParser()
+parser.add_option("--args", type="string", dest="args", help="Arguments", default="")
+parser.add_option("--ka", type="int", dest="ka", help="Number of active users", default=-1)
+parser.add_option("--pe", type="float", dest="pe", help="Probability of being erased (mapped to 0)", default=-1)
+(options, args) = parser.parse_args()
+
+p_e = options.pe
+assert p_e >= 0
+K = options.ka                                      # number of active users
+assert K > 0 
+
+print("K=" + str(K) +" and p_e= " + str(p_e))
+
 # Other parameter settings. No need to change at this moment.
 w = 128                                             # Length of each user's uncoded message (total number of info bits)
 L = 16                                              # Number of sections
@@ -43,9 +57,8 @@ tx_symbols = ach_binary_to_symbol(txBitsParitized, L, K, J)
 # txBits_GF.shape should be (K,L), each slot should be a number of range [0,2**J)
 
 
-# * A-Channel with Error
-p_e = 1/10
-rx_coded_symbols = ach_with_error(tx_symbols, L, K, J, p_e)
+# * A-Channel with Deletion
+rx_coded_symbols = ach_with_deletion(tx_symbols, L, K, J, p_e)
 sigValues = np.ones((listSize,L), dtype=int)
 
 

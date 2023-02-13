@@ -27,6 +27,7 @@
 import numpy as np
 import matplotlib.pyplot as pyplot
 
+# K = 100
 # p_e = [1/10, 1/25, 1/50, 1/100, 1/200]
 phase1_true = np.array([ 16, 59, 80, 86, 95])
 phase1_false= np.array([0, 0, 0, 0, 0])
