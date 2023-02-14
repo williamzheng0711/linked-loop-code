@@ -58,7 +58,7 @@ tx_symbols = ach_binary_to_symbol(txBitsParitized, L, K, J)
 
 
 # * A-Channel with Deletion
-rx_coded_symbols = ach_with_deletion(tx_symbols, L, K, J, p_e)
+rx_coded_symbols = ach_with_error(tx_symbols, L, K, J, p_e)
 sigValues = np.ones((listSize,L), dtype=int)
 
 
