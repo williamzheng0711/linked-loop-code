@@ -58,27 +58,38 @@ def slow_decoder(sigValues, sigPos, L, J, parityLen, messageLen, listSize, parit
         Returns:
             tree_decoded_tx_message (ndarray): decoded messages
             usedRootsIndex (ndarray): indices of roots that lead to parity consistent paths  
+            listSizeOrder 
     """
     # Step 1: reconstruct L lists of listSize message fragments
-    cs_decoded_tx_message = np.zeros((listSize, L*J))
+    bad_roots = []
+    cs_decoded_tx_message = -1* np.ones((listSize, L*J))
     for id_row in range(listSize):
         for id_col in range(L):
-            a = np.binary_repr(sigPos[id_row, id_col], width=J)      # print("a = " + str(a))
-            b = np.array([int(n) for n in a] ).reshape(1,-1)         # print("b = " + str(b))
-            cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
+            if sigPos[id_row, id_col] != -1:
+                a = np.binary_repr(sigPos[id_row, id_col], width=J)      # print("a = " + str(a))
+                b = np.array([int(n) for n in a] ).reshape(1,-1)         # print("b = " + str(b))
+                cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
+            elif id_col == 0 :
+                if id_row not in bad_roots:
+                    bad_roots.append(id_row)
+
+    bad_roots = np.array(bad_roots, dtype=int)
+    # print("bad_roots" + str(bad_roots))
 
     # Step 2: find parity consistent paths
     listSizeOrder = np.argsort(sigValues[:, 0])[::-1]
+    # print("listSizeOrder: " + str(listSizeOrder))
     results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)(idx, L, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize) for idx in listSizeOrder)     
-    good_index = [a for a in range(len(results)) if sum(np.sum(results[a],axis=1)) >=0 ]
+    
+    used_index = [a for a in range(len(results)) if sum(np.sum(results[a],axis=1)) >=0 ]
     tree_decoded_tx_message = np.empty((0,0), dtype=int)
-    for gd_idx in good_index:
+    for gd_idx in used_index:
         tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,results[gd_idx])) if tree_decoded_tx_message.size else results[gd_idx]
 
-    return tree_decoded_tx_message, listSizeOrder[good_index]
+    return tree_decoded_tx_message, np.concatenate((listSizeOrder[used_index],bad_roots),axis=None), listSizeOrder
 
 
-def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, parityInvolved, usedRootsIndex, whichGMatrix, windowSize):
+def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, parityInvolved, usedRootsIndex, whichGMatrix, windowSize, listSizeOrder):
     cs_decoded_tx_message = np.zeros( (listSize, L*J) )
     for id_row in range(sigPos.shape[0]):
         for id_col in range(sigPos.shape[1]):
@@ -86,16 +97,17 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
             b = np.array([int(n) for n in a] ).reshape(1,-1)
             cs_decoded_tx_message[ id_row, id_col*J: (id_col+1)*J ] = b[0, 0:J]
 
-    listSizeOrder = np.flip(np.argsort( sigValues[:,0] )) 
     listSizeOrder_remained = [x for x in listSizeOrder if x not in usedRootsIndex] # exclude used roots.
     tree_decoded_tx_message = np.empty(shape=(0,0))
     targetingSections = np.mod(np.arange(1,L+1),L)
 
     for i in listSizeOrder_remained:
+        if cs_decoded_tx_message[i,0] == -1: print("我是-1 !!!!")
+
         Paths = np.array([[i]])
         for l in targetingSections:
             # print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
-            if Paths.shape[1] == 0: 
+            if Paths.shape[0] == 0: 
                 print("-------"); break
             newAll=np.empty( shape=(0,0))
             
@@ -131,6 +143,7 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
                 optimalOne = np.argmin(pathVar)
 
             onlyPathToConsider = Paths[optimalOne]
+            # print("onlyPathToConsider : " + str(onlyPathToConsider))
             sectionLost = np.where(onlyPathToConsider < 0)[0]
             decoded_message = np.zeros((1, L*J), dtype=int)
             for l in np.arange(L):

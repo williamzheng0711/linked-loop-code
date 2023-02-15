@@ -27,7 +27,7 @@ def ach_with_error(tx_symbols, L, K, J, p_e):
 def ach_with_deletion(tx_symbols, L, K, J, p_e):
     for l in range(L):
         applyErrs = np.where(bernoulli.rvs(p_e, size=K))[0]
-        tx_symbols[applyErrs,l] = 0
+        tx_symbols[applyErrs,l] = -1
     
     rng = np.random.default_rng()
     tx_symbols = rng.permuted(tx_symbols, axis=0)

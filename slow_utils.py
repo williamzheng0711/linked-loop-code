@@ -125,6 +125,8 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,
                 flag_ll = sum( np.abs(Parity_computed_ll.reshape(-1) - cs_decoded_tx_message[Path[0][ll], ll*J+messageLen:(ll+1)*J].reshape(-1)))
                 if flag_ll!=0:
                     return False
+
+        if lostSection == -1: print("壓根沒有lost！！！！！")
         return True
 
 
@@ -164,6 +166,13 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
 
 def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize):
     # Every i is a root.
+    # If section ZERO contains -1, then this root is defective
+    if cs_decoded_tx_message[i,0] == -1:
+        # print("i= " + str(i)+" 是-1")
+        return -1*np.ones((1,messageLen * L), dtype=int)
+    
+    # This root is not defective.
+    # print("不是-1 i=" + str(i))
     Paths = np.array([[i]])
     for l in range(1, L):
         # Grab the parity generator matrix corresponding to this section  
@@ -174,9 +183,10 @@ def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, wh
             if l >= windowSize:
                 Parity_computed = slow_compute_permissible_parity(Path,cs_decoded_tx_message,J,parityInvolved,l,whichGMatrix,parityLen,messageLen)
             for k in range(listSize):
-                index = l<windowSize or slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,parityLen,parityInvolved,whichGMatrix,L,windowSize)
-                if index: # If parity constraints are satisfied, update the path
-                    new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+                if cs_decoded_tx_message[k, l*J] != -1:
+                    index = l < windowSize or slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,parityLen,parityInvolved,whichGMatrix,L,windowSize)
+                    if index: # If parity constraints are satisfied, update the path
+                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
         Paths = new 
         if Paths.shape[0] == 0:
             break
@@ -220,16 +230,18 @@ def slow_correct_each_section_and_path(l, j, Paths, cs_decoded_tx_message, J, pa
     new = np.empty( shape=(0,0), dtype=int)
     Path = Paths[j].reshape(1,-1)
     pathArgNa = np.where( Path[0] < 0 )[0]    
+
     Parity_computed = -1 * np.ones((1,parityLen),dtype=int)
     if l >= windowSize: 
         Parity_computed = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityInvolved, l, whichGMatrix, parityLen, messageLen)
     for k in range(listSize):
-        if l < windowSize:
-            new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-        else :  # now l >= 4:
-            index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLen,parityLen,parityInvolved, whichGMatrix, L, windowSize) 
-            if index:
+        if cs_decoded_tx_message[k,l*J] != -1:
+            if l < windowSize:
                 new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+            else :  # now l >= 4:
+                index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLen,parityLen,parityInvolved, whichGMatrix, L, windowSize) 
+                if index:
+                    new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
     if len(pathArgNa) == 0:
         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
     return new

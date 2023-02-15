@@ -39,8 +39,8 @@ pyplot.bar(p_es, phase1_false, bottom = phase1_true + phase2_true)
 pyplot.bar(p_es, phase2_false, bottom = phase1_true+phase1_false+phase2_true)
 
 
-pyplot.legend([ "K=100","Ph.1 True", "Ph.2 True","Ph.1 False",  "Ph.2 False"])
+pyplot.legend([ "K=150","Ph.1 True", "Ph.2 True","Ph.1 False",  "Ph.2 False"])
 pyplot.xlabel("p_e")
-pyplot.ylim([0,155])
+pyplot.ylim([0,160])
 pyplot.title("K= 150")
 pyplot.show()

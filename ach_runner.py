@@ -3,7 +3,7 @@ import numpy as np
 import time
 from utils import *
 from slow_lib import *
-from a_channel_utils import *
+from ach_utils import *
 
 
 
@@ -18,7 +18,6 @@ assert p_e >= 0
 K = options.ka                                      # number of active users
 assert K > 0 
 
-print("####### K=" + str(K) +" and p_e= " + str(p_e))
 
 # Other parameter settings. No need to change at this moment.
 w = 128                                             # Length of each user's uncoded message (total number of info bits)
@@ -46,7 +45,7 @@ whichGMatrix = get_G_matrices(parityInvolved)        # An L x L matrix. Only (i,
                                                         # Where G_{i,j} matrix is the parity generating matrix needed to 
                                                         # calculate the contribution of w(i) while calculating p(j)
 
-print("####### Start Rocking #######")          # Simulation starts!!!!!
+print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e))          # Simulation starts!!!!!
 # Outer-code encoding. No need to change.
 txBits = np.random.randint(low=2, size=(K, w))   
 # Generate random binary messages for K active users. Hence txBits.shape is [K,w]
@@ -58,14 +57,15 @@ tx_symbols = ach_binary_to_symbol(txBitsParitized, L, K, J)
 
 
 # * A-Channel with Deletion
-rx_coded_symbols = ach_with_error(tx_symbols, L, K, J, p_e)
-sigValues = np.ones((listSize,L), dtype=int)
-
+rx_coded_symbols = ach_with_deletion(tx_symbols, L, K, J, p_e)
+# rx_coded_symbols 裡面有 -1的話說明是deletion了
 
 # *Outer code decoder. PAINPOINT
 print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
-rxBits, usedRootsIndex = slow_decoder(sigValues, rx_coded_symbols, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize)
+rxBits, usedRootsIndex, listSizeOrder = slow_decoder(np.ones((listSize,L),dtype=int), rx_coded_symbols, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize)
+# print(usedRootsIndex)
+
 toc = time.time()
 print(" | Time of decode " + str(toc-tic))
 if rxBits.shape[0] > K: 
@@ -88,7 +88,7 @@ print(" -Phase 1 is done.")
 # *Corrector. PAINPOINT
 print(" -Phase 2 (correction) now starts.")
 tic = time.time()
-rxBits_corrected= slow_corrector(sigValues,rx_coded_symbols,L,J,messageLen,parityLen,listSize,parityInvolved,usedRootsIndex,whichGMatrix,windowSize)
+rxBits_corrected= slow_corrector(np.ones((listSize,L),dtype=int),rx_coded_symbols,L,J,messageLen,parityLen,listSize,parityInvolved,usedRootsIndex,whichGMatrix,windowSize,listSizeOrder)
 toc = time.time()
 print(" | Time of correct " + str(toc-tic))
 print(" | corrected shape: " + str( rxBits_corrected.shape))
