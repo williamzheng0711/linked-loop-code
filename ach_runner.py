@@ -4,7 +4,7 @@ import time
 from utils import *
 from slow_lib import *
 from ach_utils import *
-
+from tc_utils import *
 
 
 parser = OptionParser()
@@ -18,11 +18,14 @@ assert p_e >= 0
 K = options.ka                                      # number of active users
 assert K > 0 
 
-
 # Other parameter settings. No need to change at this moment.
 w = 128                                             # Length of each user's uncoded message (total number of info bits)
 L = 16                                              # Number of sections
 assert w % L ==0
+
+
+### My (outer) code setting
+###
 parityLen = 8
 assert (w+L*parityLen) % L ==0
 J = int((w + L*parityLen)/L)                             # Length of each coded sub-block
@@ -45,68 +48,86 @@ whichGMatrix = get_G_matrices(parityInvolved)        # An L x L matrix. Only (i,
                                                         # Where G_{i,j} matrix is the parity generating matrix needed to 
                                                         # calculate the contribution of w(i) while calculating p(j)
 
+
+
+### Tree (outer) code setting 
+###
+parityLengthVector = np.array([0,7,7,7,7,7,8,8,8,8,10,10,10,10,10,11],dtype=int) # Parity bits distribution
+J=((w+np.sum(parityLengthVector))/L).astype(int) # Length of each coded sub-block
+M=2**J # Length of each section
+messageLengthVector = np.subtract(J*np.ones(L, dtype = 'int'), parityLengthVector).astype(int)
+Pa = np.sum(parityLengthVector) # Total number of parity check bits
+Ml = np.sum(messageLengthVector) # Total number of information bits
+G = generate_parity_matrix(L,messageLengthVector,parityLengthVector)
+
+
+
+
 print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e))          # Simulation starts!!!!!
 # Outer-code encoding. No need to change.
 txBits = np.random.randint(low=2, size=(K, w))   
-# Generate random binary messages for K active users. Hence txBits.shape is [K,w]
-txBitsParitized = slow_encode(txBits,K,L,J,Pa,w,messageLen,parityLen,parityInvolved,whichGMatrix) 
-# Add parities. txBitsParitized.size is (K,w+Pa)
 
-tx_symbols = ach_binary_to_symbol(txBitsParitized, L, K, J)
-# txBits_GF.shape should be (K,L), each slot should be a number of range [0,2**J)
+# LLC: Generate random binary messages for K active users. Hence txBits.shape is [K,w]
+txBitsParitized_llc = slow_encode(txBits,K,L,J,Pa,w,messageLen,parityLen,parityInvolved,whichGMatrix) 
+tx_symbols_llc = ach_binary_to_symbol(txBitsParitized_llc, L, K, J)
+
+# Tree Code: Encode and from binary to symbol
+txBitsParitized_tc = Tree_encode(txBits,K,G,L,J,Pa,Ml,messageLengthVector,parityLengthVector)
+tx_symbols_tc = ach_binary_to_symbol(txBitsParitized_tc, L, K, J)
 
 
 # * A-Channel with Deletion
-rx_coded_symbols = ach_with_deletion(tx_symbols, L, K, J, p_e)
-# rx_coded_symbols 裡面有 -1的話說明是deletion了
+seed = np.random.randint(0,10000)
+rx_coded_symbols_llc = ach_with_deletion(tx_symbols_llc, L, K, J, p_e, seed=seed)
+rx_coded_symbols_tc  = ach_with_deletion(tx_symbols_tc,  L, K, J, p_e, seed=seed)
+
 
 # *Outer code decoder. PAINPOINT
 print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
-rxBits, usedRootsIndex, listSizeOrder = slow_decoder(np.ones((listSize,L),dtype=int), rx_coded_symbols, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize)
-# print(usedRootsIndex)
-
+rxBits_llc, usedRootsIndex, listSizeOrder = slow_decoder(np.ones((listSize,L),dtype=int), rx_coded_symbols_llc, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize)
 toc = time.time()
-print(" | Time of decode " + str(toc-tic))
-if rxBits.shape[0] > K: 
-    rxBits = rxBits[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
+print(" | Time of LLC decode " + str(toc-tic))
+if rxBits_llc.shape[0] > K: 
+    rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
+
+tic = time.time()
+cs_decoded_tc = Tree_symbols_to_bits(listSize, L, J, rx_coded_symbols_tc)
+rxBits_tc = Tree_decoder(cs_decoded_tc,G,L,J,w,parityLengthVector,messageLengthVector,listSize)
+toc = time.time()
+print(" | Time of Tree Code decode " + str(toc-tic))
+if rxBits_tc.shape[0] > K: 
+    rxBits_tc = rxBits_tc[np.arange(K)] 
+
 
 # Check how many are correct amongst the recover (recover means first phase). No need to change.
-thisIter = 0
-txBits_remained = np.empty(shape=(0,0))
-for i in range(txBits.shape[0]):
-    incre = 0
-    incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
-    thisIter += int(incre)
-    if (incre == False):
-        txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
-print(" | In phase 1, we decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
-print(" -Phase 1 is done.")
+txBits_remained_llc = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
+_                   = check_phase_1(txBits, rxBits_tc, "Tree Code")
 
+print(" -Phase 1 Done.")
 
 
 # *Corrector. PAINPOINT
 print(" -Phase 2 (correction) now starts.")
 tic = time.time()
-rxBits_corrected= slow_corrector(np.ones((listSize,L),dtype=int),rx_coded_symbols,L,J,messageLen,parityLen,listSize,parityInvolved,usedRootsIndex,whichGMatrix,windowSize,listSizeOrder)
+rxBits_corrected_llc= slow_corrector(np.ones((listSize,L),dtype=int),rx_coded_symbols_llc,L,J,messageLen,parityLen,listSize,parityInvolved,usedRootsIndex,whichGMatrix,windowSize,listSizeOrder)
 toc = time.time()
 print(" | Time of correct " + str(toc-tic))
-print(" | corrected shape: " + str( rxBits_corrected.shape))
-print(" | txBits_remained shape is :" + str(txBits_remained.shape))
-
-if txBits_remained.shape[0] == w:
-    txBits_remained = txBits_remained.reshape(1,-1)
+# print(" | corrected shape: " + str( rxBits_corrected_llc.shape))
+# print(" | txBits_remained shape is :" + str(txBits_remained_llc.shape))
+if txBits_remained_llc.shape[0] == w:
+    txBits_remained_llc = txBits_remained_llc.reshape(1,-1)
 
 
 
 # Check how many are true amongst those "corrected". No need to change.
 corrected = 0
-if rxBits_corrected.size:
-    for i in range(txBits_remained.shape[0]):
+if rxBits_corrected_llc.size:
+    for i in range(txBits_remained_llc.shape[0]):
         incre = 0
-        incre = np.equal(txBits_remained[i,:],rxBits_corrected).all(axis=1).any()
+        incre = np.equal(txBits_remained_llc[i,:],rxBits_corrected_llc).all(axis=1).any()
         corrected += int(incre)
-    print(" | In phase 2, we corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected.shape[0]) )
+    print(" | In phase 2, Linked-loop code corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected_llc.shape[0]) )
 else: 
     print(" | Nothing was corrected")
 

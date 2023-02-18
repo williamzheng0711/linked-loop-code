@@ -160,7 +160,7 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
             
             if np.all(solutions == solutions[0]):
                 recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
-                print(" | This candidate is valid.")
+                # print(" | This candidate is valid.")
     
     return recovered_msg.reshape(1,-1)
 
@@ -245,3 +245,5 @@ def slow_correct_each_section_and_path(l, j, Paths, cs_decoded_tx_message, J, pa
     if len(pathArgNa) == 0:
         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
     return new
+
+

@@ -130,7 +130,7 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
 
         # For phase 2 correction, each root node at most give birth to ONE message corrected.
         if Paths.shape[0] >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
-            print(" | We obtained some candidate!!")
+            # print(" | We obtained some candidate!!")
             optimalOne = 0
             if Paths.shape[0] >= 2:
                 pathVar = np.zeros((Paths.shape[0]))
