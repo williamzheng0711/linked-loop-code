@@ -2,6 +2,7 @@ import numpy as np
 from utils import *
 from slow_utils import *
 from joblib import Parallel, delayed
+from tqdm import tqdm
 
 def slow_encode(tx_message, K, L, J, Pa, w, messageLen, parityLen, parityDistribution, useWhichMatrix):
     """
@@ -101,7 +102,7 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
     tree_decoded_tx_message = np.empty(shape=(0,0))
     targetingSections = np.mod(np.arange(1,L+1),L)
 
-    for i in listSizeOrder_remained:
+    for i, idx in zip(listSizeOrder_remained, tqdm(range(len(listSizeOrder_remained)))):
         if cs_decoded_tx_message[i,0] == -1: print("我是-1 !!!!")
 
         Paths = np.array([[i]])
