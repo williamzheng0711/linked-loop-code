@@ -52,7 +52,7 @@ whichGMatrix = get_G_matrices(parityInvolved)        # An L x L matrix. Only (i,
 
 ### Tree (outer) code setting 
 ###
-parityLengthVector = np.array([0,6,6,6,6,6,6,7,8,8,9,9,12,12,13,14],dtype=int) # Parity bits distribution
+parityLengthVector = np.array([0, 6, 8,8,8,8,8,8,8,8,8,8,8,8, 10, 16],dtype=int) # Parity bits distribution
 
 J=((w+np.sum(parityLengthVector))/L).astype(int) # Length of each coded sub-block
 M=2**J # Length of each section

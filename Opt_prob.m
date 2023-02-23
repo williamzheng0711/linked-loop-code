@@ -1,11 +1,11 @@
 % Inputs
 clear all
-Ka=110;   %Number of active users
-n=11;     %Number of blocks
-J=14;     %Length of each coded block
-M = 14*n; %Length of tree codeword
-B = 75;   %Payload size
-epsilon = 0.01; %Target error probability of tree decoder
+Ka=200;   %Number of active users
+n=16;     %Number of blocks
+J=16;     %Length of each coded block
+M = 16*16; %Length of tree codeword
+B = 128;   %Payload size
+epsilon = 0.005; %Target error probability of tree decoder
 cvx_begin gp
     variables p(n-1) % 1/2^paritylength vector
     q=1-p;
@@ -37,6 +37,7 @@ cvx_end
 
 % Round parity lengths to nearest integers
 parity_length_real = log2(1./p);
+disp(parity_length_real)
 parity_length_integer = round(parity_length_real); % This might sometimes give a total parity length that does not sum to M-B. 
                                                    % If that is the case, adjust the vector to ensure sum is M-B.
                                                    % This step would result in an approximate solution, which is sufficient for practical purposes.
