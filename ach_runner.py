@@ -52,6 +52,7 @@ whichGMatrix = get_G_matrices(parityInvolved)        # An L x L matrix. Only (i,
 
 ### Tree (outer) code setting 
 ###
+### This is obtained from the Opt_prob.m file
 parityLengthVector = np.array([0, 6, 8,8,8,8,8,8,8,8,8,8,8,8, 10, 16],dtype=int) # Parity bits distribution
 
 J=((w+np.sum(parityLengthVector))/L).astype(int) # Length of each coded sub-block
