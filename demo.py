@@ -28,13 +28,13 @@ import numpy as np
 import matplotlib.pyplot as pyplot
 
 
-phase1_llc_true = np.array([15, 37, 63])
-phase1_llc_false= np.array([0,  0,  0])
-phase2_llc_true = np.array([31, 39, 31])
-phase2_llc_false= np.array([0,  3,  0])
-phase1_tc_true = np.array([14, 37, 63])
-phase1_tc_false= np.array([1,  1,  3])
-p_es = np.array(["0.1", "0.05", "0.025"])
+phase1_llc_true = np.array([20, 36, 68, 100])
+phase1_llc_false= np.array([0,  0,  0, 0])
+phase2_llc_true = np.array([36, 38, 22, 0])
+phase2_llc_false= np.array([0,  2,  0, 0])
+phase1_tc_true =  np.array([20, 36, 68, 100])
+phase1_tc_false=  np.array([0, 0, 0, 0])
+p_es = np.array(["0.1", "0.05", "0.025", "0"])
 x_axis = np.arange(len(p_es))
 
 pyplot.axhline(y = 100, color = 'black', linestyle = 'dashed')
@@ -55,14 +55,12 @@ pyplot.show()
 
 
 
-phase1_llc_true = np.array([28, 65, 96])
-phase1_llc_false= np.array([0,  0,  0])
-phase2_llc_true = np.array([48, 49, 43])
-phase2_llc_false= np.array([4,  8,  2])
-phase1_tc_true  = np.array([28, 65, 96])
-phase1_tc_false = np.array([3,  8,  6])
-p_es = np.array(["0.1", "0.05", "0.025"])
-x_axis = np.arange(len(p_es))
+phase1_llc_true = np.array([28, 59, 107, 150])
+phase1_llc_false= np.array([0,  0,  0, 0])
+phase2_llc_true = np.array([37, 56, 30, 0])
+phase2_llc_false= np.array([4,  3,  0, 0])
+phase1_tc_true  = np.array([28, 59, 108, 150])
+phase1_tc_false = np.array([1,  0,  0, 0])
 
 pyplot.axhline(y = 150, color = 'black', linestyle = 'dashed')
 pyplot.bar(x_axis-0.15, phase1_llc_true,  0.2)

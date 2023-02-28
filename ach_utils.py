@@ -29,9 +29,13 @@ def ach_with_deletion(tx_symbols, L, K, J, p_e, seed=0):
     for l in range(L):
         applyErrs = np.where(bernoulli.rvs(p_e, size=K))[0]
         tx_symbols[applyErrs,l] = -1
+        tx_symbols_set_l = np.unique(tx_symbols[:,l], axis=-1)
+        tx_symbols_set_l = tx_symbols_set_l[tx_symbols_set_l !=-1]
+        tx_symbols[0:len(tx_symbols_set_l),l] = tx_symbols_set_l
+        tx_symbols[len(tx_symbols_set_l): ,l] = -1
     
     # rng = np.random.default_rng()
     # tx_symbols = rng.permuted(tx_symbols, axis=0)
     # print(f'After A-Channel, info_symbols.shape: {tx_symbols.shape}')
-    # print(tx_symbols[0:5, :])
+    print(tx_symbols[:, 0])
     return tx_symbols
