@@ -80,8 +80,8 @@ tx_symbols_tc = ach_binary_to_symbol(txBitsParitized_tc, L, K, J)
 
 # * A-Channel with Deletion
 seed = np.random.randint(0,10000)
-rx_coded_symbols_llc = ach_with_deletion(tx_symbols_llc, L, K, J, p_e, seed=seed)
-rx_coded_symbols_tc  = ach_with_deletion(tx_symbols_tc,  L, K, J, p_e, seed=seed)
+rx_coded_symbols_llc = ach_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+rx_coded_symbols_tc  = ach_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
 
 
 # *Outer code decoder. PAINPOINT
