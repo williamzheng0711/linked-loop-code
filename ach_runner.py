@@ -5,6 +5,7 @@ from utils import *
 from slow_lib import *
 from ach_utils import *
 from tc_utils import *
+from ldpc_utils import *
 
 
 parser = OptionParser()
@@ -73,18 +74,25 @@ txBits = np.random.randint(low=2, size=(K, w))
 txBitsParitized_llc = slow_encode(txBits,K,L,J,Pa,w,messageLen,parityLen,parityInvolved,whichGMatrix) 
 tx_symbols_llc = ach_binary_to_symbol(txBitsParitized_llc, L, K, J)
 
-# Tree Code: Encode and from binary to symbol
+# Tree Code: Encode and from binary to symbols
 txBitsParitized_tc = Tree_encode(txBits,K,G,L,J,Pa,Ml,messageLengthVector,parityLengthVector)
 tx_symbols_tc = ach_binary_to_symbol(txBitsParitized_tc, L, K, J)
+
+# LDPC: Get encoded symbols
+outer_code = FGG.Triadic8(16)
+tx_symbols_ldpc, user_codewords = LDPC_encode_to_symbol(txBits, L, K, J, outer_code)
 
 
 # * A-Channel with Deletion
 seed = np.random.randint(0,10000)
 rx_coded_symbols_llc = ach_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
 rx_coded_symbols_tc  = ach_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
+rx_coded_symbols_ldpc= ach_with_erasure(tx_symbols_ldpc,L, K, J, p_e, seed=seed)
 
 
-# *Outer code decoder. PAINPOINT
+
+# *Outer code decoder. 
+## LLC
 print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
 rxBits_llc, usedRootsIndex, listSizeOrder = slow_decoder(np.ones((listSize,L),dtype=int), rx_coded_symbols_llc, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize)
@@ -93,6 +101,7 @@ print(" | Time of LLC decode " + str(toc-tic))
 if rxBits_llc.shape[0] > K: 
     rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
 
+## Tree Code
 tic = time.time()
 cs_decoded_tc = Tree_symbols_to_bits(listSize, L, J, rx_coded_symbols_tc)
 rxBits_tc = Tree_decoder(cs_decoded_tc,G,L,J,w,parityLengthVector,messageLengthVector,listSize)
@@ -101,10 +110,30 @@ print(" | Time of Tree Code decode " + str(toc-tic))
 if rxBits_tc.shape[0] > K: 
     rxBits_tc = rxBits_tc[np.arange(K)] 
 
+## LDPC
+tic = time.time()
+unioned_cdwds_ldpc = LDPC_symbols_to_bits(L, J, rx_coded_symbols_ldpc, K)
+rx_user_codewords = outer_code.decoder(unioned_cdwds_ldpc, K)
+rx_user_codewords = np.array(rx_user_codewords)
+toc = time.time()
+print(" | Time of LDPC Code decode " + str(toc-tic))
+
 
 # Check how many are correct amongst the recover (recover means first phase). No need to change.
+## LLC
 txBits_remained_llc = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
+## Tree code
 _                   = check_phase_1(txBits, rxBits_tc, "Tree Code")
+## LDPC code
+LDPC_num_matches = FGG.numbermatches(user_codewords, rx_user_codewords, K)
+print(f' | In phase 1, LDPC decodes {LDPC_num_matches}/{len(rx_user_codewords)} codewords. ')
+
+
+
+
+
+
+
 
 print(" -Phase 1 Done.")
 
