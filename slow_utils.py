@@ -50,7 +50,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,
             availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=Lpath for x in range(windowSize+1)]).all() == True ]
         
             assert len(availSavers) > 0
-            if len(availSavers) <= 1: # e.g. [5, 6] # Because we need at least TWO results to compare.
+            if len(availSavers) <= 1:  # Because we need at least TWO results to compare.
                 return True
 
             solutions = np.empty((0,0), dtype=int)
@@ -60,7 +60,8 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,
                 if saver < Lpath: 
                     row = focusPath[saver]
                 else: 
-                    assert saver == Lpath; row = k
+                    assert saver == Lpath; 
+                    row = k
 
                 parityDist = parityDistribution[:,saver].reshape(1,-1)[0]
                 saverDeciders = np.nonzero(parityDist)[0]
@@ -126,7 +127,7 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,
                 if flag_ll!=0:
                     return False
 
-        if lostSection == -1: print("壓根沒有lost！！！！！")
+        # if lostSection == -1: print("No lost at all.")
         return True
 
 

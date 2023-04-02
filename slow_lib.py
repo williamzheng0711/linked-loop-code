@@ -51,10 +51,11 @@ def slow_decoder(sigValues, sigPos, L, J, parityLen, messageLen, listSize, parit
             sigPos (ndarray): listSize x L matrix of positions of significant values in recovered codeword
             L (int): number of sections in recovered codeword
             J (int): number of bits/section in codeword
-            w (int): number of information bits
+            messageLen (int): number of info bits/section in codeword
             listSize (int): number of entries to retain per section in recovered codeword
             parityInvolved (ndarray): indicator matrix of parity to information section connections
             whichGMatrix (ndarray): matrix indicating which generator matrix connects parity to info sections
+            windowSize (int): number of previous consecutive sections needed to calculate a section's parity portion
 
         Returns:
             tree_decoded_tx_message (ndarray): decoded messages
@@ -103,8 +104,7 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
     targetingSections = np.mod(np.arange(1,L+1),L)
 
     for i, idx in zip(listSizeOrder_remained, tqdm(range(len(listSizeOrder_remained)))):
-        if cs_decoded_tx_message[i,0] == -1: print("我是-1 !!!!")
-
+        # if cs_decoded_tx_message[i,0] == -1: print("我是-1 !!!!")
         Paths = np.array([[i]])
         for l in targetingSections:
             # print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
