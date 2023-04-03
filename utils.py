@@ -449,3 +449,4 @@ def check_phase_1(txBits, rxBits, name):
     print(" | In phase 1, " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
     # print(" - " + str(name) + " Phase 1 is done.")
     return txBits_remained_llc
+

@@ -24,59 +24,59 @@
 
 
 
-import numpy as np
-import matplotlib.pyplot as pyplot
+# import numpy as np
+# import matplotlib.pyplot as pyplot
 
 
-phase1_llc_true = np.array([20, 36, 68, 100])
-phase1_llc_false= np.array([0,  0,  0, 0])
-phase2_llc_true = np.array([36, 38, 22, 0])
-phase2_llc_false= np.array([0,  2,  0, 0])
-phase1_tc_true =  np.array([20, 36, 68, 100])
-phase1_tc_false=  np.array([0, 0, 0, 0])
-p_es = np.array(["0.1", "0.05", "0.025", "0"])
-x_axis = np.arange(len(p_es))
+# phase1_llc_true = np.array([20, 36, 68, 100])
+# phase1_llc_false= np.array([0,  0,  0, 0])
+# phase2_llc_true = np.array([36, 38, 22, 0])
+# phase2_llc_false= np.array([0,  2,  0, 0])
+# phase1_tc_true =  np.array([20, 36, 68, 100])
+# phase1_tc_false=  np.array([0, 0, 0, 0])
+# p_es = np.array(["0.1", "0.05", "0.025", "0"])
+# x_axis = np.arange(len(p_es))
 
-pyplot.axhline(y = 100, color = 'black', linestyle = 'dashed')
-pyplot.bar(x_axis-0.15, phase1_llc_true,  0.2)
-pyplot.bar(x_axis-0.15, phase2_llc_true,  0.2, bottom = phase1_llc_true)
-pyplot.bar(x_axis-0.15, phase1_llc_false, 0.2, bottom = phase1_llc_true + phase2_llc_true)
-pyplot.bar(x_axis-0.15, phase2_llc_false, 0.2, bottom = phase1_llc_true + phase2_llc_true + phase1_llc_false)
+# pyplot.axhline(y = 100, color = 'black', linestyle = 'dashed')
+# pyplot.bar(x_axis-0.15, phase1_llc_true,  0.2)
+# pyplot.bar(x_axis-0.15, phase2_llc_true,  0.2, bottom = phase1_llc_true)
+# pyplot.bar(x_axis-0.15, phase1_llc_false, 0.2, bottom = phase1_llc_true + phase2_llc_true)
+# pyplot.bar(x_axis-0.15, phase2_llc_false, 0.2, bottom = phase1_llc_true + phase2_llc_true + phase1_llc_false)
 
-pyplot.bar(x_axis+0.15, phase1_tc_true,  0.2)
-pyplot.bar(x_axis+0.15, phase1_tc_false, 0.2,  bottom = phase1_tc_true)
+# pyplot.bar(x_axis+0.15, phase1_tc_true,  0.2)
+# pyplot.bar(x_axis+0.15, phase1_tc_false, 0.2,  bottom = phase1_tc_true)
 
-pyplot.xticks(x_axis, p_es)
-pyplot.legend([ "K=100","Ph.1 True (LLC)", "Ph.2 True (LLC)","Ph.1 False (LLC)",  "Ph.2 False (LLC)", "Ph.1 True (TreeCode)", "Ph.1 False (TreeCode)"])
-pyplot.xlabel("p_e")
-pyplot.ylim([0,110])
-pyplot.title("K= 100 Linked-loop code and Tree code")
-pyplot.show()
+# pyplot.xticks(x_axis, p_es)
+# pyplot.legend([ "K=100","Ph.1 True (LLC)", "Ph.2 True (LLC)","Ph.1 False (LLC)",  "Ph.2 False (LLC)", "Ph.1 True (TreeCode)", "Ph.1 False (TreeCode)"])
+# pyplot.xlabel("p_e")
+# pyplot.ylim([0,110])
+# pyplot.title("K= 100 Linked-loop code and Tree code")
+# pyplot.show()
 
 
 
-phase1_llc_true = np.array([28, 59, 107, 150])
-phase1_llc_false= np.array([0,  0,  0, 0])
-phase2_llc_true = np.array([37, 56, 30, 0])
-phase2_llc_false= np.array([4,  3,  0, 0])
-phase1_tc_true  = np.array([28, 59, 108, 150])
-phase1_tc_false = np.array([1,  0,  0, 0])
+# phase1_llc_true = np.array([28, 59, 107, 150])
+# phase1_llc_false= np.array([0,  0,  0, 0])
+# phase2_llc_true = np.array([37, 56, 30, 0])
+# phase2_llc_false= np.array([4,  3,  0, 0])
+# phase1_tc_true  = np.array([28, 59, 108, 150])
+# phase1_tc_false = np.array([1,  0,  0, 0])
 
-pyplot.axhline(y = 150, color = 'black', linestyle = 'dashed')
-pyplot.bar(x_axis-0.15, phase1_llc_true,  0.2)
-pyplot.bar(x_axis-0.15, phase2_llc_true,  0.2, bottom = phase1_llc_true)
-pyplot.bar(x_axis-0.15, phase1_llc_false, 0.2, bottom = phase1_llc_true + phase2_llc_true)
-pyplot.bar(x_axis-0.15, phase2_llc_false, 0.2, bottom = phase1_llc_true + phase2_llc_true + phase1_llc_false)
+# pyplot.axhline(y = 150, color = 'black', linestyle = 'dashed')
+# pyplot.bar(x_axis-0.15, phase1_llc_true,  0.2)
+# pyplot.bar(x_axis-0.15, phase2_llc_true,  0.2, bottom = phase1_llc_true)
+# pyplot.bar(x_axis-0.15, phase1_llc_false, 0.2, bottom = phase1_llc_true + phase2_llc_true)
+# pyplot.bar(x_axis-0.15, phase2_llc_false, 0.2, bottom = phase1_llc_true + phase2_llc_true + phase1_llc_false)
 
-pyplot.bar(x_axis+0.15, phase1_tc_true,  0.2)
-pyplot.bar(x_axis+0.15, phase1_tc_false, 0.2,  bottom = phase1_tc_true)
+# pyplot.bar(x_axis+0.15, phase1_tc_true,  0.2)
+# pyplot.bar(x_axis+0.15, phase1_tc_false, 0.2,  bottom = phase1_tc_true)
 
-pyplot.xticks(x_axis, p_es)
-pyplot.legend([ "K=150","Ph.1 True (LLC)", "Ph.2 True (LLC)","Ph.1 False (LLC)",  "Ph.2 False (LLC)", "Ph.1 True (TreeCode)", "Ph.1 False (TreeCode)"])
-pyplot.xlabel("p_e")
-pyplot.ylim([0,160])
-pyplot.title("K= 150 Linked-loop code and Tree code")
-pyplot.show()
+# pyplot.xticks(x_axis, p_es)
+# pyplot.legend([ "K=150","Ph.1 True (LLC)", "Ph.2 True (LLC)","Ph.1 False (LLC)",  "Ph.2 False (LLC)", "Ph.1 True (TreeCode)", "Ph.1 False (TreeCode)"])
+# pyplot.xlabel("p_e")
+# pyplot.ylim([0,160])
+# pyplot.title("K= 150 Linked-loop code and Tree code")
+# pyplot.show()
 
 
 
@@ -93,3 +93,24 @@ pyplot.show()
 # np.random.seed(2)
 # applyErrs = np.where(bernoulli.rvs(0.1, size=100))[0]
 # print(applyErrs)
+
+
+
+import numpy as np
+
+# create a sample 2D array
+arr = np.array([[1, -1, 3], 
+                [1, 0, -1], 
+                [7, -1, 3]])
+
+# count the number of -1 values in each column
+counts = np.count_nonzero(arr == -1, axis=0)
+
+# print(counts)
+
+chosenRoot = 5
+L = 16
+a = np.mod(np.arange(chosenRoot, chosenRoot+L),L)
+print(a)
+b = a[np.mod(np.arange(L-chosenRoot, 2*L-chosenRoot),L)]
+print(b)

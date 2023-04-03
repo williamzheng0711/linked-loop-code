@@ -1,10 +1,11 @@
 import numpy as np
 from utils import *
+from binmatrix import *
 
 def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityInvolved, toCheck, whichGMatrix, parityLen, messageLen):
     # If path length  = 2, then we wanna have parity for section 2. toCheck = 2
     parityDist = parityInvolved[:,toCheck].reshape(1,-1)[0]
-    # print("----------parityDist: " + str(parityDist))
+    # print("----------parityDist: " + str(parityDist), "toCheck: " + str(toCheck))
     deciders = np.nonzero(parityDist)[0] # w(decider), where decider \in deciders, decide p(toCheck) collectively
     focusPath = Path[0]
 
@@ -12,6 +13,7 @@ def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityInvolved
     for decider in deciders:      # l labels the sections we gonna check to fix toCheck's parities
         if focusPath[decider] == -1:
             return -1 * np.ones((1,parityLen),dtype=int)
+        assert whichGMatrix[decider][toCheck] != -1
         gen_mat = matrix_repo(dim=messageLen)[ whichGMatrix[decider][toCheck] ] 
         Parity_computed = Parity_computed + np.matmul( cs_decoded_tx_message[focusPath[decider], decider*J : decider*J+messageLen], gen_mat)
     Parity_computed = np.mod(Parity_computed, 2)
@@ -82,8 +84,12 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,
                 theLostPart = np.mod(np.matmul(np.mod(minuend - subtrahend,2),gen_binmat_inv),2)
                 solutions = np.vstack((solutions,theLostPart)) if solutions.size else theLostPart
             
-            if np.all(solutions == solutions[0]): return True
-            else: return False
+            if np.all(solutions == solutions[0]): 
+                # print("對的")
+                return True
+            else:
+                # print("不對") 
+                return False
 
     else: # Path is already full
         lostSection = losts[0] if len(losts)>0 else -1
@@ -169,7 +175,7 @@ def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, wh
     # Every i is a root.
     # If section ZERO contains -1, then this root is defective
     if cs_decoded_tx_message[i,0] == -1:
-        # print("i= " + str(i)+" 是-1")
+        print("i= " + str(i)+" 是-1")
         return -1*np.ones((1,messageLen * L), dtype=int)
     
     # This root is not defective.
@@ -246,5 +252,6 @@ def slow_correct_each_section_and_path(l, j, Paths, cs_decoded_tx_message, J, pa
     if len(pathArgNa) == 0:
         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
     return new
+
 
 

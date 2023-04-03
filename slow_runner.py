@@ -24,7 +24,7 @@ windowSize = 2                                      # How many previous sections
 assert windowSize > 0
 Pa = L*parityLen                                    # Total number of parity check bits, in this case Pa=w=128
 N = int((30000/2**J)*M)                             # number of channel uses (real d.o.f)
-numAMPIter = 10                                      # number of AMP iterations desired
+numAMPIter = 2                                      # number of AMP iterations desired
 listSize = K + int(np.ceil(K/20))                   # list size retained per section after AMP converges
 sigma_n = 1                                         # AWGN noise standard deviation, hence set to 1. "n" stands for "normal"
 EbNo = 10**(SNR/10)                                 # Eb/No
