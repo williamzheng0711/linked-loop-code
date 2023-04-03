@@ -450,3 +450,32 @@ def check_phase_1(txBits, rxBits, name):
     # print(" - " + str(name) + " Phase 1 is done.")
     return txBits_remained_llc
 
+
+
+def convert_bits_to_sparse(encoded_tx_message,L,J,K):
+    encoded_tx_message_sparse=np.zeros((L*2**J,1),dtype=float)
+    for i in range(L):
+        A = encoded_tx_message[:,i*J:(i+1)*J]
+        B = A.dot(2**np.arange(J)[::-1]).reshape([K,1])
+        np.add.at(encoded_tx_message_sparse, i*2**J+B, 1)        
+    return encoded_tx_message_sparse
+
+
+def amp_prior_art(y, P, L, M, T, Ab, Az, p0):
+    n = y.size
+    β = np.zeros((L*M, 1))
+    z = y
+    Phat = n*P/L
+    
+    for t in range(T):
+        
+        τ = np.sqrt(np.sum(z**2)/n)
+        # effective observation
+        s = (np.sqrt(Phat)*β + Az(z)).astype(np.longdouble) 
+        # denoiser
+        β = (p0*np.exp(-(s-np.sqrt(Phat))**2/(2*τ**2)))/ (p0*np.exp(-(s-np.sqrt(Phat))**2/(2*τ**2)) + (1-p0)*np.exp(-s**2/(2*τ**2))).astype(float).reshape(-1, 1)
+        # residual
+        z = y - np.sqrt(Phat)*Ab(β) + (z/(n*τ**2)) * (Phat*np.sum(β) - Phat*np.sum(β**2))
+        #print(t,τ)
+
+    return β

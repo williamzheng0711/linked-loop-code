@@ -103,9 +103,9 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
     targetingSections = np.mod(np.arange(1,L+1),L)
 
     for i, idx in zip(listSizeOrder_remained, 
-                    #   tqdm(
+                      tqdm(
         range(len(listSizeOrder_remained))
-        # )
+        )
         ):
         assert cs_decoded_tx_message[i,0] != -1
         Paths = np.array([[i]])
