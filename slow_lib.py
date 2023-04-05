@@ -107,7 +107,7 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
 
     for i, idx in zip(listSizeOrder_remained, tqdm(range(len(listSizeOrder_remained)))):
         assert cs_decoded_tx_message[i,0] != -1
-        Paths = [ LLC.LinkedLoop(np.array([i]), messageLen) ]
+        Paths = [ LLC.LinkedLoop([i], messageLen) ]
         for l in targetingSections:
             if len(Paths) == 0: 
                 break
@@ -133,15 +133,16 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
             optimalOne = 0
-            if len(Paths) >= 2:
-                pathVar = np.zeros((len(Paths)))
-                for whichPath in range(len(Paths)):
-                    fadingValues = []
-                    for l in range(L): 
-                        if Paths[whichPath][l] != -1:
-                            fadingValues.append( sigValues[ Paths[whichPath][l] ][l] )
-                    pathVar[whichPath] = np.var(fadingValues)
-                optimalOne = np.argmin(pathVar)
+            # Now we do not care about which is better
+            # if len(Paths) >= 2:
+            #     pathVar = np.zeros((len(Paths)))
+            #     for whichPath in range(len(Paths)):
+            #         fadingValues = []
+            #         for l in range(L): 
+            #             if Paths[whichPath][l] != -1:
+            #                 fadingValues.append( sigValues[ Paths[whichPath][l] ][l] )
+            #         pathVar[whichPath] = np.var(fadingValues)
+            #     optimalOne = np.argmin(pathVar)
             onlyPathToConsider = Paths[optimalOne]
             recovered_message = output_message(cs_decoded_tx_message, onlyPathToConsider, L, J)
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
