@@ -3,6 +3,8 @@ from utils import *
 from slow_utils import *
 from joblib import Parallel, delayed
 from tqdm import tqdm
+import linkedloop as LLC
+    
 
 def slow_encode(tx_message, K, L, J, Pa, w, messageLen, parityLen, parityDistribution, useWhichMatrix):
     """
@@ -77,9 +79,10 @@ def slow_decoder(sigValues, sigPos, L, J, parityLen, messageLen, listSize, parit
 
     listSizeOrder = np.argsort(sigValues[:, 0])[::-1]
 
-
     # Step 2: find parity consistent paths    
-    results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)(idx, L, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize) for idx in listSizeOrder)     
+    results = Parallel(n_jobs=-1)(delayed(slow_decode_deal_with_root_i)
+                                  (idx, L, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize) 
+                                  for idx in listSizeOrder)     
     
     used_index = [a for a in range(len(results)) if sum(np.sum(results[a],axis=1)) >=0]
     tree_decoded_tx_message = np.empty((0,0), dtype=int)
@@ -102,13 +105,9 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
     tree_decoded_tx_message = np.empty(shape=(0,0))
     targetingSections = np.mod(np.arange(1,L+1),L)
 
-    for i, idx in zip(listSizeOrder_remained, 
-                      tqdm(
-        range(len(listSizeOrder_remained))
-        )
-        ):
+    for i, idx in zip(listSizeOrder_remained, tqdm(range(len(listSizeOrder_remained)))):
         assert cs_decoded_tx_message[i,0] != -1
-        Paths = np.array([[i]])
+        Paths = np.array([ LLC.LinkedLoop(np.array([i]), messageLen, -1*np.ones(messageLen, dtype=int)) ]) # Paths is still an nparray, its elements are LinkedLoops
         for l in targetingSections:
             # print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
             if Paths.shape[0] == 0: 
@@ -116,23 +115,22 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
             newAll=np.empty( shape=(0,0))
             
             if l != 0 :  # We still need to enlarge lenth of Paths.
-                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, j, Paths, cs_decoded_tx_message, J, 
+                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, Paths[j], cs_decoded_tx_message, J, 
                                                                                                parityInvolved, whichGMatrix, listSize, 
                                                                                                messageLen, parityLen, L, windowSize) 
                                                                                             for j in range(Paths.shape[0]))
                 for survivePath in survivePaths:
                     if survivePath.size:
-                        newAll = np.vstack((newAll, survivePath)) if newAll.size else survivePath
+                        newAll = np.hstack((newAll, survivePath)) if newAll.size else survivePath
                 Paths = newAll 
 
             else: # We dont enlarge length of Paths anymore
-                PathsUpdated = np.empty( shape=(0,0))
+                PathsUpdated = np.empty( shape=(0), dtype=object)
                 for j in range(Paths.shape[0]):
-                    isOkay = False
-                    Path = Paths[j].reshape(1,-1)
-                    isOkay = slow_parity_check( None, Path, None, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L, windowSize)
+                    Path = Paths[j]
+                    isOkay = llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L)
                     if isOkay:
-                        PathsUpdated = np.vstack((PathsUpdated, Path)) if PathsUpdated.size else Path
+                        PathsUpdated = np.append(PathsUpdated, Path)
                 Paths = PathsUpdated
 
 
@@ -151,16 +149,18 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
                 optimalOne = np.argmin(pathVar)
 
             onlyPathToConsider = Paths[optimalOne]
-            # print("onlyPathToConsider : " + str(onlyPathToConsider))
-            sectionLost = np.where(onlyPathToConsider < 0)[0]
-            decoded_message = np.zeros((1, L*J), dtype=int)
-            for l in np.arange(L):
-                if (l not in sectionLost):
-                    decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
 
-            recovered_message = slow_recover_msg(sectionLost, decoded_message, parityInvolved, messageLen,parityLen, J, L, whichGMatrix)
-            if recovered_message != np.array([], dtype= int).reshape(1,-1):
-                tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
+            # sectionLost = np.where(onlyPathToConsider < 0)[0]
+            # decoded_message = np.zeros((1, L*J), dtype=int)
+            # for l in np.arange(L):
+            #     if (l not in sectionLost):
+            #         decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
+            # recovered_message = slow_recover_msg(sectionLost, decoded_message, parityInvolved, messageLen,parityLen, J, L, whichGMatrix)
+            
+            recovered_message = output_message(cs_decoded_tx_message, onlyPathToConsider, L, J)
+
+            # if recovered_message != np.array([], dtype= int).reshape(1,-1):
+            tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
 
     tree_decoded_tx_message[:,range(messageLen*L)] = tree_decoded_tx_message[:, np.mod( np.arange(messageLen*L)+(L-chosenRoot)*messageLen  , messageLen*L) ]
     return tree_decoded_tx_message

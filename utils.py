@@ -6,6 +6,7 @@ from scipy.stats import rice, rayleigh
 from scipy.integrate import quad_vec
 from pyfht import block_sub_fht
 
+
 def matrix_repo(dim): 
     if dim == 2:
         return [ [[1,0],[0,1]], 
@@ -439,16 +440,16 @@ def convert_sparse_to_bits(cs_decoded_tx_message_sparse, L, J, listSize):
 def check_phase_1(txBits, rxBits, name):
     # Check how many are correct amongst the recover (recover means first phase). No need to change.
     thisIter = 0
-    txBits_remained_llc = np.empty(shape=(0,0))
+    txBits_remained_llc = np.empty(shape=(0,0), dtype=int)
     for i in range(txBits.shape[0]):
         incre = 0
         incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
         thisIter += int(incre)
         if (incre == False):
-            txBits_remained_llc = np.vstack( (txBits_remained_llc, txBits[i,:]) ) if txBits_remained_llc.size else  txBits[i,:]
+            txBits_remained_llc = np.vstack( (txBits_remained_llc, txBits[i,:]) ) if txBits_remained_llc.size else txBits[i,:]
     print(" | In phase 1, " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
     # print(" - " + str(name) + " Phase 1 is done.")
-    return txBits_remained_llc
+    return txBits_remained_llc, thisIter
 
 
 

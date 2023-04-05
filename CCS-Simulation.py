@@ -10,25 +10,25 @@ import tqdm
 Graph = FG.Triadic8(16)
 
 # Simulation Parameters for LDPC
-Ka = 20                        # Number of active users
+Ka = 30                        # Number of active users
 w = 128                        # Payload size of each active user (per user message length)
 N = 38400                      # Total number of channel uses (real d.o.f)
-listSize = Ka+2               # List size retained for each section after AMP converges
-numAmpIter = 8                 # Number of AMP iterations
+listSize = Ka+5               # List size retained for each section after AMP converges
+numAmpIter = 10                 # Number of AMP iterations
 numBPIter = 2                  # Number of BP iterations to perform
 BPonOuterGraph = True          # Indicates whether to perform BP on outer code.  If 0, AMP uses Giuseppe's uninformative prior
-maxSims = 2                    # Number of Simulations to Run
+maxSims = 1                    # Number of Simulations to Run
 
-EbNodB = 2.4                   # Energy per bit in decibels
+EbNodB = 3.4                   # Energy per bit in decibels
 EbNo = 10**(EbNodB/10)         # Eb/No in linear scale
 P = 2*w*EbNo/N                 # transmit power
 std = 1                        # Noise standard deviation
 errorRate = 0.0                # track error rate across simulations
-
+errorRate2 = 0
 
 
 # Simulation Para for LLC
-windowSize =2 
+windowSize = 3 
 messageLen = 8
 L = 16
 Phat = N*P/L
@@ -69,7 +69,15 @@ for idxsim in range(maxSims):
     errorRate += (Ka - FG.numbermatches(txMsg, txMsgHt)) / (Ka * maxSims)
 
 
+
+
+
+
+
+
+
     encoded_tx_message = slow_encode(txBits,Ka,L,J,Pa,w,messageLen,parityLen,parityInvolved,whichGMatrix) 
+    
     beta = convert_bits_to_sparse(encoded_tx_message,L,J,Ka)
     Ab, Az = sparc_codebook(L, M, N) 
     innerOutput = Ab(beta) 
@@ -89,7 +97,7 @@ for idxsim in range(maxSims):
     # print(" | Time of LLC decode " + str(toc-tic))
     if rxBits_llc.shape[0] > Ka: 
         rxBits_llc = rxBits_llc[np.arange(Ka)]                    # As before, if we have >K paths, always choose the first K's.
-    txBits_remained_llc = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
+    txBits_remained_llc, decoded = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
 
     rxBits_corrected_llc= slow_corrector(sigValues, sigPos,L,J,messageLen,parityLen,listSize,parityInvolved,usedRootsIndex,whichGMatrix,windowSize,listSizeOrder,chosenRoot)
     if txBits_remained_llc.shape[0] == w:
@@ -101,10 +109,11 @@ for idxsim in range(maxSims):
             incre = 0
             incre = np.equal(txBits_remained_llc[i,:],rxBits_corrected_llc).all(axis=1).any()
             corrected += int(incre)
-        print(" | In phase 2, Linked-loop code corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected_llc.shape[0]) )
-    else: 
-        print(" | Nothing was corrected")
+        # print(" | In phase 2, Linked-loop code corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected_llc.shape[0]) )
+    
+    errorRate2 += (Ka - (corrected +decoded)) / (Ka * maxSims)
 
 
 # Display Simulation Results
 print("Per user probability of error = %3.6f" % errorRate)
+print("Per user probability of error = %3.6f" % errorRate2)

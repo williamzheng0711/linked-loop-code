@@ -101,6 +101,7 @@ print("chosenRoot: " + str(chosenRoot))
 rx_coded_symbols_llc[:,range(L)] = rx_coded_symbols_llc[:, np.mod(np.arange(chosenRoot, chosenRoot+L),L) ]
 whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
 whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot, chosenRoot+L),L),:]
+
 rxBits_llc, usedRootsIndex, listSizeOrder = slow_decoder(np.ones((listSize,L),dtype=int), rx_coded_symbols_llc, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize, chosenRoot)
 toc = time.time()
 print(" | Time of LLC decode " + str(toc-tic))
@@ -127,7 +128,7 @@ print(" | Time of LDPC Code decode " + str(toc-tic))
 
 # Check how many are correct amongst the recover (recover means first phase). No need to change.
 ## LLC
-txBits_remained_llc = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
+txBits_remained_llc, thisIter = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
 ## Tree code
 _                   = check_phase_1(txBits, rxBits_tc, "Tree Code")
 ## LDPC code
@@ -135,11 +136,8 @@ LDPC_num_matches = FGG.numbermatches(user_codewords, rx_user_codewords, K)
 print(f' | In phase 1, LDPC decodes {LDPC_num_matches}/{len(rx_user_codewords)} codewords. ')
 
 
+
 print(" -Phase 1 Done.")
-
-
-
-
 
 
 
@@ -150,9 +148,7 @@ tic = time.time()
 rxBits_corrected_llc= slow_corrector(np.ones((listSize,L),dtype=int),rx_coded_symbols_llc,L,J,messageLen,parityLen,listSize,parityInvolved,usedRootsIndex,whichGMatrix,windowSize,listSizeOrder,chosenRoot)
 toc = time.time()
 print(" | Time of correct " + str(toc-tic))
-# print(" | corrected shape: " + str( rxBits_corrected_llc.shape))
-# print(" | txBits_remained shape is :" + str(txBits_remained_llc.shape))
-if txBits_remained_llc.shape[0] == w:
+if txBits_remained_llc.shape[0] == w: # Aka, only one message not yet decoded after phase 1
     txBits_remained_llc = txBits_remained_llc.reshape(1,-1)
 
 

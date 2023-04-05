@@ -1,24 +1,269 @@
 import numpy as np
+import linkedloop as LLC
 from utils import *
 from binmatrix import *
+from slow_lib import *
 
-def slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityInvolved, toCheck, whichGMatrix, parityLen, messageLen):
+
+def llc_decode_compute_parity(Path,cs_decoded_tx_message,J, parityInvolved, toCheck, whichGMatrix, parityLen, messageLen):
     # If path length  = 2, then we wanna have parity for section 2. toCheck = 2
     parityDist = parityInvolved[:,toCheck].reshape(1,-1)[0]
-    # print("----------parityDist: " + str(parityDist), "toCheck: " + str(toCheck))
     deciders = np.nonzero(parityDist)[0] # w(decider), where decider \in deciders, decide p(toCheck) collectively
     focusPath = Path[0]
 
     Parity_computed = np.zeros(parityLen, dtype=int)
     for decider in deciders:      # l labels the sections we gonna check to fix toCheck's parities
-        if focusPath[decider] == -1:
-            return -1 * np.ones((1,parityLen),dtype=int)
         assert whichGMatrix[decider][toCheck] != -1
         gen_mat = matrix_repo(dim=messageLen)[ whichGMatrix[decider][toCheck] ] 
         Parity_computed = Parity_computed + np.matmul( cs_decoded_tx_message[focusPath[decider], decider*J : decider*J+messageLen], gen_mat)
     Parity_computed = np.mod(Parity_computed, 2)
-
     return Parity_computed
+
+
+def llc_correct_compute_parity(Path,cs_decoded_tx_message, J, parityInvolved, toCheck, whichGMatrix, parityLen, messageLen):
+    # Here, "Path" is a LinkedLoop
+    parityDist = parityInvolved[:,toCheck].reshape(1,-1)[0]
+    deciders = np.nonzero(parityDist)[0] # w(decider), where decider \in deciders, decide p(toCheck) collectively
+    focusPath = Path.get_path()
+
+    Parity_computed = np.zeros(parityLen, dtype=int)
+    for decider in deciders:      # l labels the sections we gonna check to fix toCheck's parities
+        useLost = False
+        if focusPath[decider] == -1:
+            if np.array_equal(Path.get_lostPart(), -1 * np.ones((messageLen),dtype=int)):
+                return -1 * np.ones((1,parityLen),dtype=int) # We can do nothing here.
+            else:
+                useLost = True
+        assert whichGMatrix[decider][toCheck] != -1
+        gen_mat = matrix_repo(dim=messageLen)[ whichGMatrix[decider][toCheck] ] 
+        infoInvolved = cs_decoded_tx_message[focusPath[decider], decider*J : decider*J+messageLen] if useLost==False else Path.get_lostPart()
+        Parity_computed = Parity_computed + np.matmul( infoInvolved, gen_mat)
+    Parity_computed = np.mod(Parity_computed, 2)
+    return Parity_computed
+
+
+def llc_decode_check_parity(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen):
+    Lpath = Path.shape[1]
+    Parity = cs_decoded_tx_message[k, Lpath*J+messageLen : (Lpath+1)*J]    # 第k行的第Lpath section的parity
+    if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
+        return True  
+    else: 
+        return False 
+
+def llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLen,parityLen, parityInvolved, whichGMatrix, L, windowSize):
+    # Here, "Path" is a LinkedLoop
+    focusPath = Path.get_path()
+    oldLostPart = Path.get_lostPart()
+    Lpath = len(focusPath)
+    losts = np.where( focusPath < 0 )[0]
+
+    generator_matrices = matrix_repo(dim=messageLen)
+    inv_generator_matrices = matrix_inv_repo(dim=messageLen)
+
+    # 沒有 lost 最簡單的情況
+    if Path.whether_contains_na() == False or (Lpath - losts[0] > windowSize and Path.whether_contains_na()):
+        Parity = cs_decoded_tx_message[k,Lpath*J+messageLen:(Lpath+1)*J]    # 第k行的第Lpath section的parity
+        if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
+            return True, oldLostPart
+        else: 
+            return False, oldLostPart
+    
+    # 有lost
+    else:   
+        lostSection = losts[0]
+        # 考慮 lost 發生在最近: # if lostSection is section 4, then we gonna check
+        # (w1, w2, w3, w4) => p5    # (w2, w3, w4, w5) => p6    # (w3, w4, w5, w6) => p7    # (w4, w5, w6, w7) => p8    # w5, w6, w7 and w8 are "saverSections" of lostSections
+        saverSections = np.nonzero(parityInvolved[lostSection])[0]        # then saverSections = [5, 6, 7, 8]
+        availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=Lpath for x in range(windowSize+1)]).all() == True ]
+    
+        assert len(availSavers) > 0
+        if len(availSavers) <= 1:  # Because we need at least TWO results to compare.
+            return True, oldLostPart
+
+        solutions = np.empty((0,0), dtype=int)
+        for saver in availSavers: # saver != lostSection
+            assert np.array([saver == np.mod(saver+x,L) for x in range(windowSize+1)]).any() == True
+            row = 0
+            if saver < Lpath: 
+                row = focusPath[saver]
+            else: 
+                assert saver == Lpath; 
+                row = k
+
+            parityDist = parityInvolved[:,saver].reshape(1,-1)[0]
+            saverDeciders = np.nonzero(parityDist)[0]
+            minuend = cs_decoded_tx_message[row, saver*J+messageLen: (1+saver)*J ]  # 被減數 Aka p(saver)
+            subtrahend = np.zeros(parityLen, dtype=int) # 減數
+            for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
+                if (saverDecider != lostSection):
+                    gen_mat = generator_matrices[whichGMatrix[saverDecider][saver]] 
+                    if saverDecider != Lpath:
+                        subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLen],gen_mat) # 都是 info * G
+                    else:
+                        assert saverDecider == Lpath
+                        subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[k,saverDecider*J:saverDecider*J+messageLen],gen_mat) # 都是 info * G
+
+            subtrahend = np.mod(subtrahend, 2)
+            gen_mat = generator_matrices[whichGMatrix[lostSection][saver]]
+            gen_binmat_inv = np.array(inv_generator_matrices[whichGMatrix[lostSection,saver]])
+            theLostPart = np.mod(np.matmul(np.mod(minuend - subtrahend,2),gen_binmat_inv),2)
+            solutions = np.vstack((solutions,theLostPart)) if solutions.size else theLostPart
+        
+        if np.all(solutions == solutions[0]): 
+            return True, solutions[0]
+        else:
+            return False, oldLostPart
+
+
+def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L):
+    # Path here is LinkedLoop, must have a lostSection, but not necessarily have it being recovered.
+    focusPath = Path.get_path()
+    assert np.count_nonzero(focusPath == -1) == 1
+    isOkay = True
+    for toCheck in range(L):
+        if focusPath[toCheck] != -1:
+            parityComputed = llc_correct_compute_parity(Path,cs_decoded_tx_message, J, parityInvolved, toCheck, whichGMatrix, parityLen, messageLen)
+            flag_ll = np.abs(parityComputed - cs_decoded_tx_message[focusPath[toCheck], toCheck*J+messageLen: (toCheck+1)*J])
+            # print("flag_ll = " + str(flag_ll))
+            if flag_ll.any() != 0: 
+                isOkay = False
+                break
+    return isOkay
+
+def output_message(cs_decoded_tx_message, linkedloop, L, J):
+    path = linkedloop.get_path()
+    messageLen = linkedloop.get_messageLen()
+    msg = np.zeros( (1, messageLen*L), dtype=int)
+    for l in range(L):
+        if path[l] != -1: 
+            msg[0, l*messageLen:(l+1)*messageLen] = cs_decoded_tx_message[path[l], l*J: l*J+messageLen]
+        else: 
+            msg[0, l*messageLen:(l+1)*messageLen] = linkedloop.get_lostPart()
+    return msg
+
+
+def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLen, parityLen, J, L, useWhichMatrix):
+    generator_matrices = matrix_repo(dim=messageLen)
+    inv_generator_matrices = matrix_inv_repo(dim=messageLen)
+    recovered_msg = np.array([], dtype= int).reshape(1,-1)
+    lostSection = sectionLost[0]
+    for ll in np.arange(L):
+        if ll not in sectionLost:
+            recovered_msg = np.concatenate( (recovered_msg, decoded_message[0][ ll*J : ll*J+messageLen ].reshape(1,-1)[0]) , axis=None )
+        else: # ll  in sectoinLost:              # suppose ll = 5. we first check section 5 determines what? 
+            saverSections = np.nonzero(parityDistribution[ll])[0]        # then saverSections = [6, 7, 8, 9]
+            solutions = np.empty((0,0), dtype=int)
+
+            for saver in saverSections:
+                parityDist = parityDistribution[:,saver].reshape(1,-1)[0]
+                saverDeciders = np.nonzero(parityDist)[0]
+                minuend =  decoded_message[0][ saver*J+messageLen: (1+saver)*J ].reshape(1,-1)[0]
+                subtrahend = np.zeros(parityLen, dtype=int)
+                for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
+                    if (saverDecider != lostSection):
+                        gen_mat = generator_matrices[useWhichMatrix[saverDecider][saver]] 
+                        subtrahend = subtrahend + np.matmul( decoded_message[0, saverDecider*J : saverDecider*J+messageLen], gen_mat)
+                
+                subtrahend = np.mod(subtrahend, 2)
+                gen_mat = generator_matrices[useWhichMatrix[lostSection][saver]] 
+                gen_binmat_inv = np.array(inv_generator_matrices[useWhichMatrix[lostSection, saver]])
+                theLostPart = np.mod( np.matmul( np.mod(minuend - subtrahend,2) , gen_binmat_inv), 2)
+                solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
+            
+            if np.all(solutions == solutions[0]):
+                recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
+                # print(" | This candidate is valid.")
+    
+    return recovered_msg.reshape(1,-1)
+
+def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize):
+    # Every i is a root. If section ZERO contains -1, then this root is defective
+    assert cs_decoded_tx_message[i,0] != -1
+    
+    Paths = np.array([[i]])
+    for l in range(1, L):
+        # Grab the parity generator matrix corresponding to this section  
+        new=np.empty( shape=(0,0))
+        for j in range(Paths.shape[0]):
+            Path=Paths[j].reshape(1,-1)     
+            Parity_computed= np.ones((1,parityLen),dtype=int)
+            if l >= windowSize:
+                Parity_computed = llc_decode_compute_parity(Path,cs_decoded_tx_message,J,parityInvolved,l,whichGMatrix,parityLen,messageLen)
+            for k in range(listSize):
+                if cs_decoded_tx_message[k, l*J] != -1:
+                    index = l < windowSize or llc_decode_check_parity(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen)
+                    if index: # If parity constraints are satisfied, update the path
+                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+        Paths = new 
+        if Paths.shape[0] == 0:
+            break
+    
+    # We check those sections at the head, aka, section 0, 1, ..., windowSize-1. We never check them in before.
+    # 我們再檢查一下最靠近頭部的 windowSize 個 sectoins，因為在之前的檢查中，它們被跳過了。
+    PathsUpdated = np.empty( shape=(0,0))
+    for j in range(Paths.shape[0]):
+        isOkay = True
+        Path = Paths[j].reshape(1,-1)
+        for ll in range(windowSize):
+            Parity_computed_ll = llc_decode_compute_parity(Path,cs_decoded_tx_message,J, parityInvolved, ll, whichGMatrix, parityLen, messageLen)
+            flag_ll = sum( np.abs(Parity_computed_ll - cs_decoded_tx_message[Path[0][ll], ll*J+messageLen: (ll+1)*J]) )
+            if flag_ll !=0: 
+                isOkay = False; break
+        if isOkay:
+            PathsUpdated = np.vstack((PathsUpdated, Path)) if PathsUpdated.size else Path
+    Paths = PathsUpdated
+
+    # Handle multiple valid paths. We keep all parity consistent paths.
+    # 當一個 root 衍生出大於一條合理的 path 時，所有的 path 都會被收錄。
+    if Paths.shape[0] >= 1:  
+        if Paths.shape[0] >= 2:
+            flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,messageLen)
+            if flag:
+                return extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,messageLen)
+            else:
+                return extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,messageLen)
+        elif Paths.shape[0] == 1:
+            return extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,messageLen)
+    
+    # When a root fails to lead to any message, we return an all-minus-one message to indicate failure. 
+    # 當一個 root 一條合理的 path 也不能衍生出時，我們輸出一條全是 -1 的固定訊息，以宣告失敗
+    return -1*np.ones((1,messageLen * L), dtype=int)
+
+
+
+
+def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLen, parityLen, L, windowSize):
+    new = np.empty( shape=(0), dtype=object)
+    # Path = Paths[j].reshape(1,-1)
+    # pathArgNa = np.where( Path[0] < 0 )[0]   
+    assert isinstance(Path, np.ndarray) == False
+    oldPath = Path.get_path()
+    oldLostPart = Path.get_lostPart()
+
+    Parity_computed = -1 * np.ones((1,parityLen),dtype=int)
+    if l >= windowSize: 
+        Parity_computed = llc_correct_compute_parity(Path, cs_decoded_tx_message, J, parityInvolved, l, whichGMatrix, parityLen, messageLen)
+    
+    for k in range(listSize):
+        if cs_decoded_tx_message[k,l*J] != -1:
+            if l < windowSize:
+                # new = np.vstack(( new , np.hstack((Path.reshape(1,-1),np.array([[k]]))) )) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+                # new = np.vstack(( new, LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, oldLostPart) )) if new.size else LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, oldLostPart)
+                new = np.append(new, LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, oldLostPart))
+            else : 
+                toKeep, lostPart = llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLen,parityLen,parityInvolved, whichGMatrix, L, windowSize) 
+                if toKeep:
+                    # new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+                    # new = np.vstack(( new, LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, lostPart) )) if new.size else LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, lostPart)
+                    new = np.append(new, LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, lostPart))
+    
+    # if len(pathArgNa) == 0:
+    if Path.whether_contains_na() == False:
+        # new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
+        # new = np.vstack(( new, LLC.LinkedLoop(np.hstack((oldPath,[-1])), messageLen, oldLostPart) )) if new.size else LLC.LinkedLoop(np.hstack((oldPath,[-1])), messageLen, oldLostPart)
+        new = np.append(new, LLC.LinkedLoop(np.hstack((oldPath,[-1])), messageLen, oldLostPart))
+    return new
+
 
 def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,parityLen, parityDistribution, useWhichMatrix, L, windowSize):
     Lpath = Path.shape[1] # 當Lpath<16 也是 現在target的section 的意思
@@ -133,125 +378,4 @@ def slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,
                 if flag_ll!=0:
                     return False
 
-        # if lostSection == -1: print("No lost at all.")
         return True
-
-
-def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLen, parityLen, J, L, useWhichMatrix):
-    generator_matrices = matrix_repo(dim=messageLen)
-    inv_generator_matrices = matrix_inv_repo(dim=messageLen)
-    recovered_msg = np.array([], dtype= int).reshape(1,-1)
-    lostSection = sectionLost[0]
-    for ll in np.arange(L):
-        if ll not in sectionLost:
-            recovered_msg = np.concatenate( (recovered_msg, decoded_message[0][ ll*J : ll*J+messageLen ].reshape(1,-1)[0]) , axis=None )
-        else: # ll  in sectoinLost:              # suppose ll = 5. we first check section 5 determines what? 
-            saverSections = np.nonzero(parityDistribution[ll])[0]        # then saverSections = [6, 7, 8, 9]
-            solutions = np.empty((0,0), dtype=int)
-
-            for saver in saverSections:
-                parityDist = parityDistribution[:,saver].reshape(1,-1)[0]
-                saverDeciders = np.nonzero(parityDist)[0]
-                minuend =  decoded_message[0][ saver*J+messageLen: (1+saver)*J ].reshape(1,-1)[0]
-                subtrahend = np.zeros(parityLen, dtype=int)
-                for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
-                    if (saverDecider != lostSection):
-                        gen_mat = generator_matrices[useWhichMatrix[saverDecider][saver]] 
-                        subtrahend = subtrahend + np.matmul( decoded_message[0, saverDecider*J : saverDecider*J+messageLen], gen_mat)
-                
-                subtrahend = np.mod(subtrahend, 2)
-                gen_mat = generator_matrices[useWhichMatrix[lostSection][saver]] 
-                gen_binmat_inv = np.array(inv_generator_matrices[useWhichMatrix[lostSection, saver]])
-                theLostPart = np.mod( np.matmul( np.mod(minuend - subtrahend,2) , gen_binmat_inv), 2)
-                solutions = np.vstack((solutions, theLostPart)) if solutions.size else theLostPart
-            
-            if np.all(solutions == solutions[0]):
-                recovered_msg = np.concatenate( (recovered_msg, theLostPart) , axis=None)
-                # print(" | This candidate is valid.")
-    
-    return recovered_msg.reshape(1,-1)
-
-def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize):
-    # Every i is a root.
-    # If section ZERO contains -1, then this root is defective
-    if cs_decoded_tx_message[i,0] == -1:
-        print("i= " + str(i)+" 是-1")
-        return -1*np.ones((1,messageLen * L), dtype=int)
-    
-    # This root is not defective.
-    # print("不是-1 i=" + str(i))
-    Paths = np.array([[i]])
-    for l in range(1, L):
-        # Grab the parity generator matrix corresponding to this section  
-        new=np.empty( shape=(0,0))
-        for j in range(Paths.shape[0]):
-            Path=Paths[j].reshape(1,-1)     
-            Parity_computed= np.ones((1,parityLen),dtype=int)
-            if l >= windowSize:
-                Parity_computed = slow_compute_permissible_parity(Path,cs_decoded_tx_message,J,parityInvolved,l,whichGMatrix,parityLen,messageLen)
-            for k in range(listSize):
-                if cs_decoded_tx_message[k, l*J] != -1:
-                    index = l < windowSize or slow_parity_check(Parity_computed,Path,k,cs_decoded_tx_message,J,messageLen,parityLen,parityInvolved,whichGMatrix,L,windowSize)
-                    if index: # If parity constraints are satisfied, update the path
-                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-        Paths = new 
-        if Paths.shape[0] == 0:
-            break
-    
-    # Let us go to check section 0, 1, 2 and 3. They are not checked in above.
-    PathsUpdated = np.empty( shape=(0,0))
-    for j in range(Paths.shape[0]):
-        isOkay = True
-        Path = Paths[j].reshape(1,-1)
-        for ll in range(windowSize):
-            Parity_computed_ll = slow_compute_permissible_parity(Path,cs_decoded_tx_message,J, parityInvolved, ll, whichGMatrix, parityLen, messageLen)
-            flag_ll = sum( np.abs(Parity_computed_ll - cs_decoded_tx_message[Path[0][ll], ll*J+messageLen: (ll+1)*J]) )
-            if flag_ll !=0: 
-                isOkay = False; break
-        if isOkay:
-            PathsUpdated = np.vstack((PathsUpdated, Path)) if PathsUpdated.size else Path
-    Paths = PathsUpdated
-
-    # Handle multiple valid paths
-    if Paths.shape[0] >= 1:  
-        if Paths.shape[0] >= 2:
-            flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,messageLen)
-            if flag:
-                return extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,messageLen)
-            else:
-                # optimalOne = 0
-                # pathVar = np.zeros((Paths.shape[0]))
-                # for whichPath in range(Paths.shape[0]):
-                #     fadingValues = []
-                #     for l in range(Paths.shape[1]):     
-                #         fadingValues.append( sigValues[ Paths[whichPath][l] ][l] ) 
-                #     pathVar[whichPath] = np.var(fadingValues)
-                # optimalOne = np.argmin(pathVar)
-                return extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,messageLen)
-        elif Paths.shape[0] == 1:
-            return extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,messageLen)
-    
-    return -1*np.ones((1,messageLen * L), dtype=int)
-
-def slow_correct_each_section_and_path(l, j, Paths, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLen, parityLen, L, windowSize):
-    new = np.empty( shape=(0,0), dtype=int)
-    Path = Paths[j].reshape(1,-1)
-    pathArgNa = np.where( Path[0] < 0 )[0]    
-
-    Parity_computed = -1 * np.ones((1,parityLen),dtype=int)
-    if l >= windowSize: 
-        Parity_computed = slow_compute_permissible_parity(Path, cs_decoded_tx_message, J, parityInvolved, l, whichGMatrix, parityLen, messageLen)
-    for k in range(listSize):
-        if cs_decoded_tx_message[k,l*J] != -1:
-            if l < windowSize:
-                new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-            else :  # now l >= 4:
-                index = slow_parity_check(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLen,parityLen,parityInvolved, whichGMatrix, L, windowSize) 
-                if index:
-                    new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-    if len(pathArgNa) == 0:
-        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
-    return new
-
-
-
