@@ -103,46 +103,45 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
     
     listSizeOrder_remained = [x for x in listSizeOrder if x not in usedRootsIndex] # exclude used roots.
     tree_decoded_tx_message = np.empty(shape=(0,0))
-    targetingSections = np.mod(np.arange(1,L+1),L)
+    targetingSections = np.mod(np.arange(1,L),L) # its last element is L-1
 
     for i, idx in zip(listSizeOrder_remained, tqdm(range(len(listSizeOrder_remained)))):
         assert cs_decoded_tx_message[i,0] != -1
-        Paths = np.array([ LLC.LinkedLoop(np.array([i]), messageLen, -1*np.ones(messageLen, dtype=int)) ]) # Paths is still an nparray, its elements are LinkedLoops
+        Paths = [ LLC.LinkedLoop(np.array([i]), messageLen, -1*np.ones(messageLen, dtype=int)) ]
         for l in targetingSections:
             # print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
-            if Paths.shape[0] == 0: 
+            if len(Paths) == 0: 
                 break
-            newAll=np.empty( shape=(0,0))
+            newAll = []
             
             if l != 0 :  # We still need to enlarge lenth of Paths.
                 survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, Paths[j], cs_decoded_tx_message, J, 
                                                                                                parityInvolved, whichGMatrix, listSize, 
                                                                                                messageLen, parityLen, L, windowSize) 
-                                                                                            for j in range(Paths.shape[0]))
+                                                                                            for j in range(len(Paths)))
                 for survivePath in survivePaths:
-                    if survivePath.size:
-                        newAll = np.hstack((newAll, survivePath)) if newAll.size else survivePath
+                    if len(survivePath) > 0:
+                        newAll = newAll + survivePath
                 Paths = newAll 
 
-            else: # We dont enlarge length of Paths anymore
-                PathsUpdated = np.empty( shape=(0), dtype=object)
-                for j in range(Paths.shape[0]):
-                    Path = Paths[j]
-                    isOkay = llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L)
-                    if isOkay:
-                        PathsUpdated = np.append(PathsUpdated, Path)
-                Paths = PathsUpdated
+        PathsUpdated = []
+        for j in range(len(Paths)):
+            Path = Paths[j]
+            isOkay = llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L)
+            if isOkay:
+                PathsUpdated.append( Path )
+        Paths = PathsUpdated
 
 
         # For phase 2 correction, each root node at most give birth to ONE message corrected.
-        if Paths.shape[0] >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
+        if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
             optimalOne = 0
-            if Paths.shape[0] >= 2:
-                pathVar = np.zeros((Paths.shape[0]))
-                for whichPath in range(Paths.shape[0]):
+            if len(Paths) >= 2:
+                pathVar = np.zeros((len(Paths)))
+                for whichPath in range(len(Paths)):
                     fadingValues = []
-                    for l in range(Paths.shape[1]): 
+                    for l in range(L): 
                         if Paths[whichPath][l] != -1:
                             fadingValues.append( sigValues[ Paths[whichPath][l] ][l] )
                     pathVar[whichPath] = np.var(fadingValues)

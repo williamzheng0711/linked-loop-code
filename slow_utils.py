@@ -118,13 +118,16 @@ def llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_mes
 def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L):
     # Path here is LinkedLoop, must have a lostSection, but not necessarily have it being recovered.
     focusPath = Path.get_path()
-    assert np.count_nonzero(focusPath == -1) == 1
+    
+    # Maybe there are paths that contains no NA. But they must be somewhere not consistent. 
+    if np.count_nonzero(focusPath == -1) == 0:
+        return False
+    
     isOkay = True
     for toCheck in range(L):
         if focusPath[toCheck] != -1:
             parityComputed = llc_correct_compute_parity(Path,cs_decoded_tx_message, J, parityInvolved, toCheck, whichGMatrix, parityLen, messageLen)
             flag_ll = np.abs(parityComputed - cs_decoded_tx_message[focusPath[toCheck], toCheck*J+messageLen: (toCheck+1)*J])
-            # print("flag_ll = " + str(flag_ll))
             if flag_ll.any() != 0: 
                 isOkay = False
                 break
@@ -178,7 +181,8 @@ def slow_recover_msg(sectionLost, decoded_message, parityDistribution, messageLe
 
 def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize):
     # Every i is a root. If section ZERO contains -1, then this root is defective
-    assert cs_decoded_tx_message[i,0] != -1
+    if cs_decoded_tx_message[i,0] == -1:
+        return -1*np.ones((1,messageLen * L), dtype=int)
     
     Paths = np.array([[i]])
     for l in range(1, L):
@@ -233,10 +237,7 @@ def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, wh
 
 
 def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLen, parityLen, L, windowSize):
-    new = np.empty( shape=(0), dtype=object)
-    # Path = Paths[j].reshape(1,-1)
-    # pathArgNa = np.where( Path[0] < 0 )[0]   
-    assert isinstance(Path, np.ndarray) == False
+    new = []  
     oldPath = Path.get_path()
     oldLostPart = Path.get_lostPart()
 
@@ -247,21 +248,15 @@ def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, parity
     for k in range(listSize):
         if cs_decoded_tx_message[k,l*J] != -1:
             if l < windowSize:
-                # new = np.vstack(( new , np.hstack((Path.reshape(1,-1),np.array([[k]]))) )) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-                # new = np.vstack(( new, LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, oldLostPart) )) if new.size else LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, oldLostPart)
-                new = np.append(new, LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, oldLostPart))
+                new.append( LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, oldLostPart) )
             else : 
                 toKeep, lostPart = llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLen,parityLen,parityInvolved, whichGMatrix, L, windowSize) 
                 if toKeep:
-                    # new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-                    # new = np.vstack(( new, LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, lostPart) )) if new.size else LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, lostPart)
-                    new = np.append(new, LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, lostPart))
+                    new.append( LLC.LinkedLoop(np.hstack((oldPath,[k])), messageLen, lostPart) )
     
     # if len(pathArgNa) == 0:
     if Path.whether_contains_na() == False:
-        # new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[-1]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[-1]])))
-        # new = np.vstack(( new, LLC.LinkedLoop(np.hstack((oldPath,[-1])), messageLen, oldLostPart) )) if new.size else LLC.LinkedLoop(np.hstack((oldPath,[-1])), messageLen, oldLostPart)
-        new = np.append(new, LLC.LinkedLoop(np.hstack((oldPath,[-1])), messageLen, oldLostPart))
+        new.append( LLC.LinkedLoop(np.hstack((oldPath,[-1])), messageLen, oldLostPart) )
     return new
 
 

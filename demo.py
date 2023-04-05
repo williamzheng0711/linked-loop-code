@@ -115,6 +115,6 @@ print(a)
 b = a[np.mod(np.arange(L-chosenRoot, 2*L-chosenRoot),L)]
 print(b)
 
-dummy = np.array([1,2,3,4,5])
-u = np.count_nonzero(dummy == 5)
-print(u)
+dummy = []
+dummy.append(np.array([2121323,21]))
+print(dummy)
