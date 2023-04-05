@@ -107,21 +107,18 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
 
     for i, idx in zip(listSizeOrder_remained, tqdm(range(len(listSizeOrder_remained)))):
         assert cs_decoded_tx_message[i,0] != -1
-        Paths = [ LLC.LinkedLoop(np.array([i]), messageLen, -1*np.ones(messageLen, dtype=int)) ]
+        Paths = [ LLC.LinkedLoop(np.array([i]), messageLen) ]
         for l in targetingSections:
-            # print( "Target section: " + str(l) + " | No. of paths: " + str(Paths.shape[0]) + " | How many contains -1: " + str(sum([1 for Path in Paths if np.any(Path<0)])) )
             if len(Paths) == 0: 
                 break
             newAll = []
-            
             if l != 0 :  # We still need to enlarge lenth of Paths.
-                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l, Paths[j], cs_decoded_tx_message, J, 
-                                                                                               parityInvolved, whichGMatrix, listSize, 
-                                                                                               messageLen, parityLen, L, windowSize) 
+                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l,Paths[j],cs_decoded_tx_message,J, parityInvolved, 
+                                                                                               whichGMatrix, listSize, messageLen, parityLen, L, windowSize) 
                                                                                             for j in range(len(Paths)))
                 for survivePath in survivePaths:
                     if len(survivePath) > 0:
-                        newAll = newAll + survivePath
+                        newAll = list(newAll) + list(survivePath) # list merging
                 Paths = newAll 
 
         PathsUpdated = []
@@ -131,7 +128,6 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
             if isOkay:
                 PathsUpdated.append( Path )
         Paths = PathsUpdated
-
 
         # For phase 2 correction, each root node at most give birth to ONE message corrected.
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
@@ -146,19 +142,8 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
                             fadingValues.append( sigValues[ Paths[whichPath][l] ][l] )
                     pathVar[whichPath] = np.var(fadingValues)
                 optimalOne = np.argmin(pathVar)
-
             onlyPathToConsider = Paths[optimalOne]
-
-            # sectionLost = np.where(onlyPathToConsider < 0)[0]
-            # decoded_message = np.zeros((1, L*J), dtype=int)
-            # for l in np.arange(L):
-            #     if (l not in sectionLost):
-            #         decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
-            # recovered_message = slow_recover_msg(sectionLost, decoded_message, parityInvolved, messageLen,parityLen, J, L, whichGMatrix)
-            
             recovered_message = output_message(cs_decoded_tx_message, onlyPathToConsider, L, J)
-
-            # if recovered_message != np.array([], dtype= int).reshape(1,-1):
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
 
     tree_decoded_tx_message[:,range(messageLen*L)] = tree_decoded_tx_message[:, np.mod( np.arange(messageLen*L)+(L-chosenRoot)*messageLen  , messageLen*L) ]
