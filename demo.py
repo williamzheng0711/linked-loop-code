@@ -118,6 +118,10 @@ print(b)
 dummy = [1,2,3,4,5,6]
 dummy2 = np.array([1,2,3,4,5,6])
 isokay = np.array_equal(dummy, dummy2)
+print(isokay)
 
-aa = np.count_nonzero(dummy == 1)
-print(aa)
+aaa = list(range(1,10))
+print(aaa)
+
+bb = np.where(aaa == 1)[0]
+print(dummy[-1])

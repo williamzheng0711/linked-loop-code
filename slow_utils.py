@@ -51,19 +51,21 @@ def llc_decode_check_parity(Parity_computed,Path,k,cs_decoded_tx_message,J,messa
     else: 
         return False 
 
-def llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLen,parityLen, parityInvolved, whichGMatrix, L, windowSize):
+def llc_correct_lost_by_check_parity(Parity_computed, toCheck, Path, k, cs_decoded_tx_message, J, messageLen,parityLen, parityInvolved, whichGMatrix, L, windowSize):
     # Here, "Path" is a LinkedLoop
     focusPath = Path.get_path()
     oldLostPart = Path.get_lostPart()
-    Lpath = len(focusPath)
     losts = np.where( np.array(focusPath) < 0 )[0]
 
     generator_matrices = matrix_repo(dim=messageLen)
     inv_generator_matrices = matrix_inv_repo(dim=messageLen)
 
-    # 沒有 lost 最簡單的情況
-    if Path.whether_contains_na() == False or (Lpath - losts[0] > windowSize and Path.whether_contains_na()):
-        Parity = cs_decoded_tx_message[k,Lpath*J+messageLen:(Lpath+1)*J]    # 第k行的第Lpath section的parity
+    # 三種情況不需要檢查：
+    # 1. 沒有NA在path中，一切正常。
+    # 2. lost 的部分已經被recover出來
+    # 3. 
+    if Path.whether_contains_na()==False or np.array_equal(oldLostPart,-1*np.ones((messageLen),dtype=int))==False:
+        Parity = cs_decoded_tx_message[k,toCheck*J+messageLen:(toCheck+1)*J]    # 第k行的第Lpath section的parity
         if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
             return True, oldLostPart
         else: 
@@ -75,7 +77,7 @@ def llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_mes
         # 考慮 lost 發生在最近: # if lostSection is section 4, then we gonna check
         # (w1, w2, w3, w4) => p5    # (w2, w3, w4, w5) => p6    # (w3, w4, w5, w6) => p7    # (w4, w5, w6, w7) => p8    # w5, w6, w7 and w8 are "saverSections" of lostSections
         saverSections = np.nonzero(parityInvolved[lostSection])[0]        # then saverSections = [5, 6, 7, 8]
-        availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=Lpath for x in range(windowSize+1)]).all() == True ]
+        availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=toCheck for x in range(windowSize+1)]).all() == True ]
     
         assert len(availSavers) > 0
         if len(availSavers) <= 1:  # Because we need at least TWO results to compare.
@@ -85,10 +87,10 @@ def llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_mes
         for saver in availSavers: # saver != lostSection
             assert np.array([saver == np.mod(saver+x,L) for x in range(windowSize+1)]).any() == True
             row = 0
-            if saver < Lpath: 
+            if saver < toCheck: 
                 row = focusPath[saver]
             else: 
-                assert saver == Lpath; 
+                assert saver == toCheck; 
                 row = k
 
             parityDist = parityInvolved[:,saver].reshape(1,-1)[0]
@@ -98,10 +100,10 @@ def llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_mes
             for saverDecider in saverDeciders:      # l labels the sections we gonna check to fix toCheck's parities
                 if (saverDecider != lostSection):
                     gen_mat = generator_matrices[whichGMatrix[saverDecider][saver]] 
-                    if saverDecider != Lpath:
+                    if saverDecider != toCheck:
                         subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLen],gen_mat) # 都是 info * G
                     else:
-                        assert saverDecider == Lpath
+                        assert saverDecider == toCheck
                         subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[k,saverDecider*J:saverDecider*J+messageLen],gen_mat) # 都是 info * G
 
             subtrahend = np.mod(subtrahend, 2)
@@ -120,6 +122,8 @@ def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, p
     # Path here is LinkedLoop, must have a lostSection, but not necessarily have it being recovered.
     focusPath = Path.get_path()
     assert len(focusPath) == L
+    # if np.array_equal(Path.get_lostPart(), -1*np.ones((messageLen),dtype=int)) == True:
+    #     print( "Whrere is lost?" + str(  np.where( np.array(focusPath) < 0)[0]))
     
     # Maybe there are paths that contains no NA. But they must be somewhere not consistent. 
     # if np.count_nonzero(focusPath == -1) == 0:
@@ -216,19 +220,26 @@ def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, parity
     for k in range(listSize):
         if cs_decoded_tx_message[k,l*J] != -1:
             if l < windowSize:
-                # new.append( LLC.LinkedLoop(np.hstack((oldPath, [k])), messageLen, oldLostPart) )
-                # print(list(oldPath) + list([k]))
                 new.append( LLC.LinkedLoop( list(oldPath) + list([k]) , messageLen, oldLostPart) )
             else : 
-                toKeep, lostPart = llc_correct_lost_by_check_parity(Parity_computed, Path, k, cs_decoded_tx_message, J, messageLen,parityLen,parityInvolved, whichGMatrix, L, windowSize) 
+                toKeep, lostPart = llc_correct_lost_by_check_parity(Parity_computed, l, Path, k, cs_decoded_tx_message, J, messageLen,parityLen,parityInvolved, whichGMatrix, L, windowSize)
                 if toKeep:
-                    # new.append( LLC.LinkedLoop(np.hstack((oldPath, [k])), messageLen, lostPart) )
-                    # print(list(oldPath) + list([k]))
                     new.append( LLC.LinkedLoop( list(oldPath) + list([k]) , messageLen, lostPart) )
     
-    # if len(pathArgNa) == 0:
     if Path.whether_contains_na() == False:
-        # new.append( LLC.LinkedLoop(np.hstack((oldPath, [-1])), messageLen, oldLostPart) )
-        # print(list(oldPath) + list([-1]))
-        new.append( LLC.LinkedLoop( list(oldPath) + list([-1]) , messageLen, oldLostPart) )
+        if l != L-1:
+            new.append( LLC.LinkedLoop( list(oldPath) + list([-1]) , messageLen, oldLostPart) )
+        else:
+            savers = list(range(windowSize-1)) # E.g. [0,1], we gonna use w(L-1)G0 +    w(0)G1    = p(1)
+            parity_section = windowSize-1
+            parity_save = cs_decoded_tx_message[oldPath[parity_section], parity_section*J+messageLen : (parity_section+1)*J]
+            partial_sum = np.zeros((messageLen), dtype=int)
+            for saver in savers:
+                gen_mat = matrix_repo(dim=messageLen)[ whichGMatrix[saver][parity_section] ]
+                partial_sum = partial_sum + np.matmul(cs_decoded_tx_message[oldPath[saver],saver*J:saver*J+messageLen],gen_mat)
+            infoG = np.mod(parity_save - partial_sum, 2)
+            G_inv = matrix_inv_repo(dim=messageLen)[ whichGMatrix[L-1][parity_section] ]
+            info = np.mod( np.matmul(infoG, G_inv), 2)
+            print(info)
+            new.append( LLC.LinkedLoop( list(oldPath) + list([-1]) , messageLen, info) ) 
     return new

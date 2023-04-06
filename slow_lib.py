@@ -103,23 +103,21 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
     
     listSizeOrder_remained = [x for x in listSizeOrder if x not in usedRootsIndex] # exclude used roots.
     tree_decoded_tx_message = np.empty(shape=(0,0))
-    targetingSections = np.mod(np.arange(1,L),L) # its last element is L-1
 
-    for i, idx in zip(listSizeOrder_remained, tqdm(range(len(listSizeOrder_remained)))):
+    for i, _ in zip(listSizeOrder_remained, tqdm(range(len(listSizeOrder_remained)))):
         assert cs_decoded_tx_message[i,0] != -1
         Paths = [ LLC.LinkedLoop([i], messageLen) ]
-        for l in targetingSections:
+        for l in list(range(1,L)): # its last element is L-1
             if len(Paths) == 0: 
                 break
             newAll = []
-            if l != 0 :  # We still need to enlarge lenth of Paths.
-                survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l,Paths[j],cs_decoded_tx_message,J, parityInvolved, 
-                                                                                               whichGMatrix, listSize, messageLen, parityLen, L, windowSize) 
-                                                                                            for j in range(len(Paths)))
-                for survivePath in survivePaths:
-                    if len(survivePath) > 0:
-                        newAll = list(newAll) + list(survivePath) # list merging
-                Paths = newAll 
+            survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l,Paths[j],cs_decoded_tx_message,J, parityInvolved, 
+                                                                                            whichGMatrix, listSize, messageLen, parityLen, L, windowSize) 
+                                                                                        for j in range(len(Paths)))
+            for survivePath in survivePaths:
+                if len(survivePath) > 0:
+                    newAll = list(newAll) + list(survivePath) # list merging
+            Paths = newAll 
 
         PathsUpdated = []
         for j in range(len(Paths)):
@@ -133,16 +131,6 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
             optimalOne = 0
-            # Now we do not care about which is better
-            # if len(Paths) >= 2:
-            #     pathVar = np.zeros((len(Paths)))
-            #     for whichPath in range(len(Paths)):
-            #         fadingValues = []
-            #         for l in range(L): 
-            #             if Paths[whichPath][l] != -1:
-            #                 fadingValues.append( sigValues[ Paths[whichPath][l] ][l] )
-            #         pathVar[whichPath] = np.var(fadingValues)
-            #     optimalOne = np.argmin(pathVar)
             onlyPathToConsider = Paths[optimalOne]
             recovered_message = output_message(cs_decoded_tx_message, onlyPathToConsider, L, J)
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
