@@ -85,9 +85,10 @@ tx_symbols_ldpc, user_codewords = LDPC_encode_to_symbol(txBits, L, K, J, outer_c
 
 # * A-Channel with Deletion
 seed = np.random.randint(0,10000)
-rx_coded_symbols_llc = ach_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
-rx_coded_symbols_tc  = ach_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
-rx_coded_symbols_ldpc= ach_with_erasure(tx_symbols_ldpc,L, K, J, p_e, seed=seed)
+rx_coded_symbols_llc, num_one_outage = ach_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+print("How many one-outage? " + str(num_one_outage))
+rx_coded_symbols_tc, _  = ach_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
+rx_coded_symbols_ldpc, _ = ach_with_erasure(tx_symbols_ldpc,L, K, J, p_e, seed=seed)
 
 
 

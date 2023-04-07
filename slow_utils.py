@@ -78,12 +78,15 @@ def llc_correct_lost_by_check_parity(Parity_computed, toCheck, Path, k, cs_decod
         # (w1, w2, w3, w4) => p5    # (w2, w3, w4, w5) => p6    # (w3, w4, w5, w6) => p7    # (w4, w5, w6, w7) => p8    # w5, w6, w7 and w8 are "saverSections" of lostSections
         saverSections = np.nonzero(parityInvolved[lostSection])[0]        # then saverSections = [5, 6, 7, 8]
         availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=toCheck for x in range(windowSize+1)]).all() == True ]
+
     
         assert len(availSavers) > 0
         if len(availSavers) <= 1:  # Because we need at least TWO results to compare.
             return True, oldLostPart
 
-        solutions = np.empty((0,0), dtype=int)
+        theAnswer = np.zeros((messageLen),dtype=int)
+        hasAnswer = False
+
         for saver in availSavers: # saver != lostSection
             assert np.array([saver == np.mod(saver+x,L) for x in range(windowSize+1)]).any() == True
             row = 0
@@ -101,21 +104,26 @@ def llc_correct_lost_by_check_parity(Parity_computed, toCheck, Path, k, cs_decod
                 if (saverDecider != lostSection):
                     gen_mat = generator_matrices[whichGMatrix[saverDecider][saver]] 
                     if saverDecider != toCheck:
-                        subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLen],gen_mat) # 都是 info * G
+                        subtrahend= subtrahend + np.matmul(cs_decoded_tx_message[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLen],gen_mat) # 都是 info * G
                     else:
-                        assert saverDecider == toCheck
-                        subtrahend=subtrahend+np.matmul(cs_decoded_tx_message[k,saverDecider*J:saverDecider*J+messageLen],gen_mat) # 都是 info * G
+                        subtrahend= subtrahend + np.matmul(cs_decoded_tx_message[k,saverDecider*J:saverDecider*J+messageLen],gen_mat) # 都是 info * G
 
             subtrahend = np.mod(subtrahend, 2)
             gen_mat = generator_matrices[whichGMatrix[lostSection][saver]]
             gen_binmat_inv = np.array(inv_generator_matrices[whichGMatrix[lostSection,saver]])
             theLostPart = np.mod(np.matmul(np.mod(minuend - subtrahend,2),gen_binmat_inv),2)
-            solutions = np.vstack((solutions,theLostPart)) if solutions.size else theLostPart
+            if hasAnswer == True:
+                # print(theAnswer)
+                # print(theLostPart)
+                if np.array_equal(theLostPart, theAnswer) == False:
+                    return False, oldLostPart
+            else:
+                theAnswer =  theLostPart
+                hasAnswer = True
         
-        if np.all(solutions == solutions[0]): 
-            return True, solutions[0]
-        else:
-            return False, oldLostPart
+        return True, theAnswer
+        # if np.all(solutions == solutions[0]): 
+        #     return True, solutions[0]
 
 
 def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L):
@@ -240,6 +248,5 @@ def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, parity
             infoG = np.mod(parity_save - partial_sum, 2)
             G_inv = matrix_inv_repo(dim=messageLen)[ whichGMatrix[L-1][parity_section] ]
             info = np.mod( np.matmul(infoG, G_inv), 2)
-            print(info)
             new.append( LLC.LinkedLoop( list(oldPath) + list([-1]) , messageLen, info) ) 
     return new
