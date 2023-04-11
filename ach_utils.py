@@ -47,3 +47,27 @@ def ach_with_erasure(tx_symbols, L, K, J, p_e, seed=0):
     # print(f'After A-Channel, info_symbols.shape: {tx_symbols.shape}')
     # print(tx_symbols[:, 0])
     return tx_symbols, num_one_outage
+
+
+def a_plus_ch_with_erasure(tx_symbols, L, K, J, p_e, seed=0):
+    np.random.seed(seed=seed)
+    tx_temp = np.zeros((K,L*J),dtype=int)
+    num_one_outage = 0
+    for l in range(L):
+        applyErrs = np.where(bernoulli.rvs(p_e, size=K))[0]
+        tx_symbols[applyErrs,l] = -1
+        tx_temp[:,l] = tx_symbols[:,l]
+        tx_symbols_l = tx_symbols[:,l]
+        tx_symbols_l = tx_symbols_l[tx_symbols_l != -1]
+        tx_symbols[0:len(tx_symbols_l),l] = tx_symbols_l
+        tx_symbols[len(tx_symbols_l): ,l] = -1
+    
+    for k in range(K):
+        if np.count_nonzero( tx_temp[k,:] == -1) == 1:
+            num_one_outage += 1
+
+    # rng = np.random.default_rng()
+    # tx_symbols = rng.permuted(tx_symbols, axis=0)
+    # print(f'After A-Channel, info_symbols.shape: {tx_symbols.shape}')
+    # print(tx_symbols[:, 0])
+    return tx_symbols, num_one_outage

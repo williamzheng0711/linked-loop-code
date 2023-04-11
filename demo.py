@@ -108,20 +108,27 @@ counts = np.count_nonzero(arr == -1, axis=0)
 
 # print(counts)
 
-chosenRoot = 5
-L = 16
-a = np.mod(np.arange(chosenRoot, chosenRoot+L),L)
-print(a)
-b = a[np.mod(np.arange(L-chosenRoot, 2*L-chosenRoot),L)]
-print(b)
+# chosenRoot = 5
+# L = 16
+# a = np.mod(np.arange(chosenRoot, chosenRoot+L),L)
+# print(a)
+# b = a[np.mod(np.arange(L-chosenRoot, 2*L-chosenRoot),L)]
+# print(b)
 
-dummy = [1,2,3,4,5,6]
-dummy2 = np.array([1,2,3,4,5,6])
-isokay = np.array_equal(dummy, dummy2)
-print(isokay)
+dummy = np.array([[2,2,2],
+                  [1,2,1],
+                  [1,2,4],
+                  [5,36,6]])
+# dummy2 = np.array([[1,1,3,4,5,6],
+#                   [3,3,3,3,3,3],
+#                   [3,3,3,3,3,3],])
 
-aaa = list(range(1,10))
-print(aaa)
+# aaa = np.unique(dummy2, axis=0)
+# print(aaa)
 
-bb = np.where(aaa == 1)[0]
-print(dummy[-1])
+row_to_find = np.array([1,2])
+matches = (dummy[:,0:2] ==row_to_find).all(axis=1)
+matching_indices = np.where(matches)[0]
+print(matching_indices)
+
+# print(np.binary_repr(-1, width=16))
