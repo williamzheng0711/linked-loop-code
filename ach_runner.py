@@ -120,7 +120,7 @@ if rxBits_tc.shape[0] > K:
 
 ## LDPC
 tic = time.time()
-unioned_cdwds_ldpc = LDPC_symbols_to_bits(L, J, rx_coded_symbols_ldpc, K)
+unioned_cdwds_ldpc = LDPC_symbols_to_bits(L, J, rx_coded_symbols_ldpc, K, "A-Channel")
 rx_user_codewords = outer_code.decoder(unioned_cdwds_ldpc, K)
 rx_user_codewords = np.array(rx_user_codewords)
 toc = time.time()
