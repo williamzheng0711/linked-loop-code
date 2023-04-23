@@ -85,11 +85,12 @@ tx_symbols_ldpc, user_codewords = LDPC_encode_to_symbol(txBits, L, K, J, outer_c
 
 # * A Plus-Channel with Erasure
 seed = np.random.randint(0,10000)
-rx_coded_symbols_llc, num_one_outage = a_plus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+rx_coded_symbols_llc, num_one_outage, one_outage_where = a_plus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
 rx_coded_symbols_llc_or = rx_coded_symbols_llc.copy()
 print("How many one-outage? " + str(num_one_outage))
-rx_coded_symbols_tc, _  = a_plus_ch_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
-rx_coded_symbols_ldpc, _ = a_plus_ch_with_erasure(tx_symbols_ldpc,L, K, J, p_e, seed=seed)
+print("Where outage? " + str(one_outage_where))
+rx_coded_symbols_tc, _, _  = a_plus_ch_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
+rx_coded_symbols_ldpc, _, _ = a_plus_ch_with_erasure(tx_symbols_ldpc,L, K, J, p_e, seed=seed)
 
 
 

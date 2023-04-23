@@ -115,20 +115,32 @@ counts = np.count_nonzero(arr == -1, axis=0)
 # b = a[np.mod(np.arange(L-chosenRoot, 2*L-chosenRoot),L)]
 # print(b)
 
-dummy = np.array([[2,2,2],
-                  [1,2,1],
-                  [1,2,4],
-                  [5,36,6]])
-# dummy2 = np.array([[1,1,3,4,5,6],
-#                   [3,3,3,3,3,3],
-#                   [3,3,3,3,3,3],])
+# dummy = np.array([[2,2,2],
+#                   [1,2,1],
+#                   [1,2,4],
+#                   [5,36,6]])
+# # dummy2 = np.array([[1,1,3,4,5,6],
+# #                   [3,3,3,3,3,3],
+# #                   [3,3,3,3,3,3],])
 
-# aaa = np.unique(dummy2, axis=0)
-# print(aaa)
+# # aaa = np.unique(dummy2, axis=0)
+# # print(aaa)
 
-row_to_find = np.array([1,2])
-matches = (dummy[:,0:2] ==row_to_find).all(axis=1)
-matching_indices = np.where(matches)[0]
-print(matching_indices)
+# row_to_find = np.array([1,2])
+# matches = (dummy[:,0:2] ==row_to_find).all(axis=1)
+# matching_indices = np.where(matches)[0]
+# print(matching_indices)
 
 # print(np.binary_repr(-1, width=16))
+
+
+
+import numpy as np 
+
+tx_temp = np.array([[-1,2,2],
+                    [1,2,1],
+                    [1,2,4],
+                    [5,36,6]])
+
+print( np.nonzero( tx_temp[0,:] == -1)[0] )
+print(np.where(tx_temp[0,:] == -1)[0])
