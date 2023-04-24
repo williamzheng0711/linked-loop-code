@@ -437,19 +437,16 @@ def convert_sparse_to_bits(cs_decoded_tx_message_sparse, L, J, listSize):
     return cs_decoded_tx_message
 
 
-def check_phase_1(txBits, rxBits, name):
+def check(txBits, rxBits, name, phase):
     # Check how many are correct amongst the recover (recover means first phase). No need to change.
-    thisIter = 0
-    txBits_remained = np.empty(shape=(0,0), dtype=int)
-    for i in range(txBits.shape[0]):
+    num_TP = 0
+    for i in range(rxBits.shape[0]):
         incre = 0
-        incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
-        thisIter += int(incre)
-        if (incre == False):
-            txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else txBits[i,:]
-    print(" | In phase 1, " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
-    # print(" - " + str(name) + " Phase 1 is done.")
-    return txBits_remained, thisIter
+        incre = np.equal(rxBits[i,:], txBits).all(axis=1).any()
+        num_TP += int(incre)
+
+    print(f" | Up to phase {phase}, " + str(name) + " decodes " + str(num_TP) + " true message out of " +str(rxBits.shape[0]))
+    return num_TP
 
 
 

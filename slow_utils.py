@@ -202,17 +202,23 @@ def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, wh
     # 當一個 root 衍生出大於一條合理的 path 時，所有的 path 都會被收錄。
     if Paths.shape[0] >= 1:  
         if Paths.shape[0] >= 2:
+            print("注意了！")
             flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,messageLen)
             if flag:
                 return extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,messageLen)
             else:
+                print(extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,messageLen))
                 return extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,messageLen)
+            # For simplicity, just return ONE path.
         elif Paths.shape[0] == 1:
             return extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,messageLen)
     
     # When a root fails to lead to any message, we return an all-minus-one message to indicate failure. 
     # 當一個 root 一條合理的 path 也不能衍生出時，我們輸出一條全是 -1 的固定訊息，以宣告失敗
     return -1*np.ones((1,messageLen * L), dtype=int)
+
+
+
 
 
 def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLen, parityLen, L, windowSize):

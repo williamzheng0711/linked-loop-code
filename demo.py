@@ -140,7 +140,10 @@ import numpy as np
 tx_temp = np.array([[-1,2,2],
                     [1,2,1],
                     [1,2,4],
+                    [1,2,4],
                     [5,36,6]])
 
-print( np.nonzero( tx_temp[0,:] == -1)[0] )
-print(np.where(tx_temp[0,:] == -1)[0])
+print(np.unique(tx_temp, axis=0))
+
+
+print( tx_temp[:,1].__contains__(36) )

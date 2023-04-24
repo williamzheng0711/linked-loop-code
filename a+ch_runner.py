@@ -85,12 +85,13 @@ tx_symbols_ldpc, user_codewords = LDPC_encode_to_symbol(txBits, L, K, J, outer_c
 
 # * A Plus-Channel with Erasure
 seed = np.random.randint(0,10000)
-rx_coded_symbols_llc, num_one_outage, one_outage_where = a_plus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+rx_coded_symbols_llc, num_one_outage, one_outage_where, num_no_outage = a_plus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
 rx_coded_symbols_llc_or = rx_coded_symbols_llc.copy()
+print("How many no-outage?  " + str(num_no_outage))
 print("How many one-outage? " + str(num_one_outage))
 print("Where outage? " + str(one_outage_where))
-rx_coded_symbols_tc, _, _  = a_plus_ch_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
-rx_coded_symbols_ldpc, _, _ = a_plus_ch_with_erasure(tx_symbols_ldpc,L, K, J, p_e, seed=seed)
+rx_coded_symbols_tc, _, _, _  = a_plus_ch_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
+rx_coded_symbols_ldpc, _, _, _ = a_plus_ch_with_erasure(tx_symbols_ldpc,L, K, J, p_e, seed=seed)
 
 
 
@@ -128,9 +129,9 @@ print(" | Time of LDPC Code decode " + str(toc-tic))
 
 # Check how many are correct amongst the recover (recover means first phase). No need to change.
 ## LLC
-txBits_remained_llc, thisIter = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
+_ = check(txBits, rxBits_llc, "Linked-loop Code", 1)
 ## Tree code
-_                   = check_phase_1(txBits, rxBits_tc, "Tree Code")
+_ = check(txBits, rxBits_tc, "Tree Code", 1)
 ## LDPC code
 LDPC_num_matches = FGG.numbermatches(user_codewords, rx_user_codewords, K)
 print(f' | In phase 1, LDPC decodes {LDPC_num_matches}/{len(rx_user_codewords)} codewords. ')
@@ -147,24 +148,17 @@ tic = time.time()
 phase1ParitizedMsgs = slow_encode(rxBits_llc, rxBits_llc.shape[0], L, J, 
                                   Pa, w, messageLen, parityLen,
                                   parityInvolved, whichGMatrix_or)
-rxBits_corrected_llc= llc_Aplus_corrector(rx_coded_symbols_llc_or, L, J, messageLen, parityLen, listSize, parityInvolved, 
+rxBits_ph2_llc= llc_Aplus_corrector(rx_coded_symbols_llc_or, L, J, messageLen, parityLen, listSize, parityInvolved, 
                                           whichGMatrix_or, windowSize, phase1ParitizedMsgs)
 
 toc = time.time()
-
 print(" | Time of correct " + str(toc-tic))
-if txBits_remained_llc.shape[0] == w: # Aka, only one message not yet decoded after phase 1
-    txBits_remained_llc = txBits_remained_llc.reshape(1,-1)
+
+
+final_recovered_msgs = np.vstack((rxBits_llc, rxBits_ph2_llc))
+final_recovered_msgs = np.unique(final_recovered_msgs, axis=0)
 
 # Check how many are true amongst those "corrected". No need to change.
-corrected = 0
-if rxBits_corrected_llc.size:
-    for i in range(txBits_remained_llc.shape[0]):
-        incre = 0
-        incre = np.equal(txBits_remained_llc[i,:],rxBits_corrected_llc).all(axis=1).any()
-        corrected += int(incre)
-    print(" | In phase 2, Linked-loop code corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected_llc.shape[0]) )
-else: 
-    print(" | Nothing was corrected")
+_ = check(txBits, final_recovered_msgs, "Linked-loop Code", 2)
 
 print(" -Phase 2 is done, this simulation terminates.")

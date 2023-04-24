@@ -71,6 +71,8 @@ def Tree_decoder(cs_decoded_tx_message,G,L,J,B,parityLengthVector,messageLengthv
                 # tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
         elif Paths.shape[0] == 1:
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
+    
+    tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)
     return tree_decoded_tx_message
 
 
