@@ -147,3 +147,10 @@ print(np.unique(tx_temp, axis=0))
 
 
 print( tx_temp[:,1].__contains__(36) )
+
+
+from scipy.stats import bernoulli
+
+np.random.seed(seed=1)
+a = bernoulli.rvs(0.1, size=10)
+print(a)

@@ -148,16 +148,28 @@ def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, p
                 break
     return isOkay
 
-def output_message(cs_decoded_tx_message, linkedloop, L, J):
-    path = linkedloop.get_path()
-    messageLen = linkedloop.get_messageLen()
-    msg = np.zeros( (1, messageLen*L), dtype=int)
-    for l in range(L):
-        if path[l] != -1: 
-            msg[0, l*messageLen:(l+1)*messageLen] = cs_decoded_tx_message[path[l], l*J: l*J+messageLen]
-        else: 
-            msg[0, l*messageLen:(l+1)*messageLen] = linkedloop.get_lostPart()
-    return msg
+!!! 
+def output_message(cs_decoded_tx_message, linkedloops, L, J):
+    if len(linkedloops) == 1:
+        linkedloop = linkedloops[0]
+        path = linkedloop.get_path()
+        messageLen = linkedloop.get_messageLen()
+        msg = np.zeros( (1, messageLen*L), dtype=int)
+        for l in range(L):
+            if path[l] != -1: 
+                msg[0, l*messageLen:(l+1)*messageLen] = cs_decoded_tx_message[path[l], l*J: l*J+messageLen]
+            else: 
+                msg[0, l*messageLen:(l+1)*messageLen] = linkedloop.get_lostPart()
+        return msg
+    elif len(linkedloops) >=2: 
+        n = len(linkedloops)
+        msg = np.empty( (0,0), dtype=int)
+        for i in range(n):
+            linkedloop = linkedloops[i]
+            path = linkedloop.get_path()
+            messageLen = linkedloop.get_messageLen()
+            # todo
+
 
 
 def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, whichGMatrix, messageLen, listSize, parityLen, windowSize):
