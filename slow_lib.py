@@ -184,10 +184,10 @@ def llc_Aplus_decoder(sigValues, sigPos, L, J, parityLen, messageLen, listSize, 
 
     # Step 0: Preprocess
     losses = np.count_nonzero(sigPos == -1, axis=0) # losses is a L-long array
-    print("losses: " + str(losses))
+    print("After A+ Channel, losses for each section are: " + str(losses))
     chosenRoot = np.argmax(losses)
     # chosenRoot = 0
-    print("chosenRoot: " + str(chosenRoot))
+    print("So choose root as section " + str(chosenRoot))
     sigPos[:,range(L)] = sigPos[:, np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot, chosenRoot+L),L),:]
@@ -255,17 +255,15 @@ def llc_Aplus_corrector(sigPos, L, J, messageLen, parityLen, listSize, parityInv
     # print("losses in phase 2 " + str(losses))
     chosenRoot2 = np.argmin(losses)
     print("chosenRoot2: " + str(chosenRoot2))
-    chosenRoot2 = 0
     whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot2, chosenRoot2+L),L)]
     whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot2, chosenRoot2+L),L),:]
 
-    # Shift the root 
-    for decodedCdwd in decodedCdwds:
-        l = chosenRoot2
-        matches = ( cs_decoded_tx_message[: , l*J: l*J+messageLen] == decodedCdwd[l*J : l*J+messageLen] ).all(axis=1)
-        matching_indices = np.where(matches)[0] # This must return something
-        # print(matching_indices)
-        cs_decoded_tx_message[ matching_indices[0], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+    # for decodedCdwd in decodedCdwds:
+    #     l = chosenRoot2
+    #     matches = ( cs_decoded_tx_message[: , l*J: l*J+messageLen] == decodedCdwd[l*J : l*J+messageLen] ).all(axis=1)
+    #     matching_indices = np.where(matches)[0] # This must return something
+    #     # print(matching_indices)
+    #     cs_decoded_tx_message[ matching_indices[0], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
     
     samples2 = cs_decoded_tx_message[:,selected_cols]
     losses2 = np.count_nonzero(samples2 == -1, axis=0) # losses is a L-long array
@@ -307,10 +305,11 @@ def llc_Aplus_corrector(sigPos, L, J, messageLen, parityLen, listSize, parityInv
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
             # SIC
             if plus:
-                pathToCancel = onlyPathToConsider.get_path()
-                for l in range(L):
-                    if pathToCancel[l] != -1:
-                        cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+                for i in range(len(Paths)):
+                    pathToCancel = Paths[i].get_path()
+                    for l in range(L):
+                        if pathToCancel[l] != -1:
+                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
             
         # samples = cs_decoded_tx_message[:,selected_cols]
         # losses = np.count_nonzero(samples == -1, axis=0) # losses is a L-long array
@@ -323,3 +322,73 @@ def llc_Aplus_corrector(sigPos, L, J, messageLen, parityLen, listSize, parityInv
     return tree_decoded_tx_message
 
 
+
+
+def llc_UACE_decoder(sigPos, L, J, messageLen, parityLen, listSize, parityInvolved, whichGMatrix, windowSize, APlus=True):
+
+    cs_decoded_tx_message = -1 * np.ones((listSize, L*J))
+    for id_row in range(listSize):
+        for id_col in range(L):
+            if sigPos[id_row, id_col] != -1:
+                a = np.binary_repr(sigPos[id_row, id_col], width=J)     
+                b = np.array([int(n) for n in a] ).reshape(1,-1)        
+                cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
+
+    selected_cols = [l*J for l in range(L)]
+    samples = cs_decoded_tx_message[:,selected_cols]
+    num_erase = np.count_nonzero(samples == -1, axis=0) 
+    chosenRoot = np.argmin(num_erase)
+    print(" Num erase: " + str(num_erase))
+    print(" ChosenRoot: " + str(chosenRoot))
+
+    whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot, chosenRoot+L),L),:]
+    cs_decoded_tx_message[:, range(L*J)] = cs_decoded_tx_message[:, np.mod( np.arange(chosenRoot*J, chosenRoot*J + L*J) ,L*J)]
+
+    K_remained   = [x for x in range(listSize) if cs_decoded_tx_message[x,0] != -1]
+    tree_decoded_tx_message = np.empty(shape=(0,0))
+
+    for i, _ in zip(K_remained, tqdm(range(len(K_remained)))):
+        # assert cs_decoded_tx_message[i,0] != -1
+        Paths = [ LLC.LinkedLoop([i], messageLen) ]
+        for l in list(range(1,L)): # its last element is L-1
+            if len(Paths) == 0: 
+                break
+            newAll = []
+            survivePaths = Parallel(n_jobs=-1)(delayed(slow_correct_each_section_and_path)(l,Paths[j],cs_decoded_tx_message,J, parityInvolved, 
+                                                                                            whichGMatrix, listSize, messageLen, parityLen, L, windowSize) 
+                                                                                        for j in range(len(Paths)))
+            for survivePath in survivePaths:
+                if len(survivePath) > 0:
+                    newAll = list(newAll) + list(survivePath) # list merging
+            Paths = newAll 
+
+        PathsUpdated = []
+        for j in range(len(Paths)):
+            Path = Paths[j]
+            isOkay = llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L, True)
+            if isOkay:
+                PathsUpdated.append( Path )
+        Paths = PathsUpdated
+
+        if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
+            # print(" | We obtained some candidate!!")
+            recovered_message = output_message(cs_decoded_tx_message, Paths, L, J)
+            tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
+            # SIC
+            if APlus:
+                for i in range(len(Paths)):
+                    pathToCancel = Paths[i].get_path()
+                    for l in range(L):
+                        if pathToCancel[l] != -1:
+                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+            
+        # samples = cs_decoded_tx_message[:,selected_cols]
+        # losses = np.count_nonzero(samples == -1, axis=0) # losses is a L-long array
+        # print("losses " + str(losses))
+        
+
+    tree_decoded_tx_message[:,range(messageLen*L)] = tree_decoded_tx_message[:, np.mod( np.arange(messageLen*L)+(L-chosenRoot)*messageLen  , messageLen*L)]
+    tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)
+    
+    return tree_decoded_tx_message

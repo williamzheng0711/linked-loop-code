@@ -95,9 +95,9 @@ if runLDPC:
 seed = np.random.randint(0,10000)
 rx_coded_symbols_llc, num_one_outage, one_outage_where, num_no_outage = a_plus_ch_with_erasure(tx_symbols_llc_or1, L, K, J, p_e, seed=seed)
 rx_coded_symbols_llc_or = rx_coded_symbols_llc.copy()
-print("How many no-outage?  " + str(num_no_outage))
-print("How many one-outage? " + str(num_one_outage))
-print("Where outage? " + str(one_outage_where))
+print("Genie: How many no-outage?  " + str(num_no_outage))
+print("Genie: How many one-outage? " + str(num_one_outage))
+print("Genie: Where outage? " + str(one_outage_where))
 
 if runTC:
     rx_coded_symbols_tc, _, _, _  = a_plus_ch_with_erasure(tx_symbols_tc,  L, K, J, p_e, seed=seed)
@@ -176,51 +176,3 @@ final_recovered_msgs = np.unique(final_recovered_msgs, axis=0)
 _ = check(txBits, final_recovered_msgs, "Linked-loop Code", 2)
 
 print(" -Phase 2 is done, this simulation terminates.")
-
-
-
-
-
-
-# # A channel
-# print("         ")
-# print("         ")
-# print("---- A Channel starts ------ ")
-# rx_coded_symbols_llc, num_one_outage, one_outage_where, num_no_outage = ach_with_erasure(tx_symbols_llc_or, L, K, J, p_e, seed=seed)
-# rx_coded_symbols_llc_or = deepcopy(rx_coded_symbols_llc)
-# print("How many no-outage ? " + str(num_no_outage))
-# print("How many one-outage? " + str(num_one_outage))
-# print("One-outage where: " + str(one_outage_where))
-
-# ## LLC
-# print(" -Phase 1 (decoding) now starts.")
-# tic = time.time()
-# rxBits_llc, usedRootsIndex, listSizeOrder = slow_decoder(np.ones((listSize,L),dtype=int), rx_coded_symbols_llc, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix_or, windowSize)
-# toc = time.time()
-# print(" | Time of LLC decode " + str(toc-tic))
-# if rxBits_llc.shape[0] > K: 
-#     rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
-
-# ## LLC
-# _ = check(txBits, rxBits_llc, "Linked-loop Code", 1)
-# print(" -Phase 1 Done.")
-
-
-# print(" -Phase 2 (correction) now starts.")
-# tic = time.time()
-# phase1ParitizedMsgs = slow_encode(rxBits_llc, rxBits_llc.shape[0], L, J, 
-#                                   Pa, w, messageLen, parityLen,
-#                                   parityInvolved, whichGMatrix_or)
-# rxBits_ph2_llc= llc_Aplus_corrector(rx_coded_symbols_llc_or, L, J, messageLen, parityLen, listSize, parityInvolved, 
-#                                           whichGMatrix_or, windowSize, phase1ParitizedMsgs, plus=False)
-# toc = time.time()
-# print(" | Time of correct " + str(toc-tic))
-
-# final_recovered_msgs = np.vstack((rxBits_llc, rxBits_ph2_llc))
-# final_recovered_msgs = np.unique(final_recovered_msgs, axis=0)
-
-# # Check how many are true amongst those "corrected". No need to change.
-# _ = check(txBits, final_recovered_msgs, "Linked-loop Code", 2)
-
-
-# print(" -Phase 2 is done, this simulation terminates.")

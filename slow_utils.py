@@ -126,7 +126,7 @@ def llc_correct_lost_by_check_parity(Parity_computed, toCheck, Path, k, cs_decod
         #     return True, solutions[0]
 
 
-def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L):
+def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L, consider_no_outage = False):
     # Path here is LinkedLoop, must have a lostSection, but not necessarily have it being recovered.
     focusPath = Path.get_path()
     assert len(focusPath) == L
@@ -135,7 +135,7 @@ def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, p
     
     # Maybe there are paths that contains no NA. But they must be somewhere not consistent. 
     # if np.count_nonzero(focusPath == -1) == 0:
-    if focusPath.count(-1) == 0:
+    if (consider_no_outage == False and focusPath.count(-1) == 0):
         return False
 
     isOkay = True
@@ -148,8 +148,8 @@ def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, p
                 break
     return isOkay
 
-!!! 
 def output_message(cs_decoded_tx_message, linkedloops, L, J):
+    messageLen = linkedloops[0].get_messageLen()
     if len(linkedloops) == 1:
         linkedloop = linkedloops[0]
         path = linkedloop.get_path()
@@ -163,12 +163,19 @@ def output_message(cs_decoded_tx_message, linkedloops, L, J):
         return msg
     elif len(linkedloops) >=2: 
         n = len(linkedloops)
-        msg = np.empty( (0,0), dtype=int)
+        msg = np.empty( (n, messageLen*L), dtype=int)
         for i in range(n):
             linkedloop = linkedloops[i]
             path = linkedloop.get_path()
             messageLen = linkedloop.get_messageLen()
-            # todo
+            for l in range(L):
+                if path[l] != -1: 
+                    msg[i, l*messageLen:(l+1)*messageLen] = cs_decoded_tx_message[path[l], l*J: l*J+messageLen]
+                else: 
+                    msg[i, l*messageLen:(l+1)*messageLen] = linkedloop.get_lostPart()
+        return msg
+            
+
 
 
 
@@ -214,12 +221,10 @@ def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, wh
     # 當一個 root 衍生出大於一條合理的 path 時，所有的 path 都會被收錄。
     if Paths.shape[0] >= 1:  
         if Paths.shape[0] >= 2:
-            print("注意了！")
             flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,messageLen)
             if flag:
                 return extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,messageLen)
             else:
-                print(extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,messageLen))
                 return extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,messageLen)
             # For simplicity, just return ONE path.
         elif Paths.shape[0] == 1:
