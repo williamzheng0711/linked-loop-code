@@ -175,7 +175,7 @@ def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, wh
     # Every i is a root.
     # If section ZERO contains -1, then this root is defective
     if cs_decoded_tx_message[i,0] == -1:
-        print("i= " + str(i)+" 是-1")
+        # print("i= " + str(i)+" 是-1")
         return -1*np.ones((1,messageLen * L), dtype=int)
     
     # This root is not defective.

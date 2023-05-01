@@ -95,12 +95,7 @@ rx_coded_symbols_ldpc= ach_with_erasure(tx_symbols_ldpc,L, K, J, p_e, seed=seed)
 ## LLC
 print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
-losses = np.count_nonzero(rx_coded_symbols_llc == -1, axis=0) # losses is a L-long array
-chosenRoot = np.argmin(losses)
-print("chosenRoot: " + str(chosenRoot))
-rx_coded_symbols_llc[:,range(L)] = rx_coded_symbols_llc[:, np.mod(np.arange(chosenRoot, chosenRoot+L),L) ]
-whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
-whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot, chosenRoot+L),L),:]
+chosenRoot = 0
 rxBits_llc, usedRootsIndex, listSizeOrder = slow_decoder(np.ones((listSize,L),dtype=int), rx_coded_symbols_llc, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize, chosenRoot)
 toc = time.time()
 print(" | Time of LLC decode " + str(toc-tic))
