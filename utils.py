@@ -445,7 +445,7 @@ def check(txBits, rxBits, name, phase):
         incre = np.equal(rxBits[i,:], txBits).all(axis=1).any()
         num_TP += int(incre)
 
-    print(f" | Up to phase {phase}, " + str(name) + " decodes " + str(num_TP) + " true message out of " +str(rxBits.shape[0]))
+    print(" | " + str(name) + " decodes " + str(num_TP) + " true message out of " +str(rxBits.shape[0]))
     return num_TP
 
 

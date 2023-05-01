@@ -97,13 +97,14 @@ rx_coded_symbols_ldpc, _, _, _ = ach_with_erasure(tx_symbols_ldpc,L, K, J, p_e, 
 
 # *Outer code decoder. 
 ## LLC
-print(" -Phase 1 (decoding) now starts.")
+print(" -- Decoding now starts.")
 tic = time.time()
-rxBits_llc, usedRootsIndex, listSizeOrder = slow_decoder(np.ones((listSize,L),dtype=int), rx_coded_symbols_llc, L, J, parityLen, messageLen, listSize, parityInvolved, whichGMatrix, windowSize)
+rxBits_llc = llc_UACE_decoder(rx_coded_symbols_llc, L, J, messageLen, parityLen, listSize, parityInvolved, whichGMatrix, windowSize, APlus=False)
 toc = time.time()
-print(" | Time of LLC decode " + str(toc-tic))
+print(" | Time of LLC decoding " + str(toc-tic))
+rxBits_llc = np.unique(rxBits_llc, axis=0)
 if rxBits_llc.shape[0] > K: 
-    rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
+    rxBits_llc = rxBits_llc[np.arange(K)] 
 
 ## Tree Code
 tic = time.time()
@@ -123,35 +124,11 @@ toc = time.time()
 print(" | Time of LDPC Code decode " + str(toc-tic))
 
 
-# Check how many are correct amongst the recover (recover means first phase). No need to change.
+# Check how many are correct amongst the recover. No need to change.
 ## LLC
 _ = check(txBits, rxBits_llc, "Linked-loop Code", 1)
 ## Tree code
 _ = check(txBits, rxBits_tc, "Tree Code", 1)
 ## LDPC code
 LDPC_num_matches = FGG.numbermatches(user_codewords, rx_user_codewords, K)
-print(f' | In phase 1, LDPC decodes {LDPC_num_matches}/{len(rx_user_codewords)} codewords. ')
-print(" -Phase 1 Done.")
-
-
-
-
-# *Corrector. PAINPOINT
-print(" -Phase 2 (correction) now starts.")
-tic = time.time()
-phase1ParitizedMsgs = slow_encode(rxBits_llc, rxBits_llc.shape[0], L, J, 
-                                  Pa, w, messageLen, parityLen,
-                                  parityInvolved, whichGMatrix_or)
-rxBits_ph2_llc= llc_Aplus_corrector(rx_coded_symbols_llc_or, L, J, messageLen, parityLen, listSize, parityInvolved, 
-                                          whichGMatrix_or, windowSize, phase1ParitizedMsgs, plus=False)
-toc = time.time()
-print(" | Time of correct " + str(toc-tic))
-
-final_recovered_msgs = np.vstack((rxBits_llc, rxBits_ph2_llc))
-final_recovered_msgs = np.unique(final_recovered_msgs, axis=0)
-
-# Check how many are true amongst those "corrected". No need to change.
-_ = check(txBits, final_recovered_msgs, "Linked-loop Code", 2)
-
-
-print(" -Phase 2 is done, this simulation terminates.")
+print(f' | LDPC decodes {LDPC_num_matches}/{len(rx_user_codewords)} codewords. ')

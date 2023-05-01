@@ -66,10 +66,10 @@ def slow_decoder(sigValues, sigPos, L, J, parityLen, messageLen, listSize, parit
     """
     # Step 0: Preprocess
     losses = np.count_nonzero(sigPos == -1, axis=0) # losses is a L-long array
-    print(" UACE losses: " + str(losses))
+    # print(" UACE losses: " + str(losses))
     chosenRoot = np.argmax(losses)
     # chosenRoot = 0
-    print("chosenRoot: " + str(chosenRoot))
+    # print("chosenRoot: " + str(chosenRoot))
     sigPos[:,range(L)] = sigPos[:, np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot, chosenRoot+L),L),:]
@@ -338,8 +338,8 @@ def llc_UACE_decoder(sigPos, L, J, messageLen, parityLen, listSize, parityInvolv
     samples = cs_decoded_tx_message[:,selected_cols]
     num_erase = np.count_nonzero(samples == -1, axis=0) 
     chosenRoot = np.argmin(num_erase)
-    print(" Num erase: " + str(num_erase))
-    print(" ChosenRoot: " + str(chosenRoot))
+    print(" | Num erase: " + str(num_erase))
+    print(" | ChosenRoot: " + str(chosenRoot))
 
     whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot, chosenRoot+L),L),:]
