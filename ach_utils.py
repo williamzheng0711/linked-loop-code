@@ -93,3 +93,16 @@ def a_plus_ch_with_erasure(tx_symbols, L, K, J, p_e, seed=0):
     tx_symbols = rng.permuted(tx_symbols, axis=0)
 
     return tx_symbols, num_one_outage, one_outage_where, num_no_outage
+
+
+
+def remove_multiplicity(output):
+    L = output.shape[1]
+    K = output.shape[0]
+    result = -1*np.ones((K,L),dtype=int)
+    for l in range(L):
+        # print(output[:,l])
+        temp_l = np.unique(output[:,l])
+        result[0:len(temp_l), l] = temp_l
+    
+    return result

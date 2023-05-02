@@ -64,24 +64,32 @@ tx_symbols_llc = ach_binary_to_symbol(txBitsParitized_llc, L, K, J)
 
 # * A-Channel with Erasure
 seed = np.random.randint(0,10000)
-rx_coded_symbols_llc, num_one_outage, one_outage_where, num_no_outage = a_plus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
-rx_coded_symbols_llc_or = rx_coded_symbols_llc.copy()
+rx_coded_symbols_plus, num_one_outage, one_outage_where, num_no_outage = a_plus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+rx_coded_symbols = remove_multiplicity(rx_coded_symbols_plus)
+
 print(" Genie: How many no-outage ? " + str(num_no_outage))
 print(" Genie: How many one-outage? " + str(num_one_outage))
 print(" Genie: One-outage where: " + str(one_outage_where))
 
 
-# Handling
-print(" -Decode/correct now starts.")
-tic = time.time()
-rxBits_llc = llc_UACE_decoder(rx_coded_symbols_llc, L, J, messageLen, parityLen, listSize, parityInvolved, whichGMatrix, windowSize, APlus=True)
-toc = time.time()
-print(" | Time of correct " + str(toc-tic))
-
+# Handling A+ 
+print(" - A+ Channel: Decode/correct now starts.")
+tic1 = time.time()
+rxBits_llc = llc_UACE_decoder(rx_coded_symbols_plus, L, J, messageLen, parityLen, listSize, parityInvolved, whichGMatrix, windowSize, APlus=True)
+toc1 = time.time()
+print(" | Time for A+ Channel " + str(toc1-tic1))
 final_recovered_msgs = np.unique(rxBits_llc, axis=0)
-
 # Check how many are true amongst those "corrected". No need to change.
 _ = check(txBits, final_recovered_msgs, "Linked-loop Code", 2)
-
-
 print(" -This simulation on A+Channel terminates.")
+
+# Handling A Channel 
+print(" - A Channel: Decode/correct now starts.")
+tic2 = time.time()
+rxBits_llc = llc_UACE_decoder(rx_coded_symbols, L, J, messageLen, parityLen, listSize, parityInvolved, whichGMatrix_or, windowSize, APlus=False)
+toc2 = time.time()
+print(" | Time for A Channel " + str(toc2-tic2))
+final_recovered_msgs = np.unique(rxBits_llc, axis=0)
+# Check how many are true amongst those "corrected". No need to change.
+_ = check(txBits, final_recovered_msgs, "Linked-loop Code", 2)
+print(" -This simulation on A Channel terminates.")

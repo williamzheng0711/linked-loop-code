@@ -137,20 +137,29 @@ counts = np.count_nonzero(arr == -1, axis=0)
 
 import numpy as np 
 
-tx_temp = np.array([[-1,2,2],
-                    [1,2,1],
-                    [1,2,4],
-                    [1,2,4],
-                    [5,36,6]])
+# tx_temp = np.array([[-1,2,2],
+#                     [1,2,1],
+#                     [1,2,4],
+#                     [1,2,4],
+#                     [5,36,6]])
 
-print(np.unique(tx_temp, axis=0))
+# print(np.unique(tx_temp, axis=0))
 
 
-print( tx_temp[:,1].__contains__(36) )
+# print( tx_temp[:,1].__contains__(36) )
 
 
 from scipy.stats import bernoulli
 
-np.random.seed(seed=1)
-a = bernoulli.rvs(0.1, size=10)
+np.random.seed(seed=2)
+a = bernoulli.rvs(0.5, size=10)
 print(a)
+
+
+aa = [1,2,3,4,1]
+b = np.unique(aa)
+
+print(aa,b)
+
+
+
