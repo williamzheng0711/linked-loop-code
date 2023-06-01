@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import bernoulli
 
 
-def ach_binary_to_symbol(txBitsParitized, L, K, J):
+def GAch_binary_to_symbol(txBitsParitized, L, K, J):
     tx_symbols = np.zeros((K,L), dtype=int)
     for l in range(L):
         tx_symbols[:,l] = txBitsParitized[:,l*J:(l+1)*J] @ 2**np.arange(J)[::-1].reshape(-1)
@@ -59,7 +59,7 @@ def ach_with_erasure(tx_symbols, L, K, J, p_e, seed=0):
     return tx_symbols, num_one_outage, one_outage_where, num_no_outage
 
 
-def a_plus_ch_with_erasure(tx_symbols, L, K, J, p_e, seed=0):
+def APlus_ch_with_erasure(tx_symbols, L, K, J, p_e, seed=0):
     np.random.seed(seed=seed)
     tx_symbols_or = tx_symbols.copy()
     tx_temp = np.zeros((K,L*J),dtype=int)

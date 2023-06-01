@@ -59,12 +59,12 @@ txBits = np.random.randint(low=2, size=(K, w))
 
 # LLC: Generate random binary messages for K active users. Hence txBits.shape is [K,w]
 txBitsParitized_llc = slow_encode(txBits,K,L,J,Pa,w,messageLen,parityLen,parityInvolved,whichGMatrix) 
-tx_symbols_llc = ach_binary_to_symbol(txBitsParitized_llc, L, K, J)
+tx_symbols_llc = GAch_binary_to_symbol(txBitsParitized_llc, L, K, J)
 
 
 # * A-Channel with Erasure
 seed = np.random.randint(0,10000)
-rx_coded_symbols_plus, num_one_outage, one_outage_where, num_no_outage = a_plus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+rx_coded_symbols_plus, num_one_outage, one_outage_where, num_no_outage = APlus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
 rx_coded_symbols = remove_multiplicity(rx_coded_symbols_plus)
 
 print(" Genie: How many no-outage ? " + str(num_no_outage))

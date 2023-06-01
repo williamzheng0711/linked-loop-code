@@ -366,7 +366,9 @@ def llc_UACE_decoder(sigPos, L, J, messageLen, parityLen, listSize, parityInvolv
         PathsUpdated = []
         for j in range(len(Paths)):
             Path = Paths[j]
-            isOkay = llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L, True)
+            isOkay = llc_final_parity_check(Path, cs_decoded_tx_message,J,
+                                            messageLen,parityLen, parityInvolved, 
+                                            whichGMatrix, L, True)
             if isOkay:
                 PathsUpdated.append( Path )
         Paths = PathsUpdated
@@ -379,6 +381,7 @@ def llc_UACE_decoder(sigPos, L, J, messageLen, parityLen, listSize, parityInvolv
             if APlus:
                 for i in range(len(Paths)):
                     pathToCancel = Paths[i].get_path()
+                    print(pathToCancel)
                     for l in range(L):
                         if pathToCancel[l] != -1:
                             cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)

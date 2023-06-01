@@ -79,7 +79,6 @@ def llc_correct_lost_by_check_parity(Parity_computed, toCheck, Path, k, cs_decod
         saverSections = np.nonzero(parityInvolved[lostSection])[0]        # then saverSections = [5, 6, 7, 8]
         availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=toCheck for x in range(windowSize+1)]).all() == True ]
 
-    
         assert len(availSavers) > 0
         if len(availSavers) <= 1:  # Because we need at least TWO results to compare.
             return True, oldLostPart
@@ -118,12 +117,11 @@ def llc_correct_lost_by_check_parity(Parity_computed, toCheck, Path, k, cs_decod
                 if np.array_equal(theLostPart, theAnswer) == False:
                     return False, oldLostPart
             else:
-                theAnswer =  theLostPart
+                theAnswer = theLostPart
                 hasAnswer = True
         
         return True, theAnswer
-        # if np.all(solutions == solutions[0]): 
-        #     return True, solutions[0]
+
 
 
 def llc_final_parity_check(Path, cs_decoded_tx_message,J,messageLen,parityLen, parityInvolved, whichGMatrix, L, consider_no_outage = False):
@@ -238,13 +236,15 @@ def slow_decode_deal_with_root_i(i,L,cs_decoded_tx_message, J,parityInvolved, wh
 
 
 
-def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, parityInvolved, whichGMatrix, listSize, messageLen, parityLen, L, windowSize):
+def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, 
+                                       parityInvolved, whichGMatrix, listSize, 
+                                       messageLen, parityLen, L, windowSize):
     new = []  
     assert isinstance(Path, LLC.LinkedLoop)
     oldPath = Path.get_path()
     oldLostPart = Path.get_lostPart()
-
     Parity_computed = -1 * np.ones((1,parityLen),dtype=int)
+    
     if l >= windowSize: 
         Parity_computed = llc_correct_compute_parity(Path, cs_decoded_tx_message, J, parityInvolved, l, whichGMatrix, parityLen, messageLen)
     
@@ -261,7 +261,7 @@ def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J, parity
         if l != L-1:
             new.append( LLC.LinkedLoop( list(oldPath) + list([-1]) , messageLen, oldLostPart) )
         else:
-            savers = list(range(windowSize-1)) # E.g. [0,1], we gonna use w(L-1)G0 +    w(0)G1    = p(1)
+            savers = list(range(windowSize)) # E.g. [0,1], we gonna use w(L-1)G0 +    w(0)G1    = p(1)
             parity_section = windowSize-1
             parity_save = cs_decoded_tx_message[oldPath[parity_section], parity_section*J+messageLen : (parity_section+1)*J]
             partial_sum = np.zeros((messageLen), dtype=int)
