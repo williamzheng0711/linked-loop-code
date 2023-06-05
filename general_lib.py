@@ -62,7 +62,8 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
                                                                                            messageLens=messageLens, parityLens=parityLens, 
                                                                                            L=L, windowSize= windowSize, Gs=Gs, Gijs=Gijs, 
                                                                                            columns_index= columns_index,
-                                                                                           sub_G_inversions= sub_G_inversions) for j in range(len(Paths)))
+                                                                                           sub_G_inversions= sub_G_inversions, 
+                                                                                           num_erase = num_erase) for j in range(len(Paths)))
             for survivePath in survivePaths:
                 if len(survivePath) > 0:
                     newAll = list(newAll) + list(survivePath) # list merging

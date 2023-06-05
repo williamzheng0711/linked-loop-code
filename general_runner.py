@@ -37,12 +37,12 @@ assert sum(messageLens) == w
 M = 2**J                                            # Each coded sub-block is J-length binary, 
                                                         # to represent it in decimal, 
                                                         # it ranges in [0, M] = [0, 2**J].
-windowSize = 2                                      # How many previous sections p(j) depends on
+windowSize = 3                                      # How many previous sections p(j) depends on
 assert windowSize > 0
 Pa = sum(parityLens)                                # Total number of parity check bits, in this case Pa=w=128
 assert w + Pa == L*J
 
-Gs, columns_index, sub_G_inversions = get_G_info(L=L)                                                    
+Gs, columns_index, sub_G_inversions = get_G_info(L=L, windowSize=windowSize)                                                    
 Gijs, whichGMatrix = partitioning_Gs(L, Gs, parityLens, windowSize)
 
 print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e))          # Simulation starts!!!!!

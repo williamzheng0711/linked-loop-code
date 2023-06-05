@@ -41,3 +41,9 @@ class GLinkedLoop:
     
     def get_messageLens(self):
         return self.messageLens
+    
+    def known_in_path(self, index):
+        if index >= len(self.path):
+            return False
+        else:
+            return True
