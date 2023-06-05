@@ -35,6 +35,7 @@ def GLLC_encode(tx_message, K, L, J, Pa, w, messageLens, parityLens, Gs, windowS
 # Done
 def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_message, J, whichGMatrix, K, messageLens, 
                                        parityLens, L, windowSize, Gs, Gijs, columns_index, sub_G_inversions, num_erase):
+    # print(Path.get_path())
     new = []  
     assert isinstance(Path, LLC.GLinkedLoop)
     oldPath = Path.get_path()
