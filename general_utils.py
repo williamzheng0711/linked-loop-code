@@ -69,17 +69,6 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
                                                                     cs_decoded_tx_message=cs_decoded_tx_message, J=J, messageLens=messageLens, parityLens=parityLens,
                                                                     whichGMatrix=whichGMatrix, L=L, windowSize=windowSize, Gs=Gs, Gijs=Gijs,
                                                                     columns_index=columns_index, sub_G_inversions=sub_G_inversions)
-            
-            # known_vec1 = np.mod(cs_decoded_tx_message[temp_path.get_path()[0], messageLens[0]:J]     - np.matmul(cs_decoded_tx_message[temp_path.get_path()[11], 11*J:11*J+messageLens[11]], Gijs[2**11*3**0]), 2)
-            # known_vec2 = np.mod(cs_decoded_tx_message[temp_path.get_path()[1], J+messageLens[1]:2*J] - np.matmul(cs_decoded_tx_message[temp_path.get_path()[0] , 0:messageLens[0]]         , Gijs[2**0*3**1] ), 2)
-            # known_vec = np.hstack((known_vec1, known_vec2))
-            # lostPart2 = np.mod( np.matmul(  known_vec[columns_index[12]],  sub_G_inversions[12] ) ,2)
-            # toKeep2 = np.array_equal( np.mod(np.matmul(lostPart2, Gs[12]),2) , known_vec )
-            # if toKeep2:
-            #     print("way2, known: "+ str(known_vec))
-
-            # if toKeep and toKeep2:
-            #     print(lostPart, lostPart2)
             if toKeep:
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]) , messageLens, lostPart) ) 
     return new

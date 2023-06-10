@@ -40,6 +40,8 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
     print(" | Num erase: " + str(num_erase))
     print(" | ChosenRoot: " + str(chosenRoot))
 
+    messageLens[range(L)] = messageLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    parityLens[range(L)] = parityLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     Gs[range(L)] = Gs[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     columns_index[range(L)] = columns_index[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     sub_G_inversions[range(L)] = sub_G_inversions[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
