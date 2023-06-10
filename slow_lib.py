@@ -163,6 +163,7 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
 
     tree_decoded_tx_message[:,range(messageLen*L)] = tree_decoded_tx_message[:, np.mod( np.arange(messageLen*L)+(L-chosenRoot)*messageLen  , messageLen*L) ]
+    tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)
     return tree_decoded_tx_message
 
 
