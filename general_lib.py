@@ -35,13 +35,14 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
     samples = cs_decoded_tx_message[:,selected_cols]
     num_erase = np.count_nonzero(samples == -1, axis=0) 
     chosenRoot = np.argmin(num_erase)
-    chosenRoot = 0
+    # chosenRoot = 0
 
     print(" | Num erase: " + str(num_erase))
     print(" | ChosenRoot: " + str(chosenRoot))
 
     messageLens[range(L)] = messageLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     parityLens[range(L)] = parityLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    num_erase[range(L)] = num_erase[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     Gs[range(L)] = Gs[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     columns_index[range(L)] = columns_index[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     sub_G_inversions[range(L)] = sub_G_inversions[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]

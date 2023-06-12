@@ -152,20 +152,20 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
 
         longMinued = np.empty((0),dtype=int)
         longSubtrahend = np.empty((0),dtype=int)
-        for avialSaver in availSavers: # saver != lostSection            
+        for availSaver in availSavers: # saver != lostSection            
             # If saver=3, windowSize=2. saverDeciders = [1,2]
-            saverDeciders = [ np.mod(avialSaver-ll, L) for ll in range(windowSize,0,-1) ] # 被減數 Aka p(saver)
-            minuend = cs_decoded_tx_message[focusPath[avialSaver], avialSaver*J+messageLens[avialSaver]: (avialSaver+1)*J ] if Path.known_in_path(avialSaver) else cs_decoded_tx_message[k, avialSaver*J+messageLens[avialSaver]: (avialSaver+1)*J] 
+            saverDeciders = [ np.mod(availSaver-ll, L) for ll in range(windowSize,0,-1) ] # 被減數 Aka p(saver)
+            minuend = cs_decoded_tx_message[focusPath[availSaver], availSaver*J+messageLens[availSaver]: (availSaver+1)*J ] if Path.known_in_path(availSaver) else cs_decoded_tx_message[k, availSaver*J+messageLens[availSaver]: (availSaver+1)*J] 
             longMinued = np.hstack( (longMinued, np.mod(minuend,2)))
             # print("Minued " + str(known_vec1_comp1) +" "+ str(known_vec2_comp1) +" ||||| "+ str(minuend))
-            subtrahend = np.zeros((parityLens[avialSaver]),dtype=int) # 減數    被減數和減數 的size當然是一樣的
+            subtrahend = np.zeros((parityLens[availSaver]),dtype=int) # 減數    被減數和減數 的size當然是一樣的
             # subtrahend 永遠都是 info * G 這樣的格式
             # print(known_vec1_comp2, known_vec2_comp2)
     
             for saverDecider in saverDeciders:     
                 if (saverDecider != lostSection):
-                    # gen_mat = Gijs[ whichGMatrix[saverDecider, saver] ]
-                    gen_mat = Gijs[2**saverDecider*3**avialSaver]
+                    gen_mat = Gijs[ whichGMatrix[saverDecider, availSaver] ]
+                    # gen_mat = Gijs[2**saverDecider*3**avialSaver]
                     toAdd = np.matmul(cs_decoded_tx_message[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat) if saverDecider != toCheck else np.matmul(cs_decoded_tx_message[k,saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat)
                     toAdd = np.mod(toAdd, 2)
                     subtrahend = subtrahend + toAdd
