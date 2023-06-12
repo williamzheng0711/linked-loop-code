@@ -58,6 +58,7 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
         for l in list(range(1,L)): # its last element is L-1
             if len(Paths) == 0: 
                 break
+            print("l:"+str(l) +",len(Paths)="+str(len(Paths)), end="\n" if l==L-1 else " ")
             newAll = []
             survivePaths = Parallel(n_jobs=-1)(delayed(GLLC_correct_each_section_and_path)(section2Check=l, Path=Paths[j], 
                                                                                            cs_decoded_tx_message=cs_decoded_tx_message, 
@@ -67,6 +68,7 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
                                                                                            columns_index= columns_index,
                                                                                            sub_G_inversions= sub_G_inversions, 
                                                                                            num_erase = num_erase) for j in range(len(Paths)))
+            print("This section done.", end=" ")
             for survivePath in survivePaths:
                 if len(survivePath) > 0:
                     newAll = list(newAll) + list(survivePath) # list merging
