@@ -35,11 +35,11 @@ def GLLC_encode(tx_message, K, L, J, Pa, w, messageLens, parityLens, Gs, windowS
 # Done
 def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_message, J, whichGMatrix, K, messageLens, 
                                        parityLens, L, windowSize, Gs, Gijs, columns_index, sub_G_inversions, num_erase):
-    # print(Path.get_path())
     new = []  
     assert isinstance(Path, LLC.GLinkedLoop)
     oldPath = Path.get_path()
     oldLostPart = Path.get_lostPart()
+    # print(Path.get_path(), oldLostPart)
     Parity_computed = np.empty((0),dtype=int)
 
     if section2Check >= windowSize: 
@@ -60,7 +60,7 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
                     # print(lostPart)
                     new.append( LLC.GLinkedLoop( list(oldPath) + list([k]) , messageLens, lostPart) )
     
-    if Path.whether_contains_na() == False and num_erase[section2Check]!=0 :
+    if Path.whether_contains_na() == False and num_erase[section2Check]!=0:
         if section2Check != L-1:
             new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldLostPart) )
         else:
@@ -142,7 +142,7 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
         availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=toCheck for x in range(windowSize+1)]).all() == True]
 
         assert len(availSavers) > 0
-        if len(availSavers) < windowSize:  # Because we need at least TWO results to compare.
+        if len(availSavers) < 2:  # Because we need at least TWO results to compare.
             return True, oldLostPart
 
         theAnswer = np.zeros((messageLens[lostSection]),dtype=int)        
@@ -192,7 +192,7 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
         theLostPart = np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2)
         assert theLostPart.shape[0] == messageLens[lostSection]
 
-        if np.array_equal(np.mod( np.matmul(theLostPart, Gs[lostSection]), 2), concatenated_known_vctr) == False:
+        if np.array_equal(np.mod( np.matmul(theLostPart, Gs[lostSection]), 2), concatenated_known_vctr) == False and len(availSavers)==windowSize:
             return False , oldLostPart
 
         if hasAnswer == True:

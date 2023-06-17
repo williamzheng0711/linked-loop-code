@@ -64,6 +64,10 @@ print(" Genie: How many no-outage ? " + str(num_no_outage))
 print(" Genie: How many one-outage? " + str(num_one_outage))
 print(" Genie: One-outage where: " + str(one_outage_where))
 
+# for l in range(L):
+#     print("l="+str(l)+", info is " + str(txBits[0][sum(messageLens[0:l]):sum(messageLens[0:l]) + messageLens[l] ]))
+
+
 # Handling A+ 
 print(" - A+ Channel: Decode/correct now starts.")
 tic1 = time.time()

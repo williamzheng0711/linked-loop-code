@@ -68,13 +68,13 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
                                                                                            columns_index= columns_index,
                                                                                            sub_G_inversions= sub_G_inversions, 
                                                                                            num_erase = num_erase) for j in range(len(Paths)))
-            print("This section done.", end=" ")
+            # print("This section done.", end=" ")
             for survivePath in survivePaths:
                 if len(survivePath) > 0:
                     newAll = list(newAll) + list(survivePath) # list merging
             Paths = newAll 
 
-        print("A root, before final checkng surviving paths=" + str(len(Paths)))
+        # print("A root, before final checkng surviving paths=" + str(len(Paths)))
 
         PathsUpdated = []
         for j in range(len(Paths)):
@@ -85,7 +85,7 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
             if isOkay:
                 PathsUpdated.append( Path )
         Paths = PathsUpdated
-        print("The root, surviving paths=" + str(len(Paths)))
+        # print("The root, surviving paths=" + str(len(Paths)))
 
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
