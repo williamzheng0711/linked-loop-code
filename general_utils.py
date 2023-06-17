@@ -71,6 +71,7 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
                                                                     columns_index=columns_index, sub_G_inversions=sub_G_inversions)
             if toKeep:
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]) , messageLens, lostPart) ) 
+    
     return new
 
 
@@ -88,6 +89,20 @@ def GLLC_final_parity_check(Path, cs_decoded_tx_message,J,messageLens, parityLen
             if flag_ll.any() != 0: 
                 isOkay = False
                 break
+    return isOkay
+
+
+def final_parity_check(Path, cs_decoded_tx_message,J,messageLens, parityLens, whichGMatrix, L, Gijs, windowSize):
+    assert len(Path) == L
+    isOkay = True
+    for toCheck in range(windowSize):
+        parityComputed = compute_parity(L=L, Path_list=Path,cs_decoded_tx_message=cs_decoded_tx_message, 
+                            J=J, toCheck=toCheck, whichGMatrix=whichGMatrix, messageLens=messageLens, 
+                            parityLens=parityLens, Gijs=Gijs, windowSize=windowSize)
+        flag_ll = np.abs(parityComputed - cs_decoded_tx_message[Path[toCheck], toCheck*J+messageLens[toCheck]: (toCheck+1)*J])
+        if flag_ll.any() != 0: 
+            isOkay = False
+            break
     return isOkay
 
 
@@ -111,9 +126,18 @@ def GLLC_compute_parity(L, Path,cs_decoded_tx_message, J, toCheck, whichGMatrix,
         infoInvolved = cs_decoded_tx_message[focusPath[decider], decider*J : decider*J+messageLens[decider]] if useLost==False else Path.get_lostPart()
         Parity_computed = Parity_computed + np.matmul( infoInvolved, gen_mat)
     Parity_computed = np.mod(Parity_computed, 2)
-
     return Parity_computed
 
+def compute_parity(L, Path_list,cs_decoded_tx_message, J, toCheck, whichGMatrix, messageLens, parityLens, Gijs, windowSize):
+    # Here, "Path_list" is a list
+    deciders = np.mod([ toCheck + j for j in range(-1*windowSize, 0, 1) ], L)
+    Parity_computed = np.zeros(parityLens[toCheck], dtype=int)
+    for decider in deciders:      # l labels the sections we gonna check to fix toCheck's parities
+        gen_mat = Gijs[ whichGMatrix[decider, toCheck] ]
+        infoInvolved = cs_decoded_tx_message[Path_list[decider], decider*J : decider*J+messageLens[decider]]
+        Parity_computed = Parity_computed + np.matmul( infoInvolved, gen_mat)
+    Parity_computed = np.mod(Parity_computed, 2)
+    return Parity_computed
 
 # Done
 def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx_message, J, messageLens, parityLens,
@@ -218,5 +242,13 @@ def GLLC_output_message(cs_decoded_tx_message, linkedloops, L, J):
                 msg[i, sum(messageLens[0:l]): sum(messageLens[0:l])+messageLens[l]] = cs_decoded_tx_message[path[l], l*J: l*J+messageLens[l]]
             else: 
                 msg[i, sum(messageLens[0:l]): sum(messageLens[0:l])+messageLens[l]] = linkedloop.get_lostPart()
-    # print(msg.shape)
+    return msg
+
+def output_message(cs_decoded_tx_message, paths, L, J, messageLens):
+    n = len(paths)
+    msg = np.empty( (n, sum(messageLens)), dtype=int)
+    for i in range(n):
+        path = paths[i]
+        for l in range(L):
+            msg[i, sum(messageLens[0:l]): sum(messageLens[0:l])+messageLens[l]] = cs_decoded_tx_message[path[l], l*J: l*J+messageLens[l]]
     return msg

@@ -5,6 +5,19 @@ from general_utils import *
 from tqdm import tqdm
 from joblib import Parallel, delayed
 
+def check_phase_1(txBits, rxBits, name):
+    # Check how many are correct amongst the recover (recover means first phase). No need to change.
+    thisIter = 0
+    txBits_remained = np.empty(shape=(0,0))
+    for i in range(txBits.shape[0]):
+        incre = 0
+        incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
+        thisIter += int(incre)
+        if (incre == False):
+            txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
+    print(" | In phase 1, " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
+    # print(" - " + str(name) + " Phase 1 is done.")
+    return txBits_remained
 
 
 def partitioning_Gs(L, Gs, parityLens, windowSize):
@@ -21,19 +34,16 @@ def partitioning_Gs(L, Gs, parityLens, windowSize):
 
 
 
-def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inversions, messageLens, parityLens, K, windowSize, whichGMatrix, APlus=True):
+def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, sub_G_inversions, messageLens, parityLens, K, windowSize, whichGMatrix, num_erase, APlus=True):
 
-    cs_decoded_tx_message = -1 * np.ones((K, L*J))
-    for id_row in range(K):
-        for id_col in range(L):
-            if rx_coded_symbols[id_row, id_col] != -1:
-                a = np.binary_repr(rx_coded_symbols[id_row, id_col], width=J)     
-                b = np.array([int(n) for n in a] ).reshape(1,-1)        
-                cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
+    # cs_decoded_tx_message = -1 * np.ones((K, L*J))
+    # for id_row in range(K):
+    #     for id_col in range(L):
+    #         if rx_coded_symbols[id_row, id_col] != -1:
+    #             a = np.binary_repr(rx_coded_symbols[id_row, id_col], width=J)     
+    #             b = np.array([int(n) for n in a] ).reshape(1,-1)        
+    #             cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
 
-    selected_cols = [l*J for l in range(L)]
-    samples = cs_decoded_tx_message[:,selected_cols]
-    num_erase = np.count_nonzero(samples == -1, axis=0) 
     chosenRoot = np.argmin(num_erase)
     # chosenRoot = 0
 
@@ -58,7 +68,7 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
         for l in list(range(1,L)): # its last element is L-1
             if len(Paths) == 0: 
                 break
-            print("l:"+str(l) +",len(Paths)="+str(len(Paths)), end="\n" if l==L-1 else " ")
+            # print("l:"+str(l) +",len(Paths)="+str(len(Paths)), end="\n" if l==L-1 else " ")
             newAll = []
             survivePaths = Parallel(n_jobs=-1)(delayed(GLLC_correct_each_section_and_path)(section2Check=l, Path=Paths[j], 
                                                                                            cs_decoded_tx_message=cs_decoded_tx_message, 
@@ -107,3 +117,65 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gs, Gijs, columns_index, sub_G_inv
     # newShape = tree_decoded_tx_message.shape
     
     return tree_decoded_tx_message
+
+
+def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, windowSize, whichGMatrix, APlus=True):
+
+    # In decoder, will not change root
+    cs_decoded_tx_message = -1 * np.ones((K, L*J))
+    for id_row in range(K):
+        for id_col in range(L):
+            if rx_coded_symbols[id_row, id_col] != -1:
+                a = np.binary_repr(rx_coded_symbols[id_row, id_col], width=J)     
+                b = np.array([int(n) for n in a] ).reshape(1,-1)        
+                cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
+    
+    selected_cols = [l*J for l in range(L)]
+    samples = cs_decoded_tx_message[:,selected_cols]
+    num_erase = np.count_nonzero(samples == -1, axis=0) 
+
+    K_effective  = [x for x in range(K) if cs_decoded_tx_message[x,0] != -1]
+    tree_decoded_tx_message = np.empty(shape=(0,0))
+
+    for i, _ in zip(K_effective, tqdm(range(len(K_effective)))):
+        Paths = np.array([[i]])
+        for l in list(range(1,L)): # its last element is L-1
+            # print("l="+str(l) +" len=" + str(len(Paths)))
+            new=np.empty( shape=(0,0))
+            for Path in Paths:
+                if l >= windowSize: 
+                    Parity_computed = compute_parity(L=L, Path_list=Path, cs_decoded_tx_message=cs_decoded_tx_message, 
+                                                            J=J, toCheck=l, whichGMatrix= whichGMatrix, messageLens=messageLens, 
+                                                            parityLens=parityLens, Gijs=Gijs, windowSize=windowSize)
+                for k in range(K):
+                    index = l<windowSize or np.array_equal(cs_decoded_tx_message[k, l*J + messageLens[l]: (l+1)*J], Parity_computed)
+                    if index:
+                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
+            Paths = new
+            if Paths.shape[0] == 0:
+                break
+
+        PathsUpdated = []
+        for j in range(len(Paths)):
+            Path = Paths[j]
+            isOkay = final_parity_check(Path=Path, cs_decoded_tx_message=cs_decoded_tx_message, J=J,
+                                        messageLens=messageLens, parityLens=parityLens, whichGMatrix=whichGMatrix, 
+                                        L=L, Gijs=Gijs, windowSize=windowSize)
+            if isOkay:
+                PathsUpdated.append( Path )
+        Paths = PathsUpdated
+        # print("The root, surviving paths=" + str(len(Paths)))
+
+        if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
+            recovered_message = output_message(cs_decoded_tx_message, Paths, L, J, messageLens=messageLens)
+            tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
+            # SIC
+            if APlus:
+                for i in range(len(Paths)):
+                    pathToCancel = Paths[i]
+                    for l in range(L):
+                        if pathToCancel[l] != -1:
+                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+        
+    tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)        
+    return tree_decoded_tx_message, cs_decoded_tx_message, num_erase

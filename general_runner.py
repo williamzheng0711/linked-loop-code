@@ -58,39 +58,48 @@ tx_symbols_llc = GAch_binary_to_symbol(txBitsParitized_llc, L, K, J)
 # * A-Channel with Erasure
 seed = np.random.randint(0,10000)
 rx_coded_symbols_plus, num_one_outage, one_outage_where, num_no_outage = APlus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
-rx_coded_symbols = remove_multiplicity(rx_coded_symbols_plus)
+# rx_coded_symbols = remove_multiplicity(rx_coded_symbols_plus)
 
 print(" Genie: How many no-outage ? " + str(num_no_outage))
 print(" Genie: How many one-outage? " + str(num_one_outage))
 print(" Genie: One-outage where: " + str(one_outage_where))
 
-# for l in range(L):
-#     print("l="+str(l)+", info is " + str(txBits[0][sum(messageLens[0:l]):sum(messageLens[0:l]) + messageLens[l] ]))
+
+print(" -Phase 1 (decoding) now starts.")
+tic = time.time()
+rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols_plus, L=L, J=J, 
+                                                                 Gijs=Gijs, messageLens=messageLens, parityLens=parityLens, 
+                                                                 K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, APlus=True)
+toc = time.time()
+print(" | Time of LLC decode " + str(toc-tic))
+if rxBits_llc.shape[0] > K: 
+    rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
+
+# Check how many are correct amongst the recover (recover means first phase). No need to change.
+txBits_remained_llc = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
+print(" -Phase 1 Done.")
 
 
-# Handling A+ 
-print(" - A+ Channel: Decode/correct now starts.")
-tic1 = time.time()
-rxBits_llc = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols_plus, L=L, J=J, Gs=Gs, Gijs=Gijs, columns_index=columns_index, 
-                               sub_G_inversions=sub_G_inversions, messageLens=messageLens, parityLens=parityLens, K=K,
-                               windowSize=windowSize, whichGMatrix=whichGMatrix, APlus=True)
-toc1 = time.time()
-print(" | Time for A+ Channel " + str(toc1-tic1))
-final_recovered_msgs = np.unique(rxBits_llc, axis=0)
+# *Corrector. PAINPOINT
+print(" -Phase 2 (correction) now starts.")
+tic = time.time()
+rxBits_corrected_llc= GLLC_UACE_corrector(cs_decoded_tx_message=cs_decoded_tx_message, L=L, J=J, Gs=Gs, Gijs=Gijs, columns_index=columns_index, 
+                                        sub_G_inversions=sub_G_inversions, messageLens=messageLens, parityLens=parityLens, K=K,
+                                        windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, APlus=True)
+toc = time.time()
+print(" | Time of correct " + str(toc-tic))
+if txBits_remained_llc.shape[0] == w:
+    txBits_remained_llc = txBits_remained_llc.reshape(1,-1)
+
 # Check how many are true amongst those "corrected". No need to change.
-_ = check(txBits, final_recovered_msgs, "Linked-loop Code", 2)
-print(" -This simulation on A+Channel terminates.")
+corrected = 0
+if rxBits_corrected_llc.size:
+    for i in range(txBits_remained_llc.shape[0]):
+        incre = 0
+        incre = np.equal(txBits_remained_llc[i,:],rxBits_corrected_llc).all(axis=1).any()
+        corrected += int(incre)
+    print(" | In phase 2, Linked-loop code corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected_llc.shape[0]) )
+else: 
+    print(" | Nothing was corrected")
 
-
-
-
-# Handling A Channel 
-# print(" - A Channel: Decode/correct now starts.")
-# tic2 = time.time()
-# rxBits_llc = llc_UACE_decoder(rx_coded_symbols, L, J, messageLen, parityLen, listSize, parityInvolved, whichGMatrix_or, windowSize, APlus=False)
-# toc2 = time.time()
-# print(" | Time for A Channel " + str(toc2-tic2))
-# final_recovered_msgs = np.unique(rxBits_llc, axis=0)
-# # Check how many are true amongst those "corrected". No need to change.
-# _ = check(txBits, final_recovered_msgs, "Linked-loop Code", 2)
-# print(" -This simulation on A Channel terminates.")
+print(" -Phase 2 is done, this simulation terminates.")
