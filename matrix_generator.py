@@ -18,20 +18,20 @@ def check_conditions(A, num_row, num_col):
     if binMat.rank() < min(num_col, num_row):
         return False
     
-    binMat2 = BM.BinMatrix(m = A[:,0:14])
-    if binMat2.rank() < min(num_col, num_row):
-        return False
+    # binMat2 = BM.BinMatrix(m = A[:,0:14])
+    # if binMat2.rank() < min(num_col, num_row):
+    #     return False
     
     if num_col >= 4 and num_row>=4:
         for row in np.arange(0, num_row-3):
             for col in np.arange(0, num_col-3):
                 B = A[row:row+3, col: col+3]
-                if np.abs( 2*sum(sum(B)) - (B.shape[0])**2 ) > 4: return False
+                if np.abs( 2*sum(sum(B)) - (B.shape[0])**2 ) > 3: return False
 
     return True
 
 
-# check_all_possiblility(9,21,500000)
+# check_all_possiblility(9,14,500000)
 
 
 def which_columns_invertible(M):
@@ -40,7 +40,7 @@ def which_columns_invertible(M):
     nr = binMat.r_len
     trials = 100
     for _ in range(trials):
-        arr_list = np.sort(np.array(random.sample(range(0, 14 ),  nr)))
+        arr_list = np.sort(np.array(random.sample(range(0, nc ),  nr)))
         binMat_thin = BM.BinMatrix(m= M[:,arr_list])
         if binMat_thin.rank() == nr:
             print(arr_list)
@@ -52,14 +52,14 @@ def which_columns_invertible(M):
 # parityLens= np.array ([7, 7, 7, 6, 7, 7, 7, 7, 7, 7, 6, 7, 7, 7])
 
 M =  np.array(
-        [[1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0],
- [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
- [1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0],
- [1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0],
- [0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1],
- [1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1],
- [0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0],
- [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1],
- [1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1],],
+[[0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1],
+ [0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+ [1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1],
+ [1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1],
+ [1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1],
+ [1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1],
+ [0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1],
+ [1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0],
+ [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1],],
             )
 which_columns_invertible(M)
