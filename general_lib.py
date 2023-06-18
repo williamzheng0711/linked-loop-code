@@ -7,6 +7,9 @@ from joblib import Parallel, delayed
 
 def check_phase_1(txBits, rxBits, name):
     # Check how many are correct amongst the recover (recover means first phase). No need to change.
+    if len(rxBits) == 0:
+        return txBits
+    
     thisIter = 0
     txBits_remained = np.empty(shape=(0,0))
     for i in range(txBits.shape[0]):
@@ -68,7 +71,7 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
         for l in list(range(1,L)): # its last element is L-1
             if len(Paths) == 0: 
                 break
-            # print("l:"+str(l) +",len(Paths)="+str(len(Paths)), end="\n" if l==L-1 else " ")
+            print("l="+str(l) +" len=" + str(len(Paths)))
             newAll = []
             survivePaths = Parallel(n_jobs=-1)(delayed(GLLC_correct_each_section_and_path)(section2Check=l, Path=Paths[j], 
                                                                                            cs_decoded_tx_message=cs_decoded_tx_message, 
@@ -166,6 +169,7 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, 
         Paths = PathsUpdated
         # print("The root, surviving paths=" + str(len(Paths)))
 
+        # print(len(Paths))
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             recovered_message = output_message(cs_decoded_tx_message, Paths, L, J, messageLens=messageLens)
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message

@@ -19,7 +19,7 @@ parser = OptionParser()
 parser.add_option("--args", type="string", dest="args", help="Arguments", default="")
 parser.add_option("--ka", type="int", dest="ka", help="Number of active users", default=-1)
 parser.add_option("--pe", type="float", dest="pe", help="Probability of being erased (mapped to 0)", default=-1)
-parser.add_option("--l", type="int", dest="l", help="Client's desired rate", default= 13)
+parser.add_option("--l", type="int", dest="l", help="Client's desired rate", default=-1)
 (options, args) = parser.parse_args()
 
 p_e = options.pe
@@ -71,7 +71,7 @@ rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbol
                                                                  Gijs=Gijs, messageLens=messageLens, parityLens=parityLens, 
                                                                  K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, APlus=True)
 toc = time.time()
-print(" | Time of LLC decode " + str(toc-tic))
+print(" | Time of GLLC decode " + str(toc-tic))
 if rxBits_llc.shape[0] > K: 
     rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
 
