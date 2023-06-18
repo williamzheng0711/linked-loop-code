@@ -71,7 +71,7 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
         for l in list(range(1,L)): # its last element is L-1
             if len(Paths) == 0: 
                 break
-            print("l="+str(l) +" len=" + str(len(Paths)))
+            # print("l="+str(l) +" len=" + str(len(Paths)))
             newAll = []
             survivePaths = Parallel(n_jobs=-1)(delayed(GLLC_correct_each_section_and_path)(section2Check=l, Path=Paths[j], 
                                                                                            cs_decoded_tx_message=cs_decoded_tx_message, 

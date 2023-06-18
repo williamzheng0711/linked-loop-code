@@ -166,7 +166,9 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
         availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=toCheck for x in range(windowSize+1)]).all() == True]
 
         assert len(availSavers) > 0
-        if len(availSavers) < 2:  # Because we need at least TWO results to compare.
+        # if len(availSavers) < 2:  # Because we need at least TWO results to compare.
+        #     return True, oldLostPart
+        if sum(parityLens[availSavers]) < messageLens[lostSection]:
             return True, oldLostPart
 
         theAnswer = np.zeros((messageLens[lostSection]),dtype=int)        
@@ -210,9 +212,12 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
         # print(known_vec1,known_vectors[0], known_vec2, known_vectors[1])
         # print("***" + str(known_vec) +"  "  +str(concatenated_known_vctr))
 
-        sufficent_columns = columns_index[lostSection]
+        sufficent_columns = np.array(columns_index[lostSection],dtype=int)
         gen_binmat_inv = sub_G_inversions[lostSection]
 
+        # print(concatenated_known_vctr)
+        # print(sufficent_columns)
+        # print(concatenated_known_vctr[sufficent_columns])
         theLostPart = np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2)
         assert theLostPart.shape[0] == messageLens[lostSection]
 

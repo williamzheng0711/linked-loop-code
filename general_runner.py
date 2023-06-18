@@ -45,7 +45,7 @@ assert w + Pa == L*J
 Gs, columns_index, sub_G_inversions = get_G_info(L=L, windowSize=windowSize)                                                    
 Gijs, whichGMatrix = partitioning_Gs(L, Gs, parityLens, windowSize)
 
-print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e))          # Simulation starts!!!!!
+print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e) + " and L= " + str(L))          # Simulation starts!!!!!
 # Outer-code encoding. No need to change.
 txBits = np.random.randint(low=2, size=(K, w))                              
 
