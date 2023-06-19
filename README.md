@@ -1,4 +1,4 @@
-# URAC23
+# Linked-loop Code
 
 To start a simulation of this paper "coding for the unsourced a-channel with erasures: the linked loop code", please use go to the main branch and use the command "python ach_runner.py --ka=50 --pe=0.1" to start a single simulation with a number of active users = 50 and the parameter of the iid Bernoulli trials to be 0.1. 
 
