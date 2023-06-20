@@ -20,6 +20,8 @@ parser.add_option("--args", type="string", dest="args", help="Arguments", defaul
 parser.add_option("--ka", type="int", dest="ka", help="Number of active users", default=-1)
 parser.add_option("--pe", type="float", dest="pe", help="Probability of being erased (mapped to 0)", default=-1)
 parser.add_option("--l", type="int", dest="l", help="Client's desired rate", default=-1)
+parser.add_option("--sic", type="int", dest="sic", help="Use SIC?", default=2)
+parser.add_option("--aplus", type="int", dest="aplus", help="A+ or A Channel", default=2)
 (options, args) = parser.parse_args()
 
 p_e = options.pe
@@ -28,6 +30,10 @@ K = options.ka                                      # number of active users
 assert K > 0 
 L = options.l 
 assert L >=8 and L<=16 
+SIC = True if options.sic==1 else False
+assert SIC == True or SIC == False
+aplus = True if options.aplus==1 else False
+assert aplus == True or aplus == False
 
 
 ### My (outer) code setting
@@ -57,8 +63,10 @@ tx_symbols_llc = GAch_binary_to_symbol(txBitsParitized_llc, L, K, J)
 
 # * A-Channel with Erasure
 seed = np.random.randint(0,10000)
-rx_coded_symbols_plus, num_one_outage, one_outage_where, num_no_outage = APlus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
-# rx_coded_symbols = remove_multiplicity(rx_coded_symbols_plus)
+rx_coded_symbols, num_one_outage, one_outage_where, num_no_outage = APlus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+if aplus == False:
+    rx_coded_symbols = remove_multiplicity(rx_coded_symbols)
+
 
 print(" Genie: How many no-outage ? " + str(num_no_outage))
 print(" Genie: How many one-outage? " + str(num_one_outage))
@@ -67,9 +75,9 @@ print(" Genie: One-outage where: " + str(one_outage_where))
 
 print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
-rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols_plus, L=L, J=J, 
+rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols, L=L, J=J, 
                                                                  Gijs=Gijs, messageLens=messageLens, parityLens=parityLens, 
-                                                                 K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, APlus=True)
+                                                                 K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, SIC=SIC)
 toc = time.time()
 print(" | Time of GLLC decode " + str(toc-tic))
 if rxBits_llc.shape[0] > K: 
@@ -85,7 +93,7 @@ print(" -Phase 2 (correction) now starts.")
 tic = time.time()
 rxBits_corrected_llc= GLLC_UACE_corrector(cs_decoded_tx_message=cs_decoded_tx_message, L=L, J=J, Gs=Gs, Gijs=Gijs, columns_index=columns_index, 
                                         sub_G_inversions=sub_G_inversions, messageLens=messageLens, parityLens=parityLens, K=K,
-                                        windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, APlus=True)
+                                        windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, SIC=SIC)
 toc = time.time()
 print(" | Time of correct " + str(toc-tic))
 if txBits_remained_llc.shape[0] == w:
