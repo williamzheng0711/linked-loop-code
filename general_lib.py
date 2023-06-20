@@ -37,7 +37,7 @@ def partitioning_Gs(L, Gs, parityLens, windowSize):
 
 
 
-def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, sub_G_inversions, messageLens, parityLens, K, windowSize, whichGMatrix, num_erase, SIC=True):
+def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, sub_G_inversions, messageLens, parityLens, K, windowSize, whichGMatrix, num_erase, APlus=True):
 
     # cs_decoded_tx_message = -1 * np.ones((K, L*J))
     # for id_row in range(K):
@@ -105,12 +105,13 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
             recovered_message = GLLC_output_message(cs_decoded_tx_message, Paths, L, J)
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
             # SIC
-            for i in range(len(Paths)):
-                pathToCancel = Paths[i].get_path()
-                # print(pathToCancel)
-                for l in range(L):
-                    if pathToCancel[l] != -1 and (l== chosenRoot) if SIC==False else True:
-                        cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+            if APlus:
+                for i in range(len(Paths)):
+                    pathToCancel = Paths[i].get_path()
+                    # print(pathToCancel)
+                    for l in range(L):
+                        if pathToCancel[l] != -1:
+                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
         
     w = sum(messageLens)
     tree_decoded_tx_message[:,range(w)] = tree_decoded_tx_message[:, np.mod( np.arange(w) + sum(messageLens[0:L-chosenRoot]), w)]
@@ -121,7 +122,7 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
     return tree_decoded_tx_message
 
 
-def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, windowSize, whichGMatrix, SIC=True):
+def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, windowSize, whichGMatrix, APlus=True):
 
     # In decoder, will not change root
     cs_decoded_tx_message = -1 * np.ones((K, L*J))
@@ -135,7 +136,6 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, 
     selected_cols = [l*J for l in range(L)]
     samples = cs_decoded_tx_message[:,selected_cols]
     num_erase = np.count_nonzero(samples == -1, axis=0) 
-    chosenRoot = np.argmin(num_erase)
 
     K_effective  = [x for x in range(K) if cs_decoded_tx_message[x,0] != -1]
     tree_decoded_tx_message = np.empty(shape=(0,0))
@@ -174,11 +174,12 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, 
             recovered_message = output_message(cs_decoded_tx_message, Paths, L, J, messageLens=messageLens)
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
             # SIC
-            for i in range(len(Paths)):
-                pathToCancel = Paths[i]
-                for l in range(L):
-                    if pathToCancel[l] != -1 and (l== chosenRoot) if SIC==False else True:
-                        cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+            if APlus:
+                for i in range(len(Paths)):
+                    pathToCancel = Paths[i]
+                    for l in range(L):
+                        if pathToCancel[l] != -1:
+                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
         
     tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)        
     return tree_decoded_tx_message, cs_decoded_tx_message, num_erase
