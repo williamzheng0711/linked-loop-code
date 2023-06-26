@@ -102,11 +102,12 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
 
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
+            Paths = [Paths[0]]
             recovered_message = GLLC_output_message(cs_decoded_tx_message, Paths, L, J)
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
             # SIC
             if SIC:
-                for i in range(len(Paths)):
+                for i in range(len(Paths)) and i==0:
                     pathToCancel = Paths[i].get_path()
                     # print(pathToCancel)
                     for l in range(L):
@@ -173,12 +174,15 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, 
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             recovered_message = output_message(cs_decoded_tx_message, Paths, L, J, messageLens=messageLens)
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
-            # SIC
-            if SIC:
-                for i in range(len(Paths)):
-                    pathToCancel = Paths[i]
-                    for l in range(L):
+            # SIC or cancel the used root
+            for i in range(len(Paths)):
+                pathToCancel = Paths[i]
+                for l in range(L):
+                    if SIC:
                         if pathToCancel[l] != -1:
+                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+                    else: 
+                        if l == np.argmin(num_erase):
                             cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
         
     tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)        
