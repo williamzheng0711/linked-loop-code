@@ -159,7 +159,8 @@ def slow_corrector(sigValues, sigPos, L, J, messageLen, parityLen, listSize, par
                     decoded_message[0, l*J:(l+1)*J] = cs_decoded_tx_message[onlyPathToConsider[l], l*J:(l+1)*J]
 
             recovered_message = slow_recover_msg(sectionLost, decoded_message, parityInvolved, messageLen,parityLen, J, L, whichGMatrix)
-            if recovered_message != np.array([], dtype= int).reshape(1,-1):
+            if np.array_equal(recovered_message, np.array([], dtype= int).reshape(1,-1)) == False:
+            # recovered_message != np.array([], dtype= int).reshape(1,-1):
                 tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
 
     tree_decoded_tx_message[:,range(messageLen*L)] = tree_decoded_tx_message[:, np.mod( np.arange(messageLen*L)+(L-chosenRoot)*messageLen  , messageLen*L) ]
