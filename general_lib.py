@@ -107,12 +107,12 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
             # SIC
             if SIC:
-                for i in range(len(Paths)) and i==0:
-                    pathToCancel = Paths[i].get_path()
-                    # print(pathToCancel)
-                    for l in range(L):
-                        if pathToCancel[l] != -1:
-                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+                # for i in range(len(Paths)) and i==0:
+                pathToCancel = Paths[0].get_path()
+                # print(pathToCancel)
+                for l in range(L):
+                    if pathToCancel[l] != -1:
+                        cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
         
     w = sum(messageLens)
     tree_decoded_tx_message[:,range(w)] = tree_decoded_tx_message[:, np.mod( np.arange(w) + sum(messageLens[0:L-chosenRoot]), w)]
