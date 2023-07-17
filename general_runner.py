@@ -23,6 +23,7 @@ parser.add_option("--ka", type="int", dest="ka", help="Number of active users", 
 parser.add_option("--pe", type="float", dest="pe", help="Probability of being erased (mapped to 0)", default=-1)
 parser.add_option("--l", type="int", dest="l", help="Client's desired rate", default=-1)
 parser.add_option("--sic", type="int", dest="sic", help="Do SIC?", default=-1)
+parser.add_option("--ctype", type="string", dest="ctype", help="A or B?", default="None")
 (options, args) = parser.parse_args()
 
 p_e = options.pe
@@ -31,6 +32,9 @@ K = options.ka                                      # number of active users
 assert K > 0 
 L = options.l 
 assert L >=8 and L<=16 
+channel_type = options.ctype
+assert channel_type == "A" or channel_type == "B"
+
 assert options.sic == 0 or options.sic == 1
 SIC = True if options.sic else False
 
@@ -63,7 +67,8 @@ tx_symbols_llc = GAch_binary_to_symbol(txBitsParitized_llc, L, K, J)
 # * A-Channel with Erasure
 seed = np.random.randint(0,10000)
 rx_coded_symbols, num_one_outage, one_outage_where, num_no_outage = APlus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
-rx_coded_symbols = remove_multiplicity(rx_coded_symbols)
+if channel_type == "A":
+    rx_coded_symbols = remove_multiplicity(rx_coded_symbols)
 
 print(" Genie: How many no-outage ? " + str(num_no_outage))
 print(" Genie: How many one-outage? " + str(num_one_outage))
@@ -108,3 +113,4 @@ else:
     print(" | Nothing was corrected")
 
 print(" -Phase 2 is done, this simulation terminates.")
+print("   ")
