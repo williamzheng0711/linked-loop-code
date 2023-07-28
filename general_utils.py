@@ -46,6 +46,7 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
         Parity_computed = GLLC_compute_parity(L=L, Path=Path, cs_decoded_tx_message=cs_decoded_tx_message, 
                                                           J=J, toCheck=section2Check, whichGMatrix= whichGMatrix, messageLens=messageLens, 
                                                           parityLens=parityLens, Gijs=Gijs, windowSize=windowSize)
+    
     for k in range(K):
         if cs_decoded_tx_message[k,section2Check*J] != -1:
             if section2Check < windowSize:
