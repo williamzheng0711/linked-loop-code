@@ -175,15 +175,15 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, 
             recovered_message = output_message(cs_decoded_tx_message, Paths, L, J, messageLens=messageLens)
             tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
             # SIC or cancel the used root
-            for i in range(len(Paths)):
-                pathToCancel = Paths[i]
-                for l in range(L):
-                    if SIC:
-                        if pathToCancel[l] != -1:
-                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
-                    else: 
-                        if l == np.argmin(num_erase):
-                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
-        
+            # for i in range(len(Paths)):
+            pathToCancel = Paths[0]
+            for l in range(L):
+                if SIC:
+                    if pathToCancel[l] != -1:
+                        cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+                else: 
+                    if l == np.argmin(num_erase):
+                        cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+    
     tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)        
     return tree_decoded_tx_message, cs_decoded_tx_message, num_erase
