@@ -23,10 +23,10 @@ def LDPC_symbols_to_bits(L, J, rx_coded_symbols_ldpc, K, channel):
         for k in range(K):
             if rx_coded_symbols_ldpc[k,l] >= 0:
                 temp_l[2**J - rx_coded_symbols_ldpc[k,l]] += 1
-        if channel == "A-Channel":
+        if channel == "A":
             temp_l = np.minimum(temp_l , 1)
             unioned_cdwds_ldpc[l*2**J : (l+1)*2**J] = temp_l
-        elif channel == "Aplus-Channel":
+        elif channel == "B":
             unioned_cdwds_ldpc[l*2**J : (l+1)*2**J] = temp_l
     # print(np.sum(unioned_cdwds_ldpc))         # should be about 1600
     return unioned_cdwds_ldpc

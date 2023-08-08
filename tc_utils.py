@@ -42,7 +42,7 @@ def generate_parity_matrix(L,messageLengthVector,parityLengthVector):
     return np.asarray(G, dtype=object)
 
 
-def Tree_decoder(cs_decoded_tx_message,G,L,J,B,parityLengthVector,messageLengthvector,listSize):
+def Tree_decoder(cs_decoded_tx_message,G,L,J,B,parityLengthVector,messageLengthvector,listSize, SIC):
     tree_decoded_tx_message = np.empty(shape=(0,0))
     for i in range(listSize):
         Paths = np.array([[i]])
@@ -61,18 +61,24 @@ def Tree_decoder(cs_decoded_tx_message,G,L,J,B,parityLengthVector,messageLengthv
                     if index:
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
             Paths = new 
-        if Paths.shape[0] >= 2:
-            # (If tree decoder outputs multiple paths for a root node, select the first one) Not the case
-            # If tree decoder outputs multiple paths for a root node, select them all
-            flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
-            if flag:
-                tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
-            else:
-                # tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
-                tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
-        elif Paths.shape[0] == 1:
-            tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
-    
+        if Paths.shape[0] >= 1:
+            if Paths.shape[0] >= 2:
+                # (If tree decoder outputs multiple paths for a root node, select the first one) Not the case
+                # If tree decoder outputs multiple paths for a root node, select them all
+                flag = check_if_identical_msgs(Paths, cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
+                if flag:
+                    tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
+                else:
+                    # tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths[0].reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
+                    tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(Paths.shape[0],-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
+            elif Paths.shape[0] == 1:
+                tree_decoded_tx_message = np.vstack((tree_decoded_tx_message,extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector))) if tree_decoded_tx_message.size else extract_msg_bits(Paths.reshape(1,-1),cs_decoded_tx_message, L,J,parityLengthVector,messageLengthvector)
+            # Only cancel one path anyway
+            pathToCancel = Paths[0]
+            if SIC:
+                if pathToCancel[l] != -1:
+                    cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+        
     tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)
     return tree_decoded_tx_message
 
