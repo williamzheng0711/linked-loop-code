@@ -23,11 +23,14 @@ parser.add_option("--ka", type="int", dest="ka", help="Number of active users", 
 parser.add_option("--pe", type="float", dest="pe", help="Probability of being erased (mapped to 0)", default=-1)
 parser.add_option("--l", type="int", dest="l", help="Client's desired rate", default=-1)
 parser.add_option("--sic", type="int", dest="sic", help="Do SIC?", default=-1)
+parser.add_option("--ws", type="int", dest="ws", help="Window size?", default=-1)
 parser.add_option("--ctype", type="string", dest="ctype", help="A or B?", default="None")
 (options, args) = parser.parse_args()
 
 p_e = options.pe
 assert p_e >= 0
+windowSize = options.ws
+assert windowSize > 1
 K = options.ka                                      # number of active users
 assert K > 0 
 L = options.l 
@@ -46,7 +49,6 @@ assert sum(messageLens) == w
 M = 2**J                                            # Each coded sub-block is J-length binary, 
                                                         # to represent it in decimal, 
                                                         # it ranges in [0, M] = [0, 2**J].
-windowSize = 3                                      # How many previous sections p(j) depends on
 assert windowSize > 0
 Pa = sum(parityLens)                                # Total number of parity check bits, in this case Pa=w=128
 assert w + Pa == L*J
