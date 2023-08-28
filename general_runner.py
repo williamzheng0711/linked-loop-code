@@ -53,7 +53,7 @@ assert windowSize > 0
 Pa = sum(parityLens)                                # Total number of parity check bits, in this case Pa=w=128
 assert w + Pa == L*J
 
-Gs, columns_index, sub_G_inversions = get_G_info(L=L, windowSize=windowSize)                                                    
+Gs, columns_index, sub_G_inversions = get_G_info(L=L, windowSize=windowSize, J=J)                                                    
 Gijs, whichGMatrix = partitioning_Gs(L, Gs, parityLens, windowSize)
 
 print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e) + " and L= " + str(L))          # Simulation starts!!!!!

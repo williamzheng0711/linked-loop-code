@@ -26,12 +26,12 @@ def check_conditions(A, num_row, num_col):
         for row in np.arange(0, num_row-3):
             for col in np.arange(0, num_col-3):
                 B = A[row:row+3, col: col+3]
-                if np.abs( 2*sum(sum(B)) - (B.shape[0])**2 ) > 4: return False
+                if np.abs( 2*sum(sum(B)) - (B.shape[0])**2 ) > 3: return False
 
     return True
 
 
-# check_all_possiblility(9,23,2000000)
+# check_all_possiblility(10, 21,2000000)
 
 
 def which_columns_invertible(M):
@@ -50,6 +50,15 @@ def which_columns_invertible(M):
 
 
 M =  np.array(
-
+[[1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0],
+ [1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0],
+ [0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0],
+ [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1],
+ [0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1],
+ [1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0],
+ [0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1],
+ [1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+ [1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0],
+ [0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0],],
             )
 which_columns_invertible(M)
