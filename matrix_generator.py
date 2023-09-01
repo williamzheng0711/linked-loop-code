@@ -31,7 +31,7 @@ def check_conditions(A, num_row, num_col):
     return True
 
 
-# check_all_possiblility(9, 20,2000000)
+# check_all_possiblility(9, 22,2000000)
 
 
 def which_columns_invertible(M):
@@ -50,6 +50,7 @@ def which_columns_invertible(M):
 
 
 M =  np.array(
+
 
             )
 which_columns_invertible(M)
