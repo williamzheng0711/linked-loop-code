@@ -4,7 +4,7 @@ from scipy.special import erf
 from scipy.stats import norm as normal
 from scipy.stats import rice, rayleigh
 from scipy.integrate import quad_vec
-from pyfht import block_sub_fht
+# from pyfht import block_sub_fht
 
 
 def matrix_repo(dim): 
