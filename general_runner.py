@@ -72,8 +72,8 @@ rx_coded_symbols, num_one_outage, one_outage_where, num_no_outage = APlus_ch_wit
 if channel_type == "A":
     rx_coded_symbols = remove_multiplicity(rx_coded_symbols)
 
-print(" Genie: How many no-outage ? " + str(num_no_outage))
-print(" Genie: How many one-outage? " + str(num_one_outage))
+# print(" Genie: How many no-outage ? " + str(num_no_outage))
+# print(" Genie: How many one-outage? " + str(num_one_outage))
 print(" Genie: One-outage where: " + str(one_outage_where))
 
 
@@ -115,4 +115,50 @@ else:
     print(" | Nothing was corrected")
 
 print(" -Phase 2 is done, this simulation terminates.")
+
+
+
+
+
+
+
+print(" -!!! Old version of phase 1 (decoding) now starts.")
+tic = time.time()
+rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols, L=L, J=J, 
+                                                                 Gijs=Gijs, messageLens=messageLens, parityLens=parityLens, 
+                                                                 K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, SIC=SIC, pChosenRoot=0)
+toc = time.time()
+print(" | Time of GLLC decode " + str(toc-tic))
+if rxBits_llc.shape[0] > K: 
+    rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
+
+# Check how many are correct amongst the recover (recover means first phase). No need to change.
+txBits_remained_llc = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
+print(" -Phase 1 Done.")
+
+
+# *Corrector. PAINPOINT
+print(" -Phase 2 (correction) now starts.")
+tic = time.time()
+rxBits_corrected_llc= GLLC_UACE_corrector(cs_decoded_tx_message=cs_decoded_tx_message, L=L, J=J, Gs=Gs, Gijs=Gijs, columns_index=columns_index, 
+                                        sub_G_inversions=sub_G_inversions, messageLens=messageLens, parityLens=parityLens, K=K,
+                                        windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, SIC=SIC, pChosenRoot=0)
+toc = time.time()
+print(" | Time of correct " + str(toc-tic))
+if txBits_remained_llc.shape[0] == w:
+    txBits_remained_llc = txBits_remained_llc.reshape(1,-1)
+
+# Check how many are true amongst those "corrected". No need to change.
+corrected = 0
+if rxBits_corrected_llc.size:
+    for i in range(txBits_remained_llc.shape[0]):
+        incre = 0
+        incre = np.equal(txBits_remained_llc[i,:],rxBits_corrected_llc).all(axis=1).any()
+        corrected += int(incre)
+    print(" | In phase 2, Linked-loop code corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected_llc.shape[0]) )
+else: 
+    print(" | Nothing was corrected")
+
+print(" -Phase 2 is done, this simulation terminates.")
+print("   ")
 print("   ")

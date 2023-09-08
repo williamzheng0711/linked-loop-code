@@ -37,7 +37,7 @@ def partitioning_Gs(L, Gs, parityLens, windowSize):
 
 
 
-def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, sub_G_inversions, messageLens, parityLens, K, windowSize, whichGMatrix, num_erase, SIC=True):
+def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, sub_G_inversions, messageLens, parityLens, K, windowSize, whichGMatrix, num_erase, SIC=True, pChosenRoot=None):
 
     # cs_decoded_tx_message = -1 * np.ones((K, L*J))
     # for id_row in range(K):
@@ -47,10 +47,10 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
     #             b = np.array([int(n) for n in a] ).reshape(1,-1)        
     #             cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
 
-    chosenRoot = np.argmin(num_erase)
+    chosenRoot = np.argmin(num_erase) if pChosenRoot == None else pChosenRoot
     # chosenRoot = 0
 
-    print(" | Num erase: " + str(num_erase))
+    # print(" | Num erase: " + str(num_erase))
     print(" | ChosenRoot: " + str(chosenRoot))
 
     messageLens[range(L)] = messageLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
@@ -123,7 +123,7 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
     return tree_decoded_tx_message
 
 
-def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, windowSize, whichGMatrix, SIC=True):
+def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, windowSize, whichGMatrix, SIC=True, pChosenRoot=None):
 
     # In decoder, will not change root
     cs_decoded_tx_message = -1 * np.ones((K, L*J))
@@ -181,9 +181,12 @@ def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, 
                 if SIC:
                     if pathToCancel[l] != -1:
                         cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
-                else: 
-                    if l == np.argmin(num_erase):
-                        cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+                else:
+                    if pChosenRoot == None: 
+                        if l == np.argmin(num_erase):
+                            cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+                    else: 
+                        cs_decoded_tx_message[ pathToCancel[pChosenRoot], pChosenRoot*J:(pChosenRoot+1)*J] = -1*np.ones((J),dtype=int)
     
     tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)        
     return tree_decoded_tx_message, cs_decoded_tx_message, num_erase

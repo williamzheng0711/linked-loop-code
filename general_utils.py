@@ -49,7 +49,7 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
     
     for k in range(K):
         if cs_decoded_tx_message[k,section2Check*J] != -1:
-            if section2Check < windowSize:
+            if section2Check < windowSize: # the sub-path on hand is too short, hence is impossible to be inconsistent
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([k]) , messageLens, oldLostPart) )
             else : 
                 toKeep, lostPart = GLLC_grow_a_consistent_path(Parity_computed=Parity_computed, toCheck=section2Check, Path=Path, k=k, 
@@ -121,7 +121,7 @@ def GLLC_compute_parity(L, Path,cs_decoded_tx_message, J, toCheck, whichGMatrix,
                 return -1 * np.ones((1,parityLens[toCheck]),dtype=int) # We can do nothing here.
             else:
                 useLost = True
-        # 能走到這裡的已經是 lostPart不為空的了
+        # 能走到這裡的已經是: lostPart不為空的才有可能
         assert whichGMatrix[decider][toCheck] != -1
         gen_mat = Gijs[ whichGMatrix[decider, toCheck] ]
         infoInvolved = cs_decoded_tx_message[focusPath[decider], decider*J : decider*J+messageLens[decider]] if useLost==False else Path.get_lostPart()
@@ -148,8 +148,9 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
     oldLostPart = Path.get_lostPart()
     losts = np.where( np.array(focusPath) < 0 )[0]
 
-    # 下列情況不需要檢查：
-    # 1. 沒有NA在path中，一切正常。  2. lost 的部分已經被recover出來
+    # Under the following circumstances, we don't need to consider about RECOVERING something lost
+    # 1. There is nothing lost in the sub-path at all. Aka, no "na". and 
+    # 2. The lost part has already been recovered long time ago. (> windowSize)
     if Path.whether_contains_na()==False or np.array_equal(oldLostPart, np.empty((0),dtype=int))==False:
         Parity = cs_decoded_tx_message[k, toCheck*J+messageLens[toCheck] :(toCheck+1)*J ]    # 第k行的第 toCheck section的parity
         if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
@@ -167,8 +168,6 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
         availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=toCheck for x in range(windowSize+1)]).all() == True]
 
         assert len(availSavers) > 0
-        # if len(availSavers) < 2:  # Because we need at least TWO results to compare.
-        #     return True, oldLostPart
         if sum(parityLens[availSavers]) < messageLens[lostSection]:
             return True, oldLostPart
 
@@ -180,19 +179,14 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
         longMinued = np.empty((0),dtype=int)
         longSubtrahend = np.empty((0),dtype=int)
         for availSaver in availSavers: # saver != lostSection            
-            # If saver=3, windowSize=2. saverDeciders = [1,2]
             saverDeciders = [ np.mod(availSaver-ll, L) for ll in range(windowSize,0,-1) ] # 被減數 Aka p(saver)
             minuend = cs_decoded_tx_message[focusPath[availSaver], availSaver*J+messageLens[availSaver]: (availSaver+1)*J ] if Path.known_in_path(availSaver) else cs_decoded_tx_message[k, availSaver*J+messageLens[availSaver]: (availSaver+1)*J] 
             longMinued = np.hstack( (longMinued, np.mod(minuend,2)))
-            # print("Minued " + str(known_vec1_comp1) +" "+ str(known_vec2_comp1) +" ||||| "+ str(minuend))
-            subtrahend = np.zeros((parityLens[availSaver]),dtype=int) # 減數    被減數和減數 的size當然是一樣的
-            # subtrahend 永遠都是 info * G 這樣的格式
-            # print(known_vec1_comp2, known_vec2_comp2)
+            subtrahend = np.zeros((parityLens[availSaver]),dtype=int)
     
             for saverDecider in saverDeciders:     
                 if (saverDecider != lostSection):
                     gen_mat = Gijs[ whichGMatrix[saverDecider, availSaver] ]
-                    # gen_mat = Gijs[2**saverDecider*3**avialSaver]
                     toAdd = np.matmul(cs_decoded_tx_message[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat) if saverDecider != toCheck else np.matmul(cs_decoded_tx_message[k,saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat)
                     toAdd = np.mod(toAdd, 2)
                     subtrahend = subtrahend + toAdd
@@ -200,25 +194,13 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
             subtrahend = np.mod(subtrahend, 2)
             longSubtrahend = np.hstack((longSubtrahend, np.mod(subtrahend,2)) )
             known_vectors.append(np.mod(minuend - subtrahend,2))
-
-        # print("被減數 " + str(longMinued), known_vec1_comp1, known_vec2_comp1)
-        # print("減數 " + str(longSubtrahend), known_vec1_comp2, known_vec2_comp2)
-        # print("infoG: " +str(known_vec1_comp2) + " " + str(known_vec2_comp2) +" *** "+ str(box))
-        # print("difference? " + str(known_vec) +"  " + str(known_vectors))
         
         concatenated_known_vctr = np.empty((0),dtype=int)
         for known_vector in known_vectors:
             concatenated_known_vctr = np.hstack((concatenated_known_vctr, known_vector))
 
-        # print(known_vec1,known_vectors[0], known_vec2, known_vectors[1])
-        # print("***" + str(known_vec) +"  "  +str(concatenated_known_vctr))
-
         sufficent_columns = np.array(columns_index[lostSection],dtype=int)
         gen_binmat_inv = sub_G_inversions[lostSection]
-
-        # print(concatenated_known_vctr)
-        # print(sufficent_columns)
-        # print(concatenated_known_vctr[sufficent_columns])
         theLostPart = np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2)
         assert theLostPart.shape[0] == messageLens[lostSection]
 
