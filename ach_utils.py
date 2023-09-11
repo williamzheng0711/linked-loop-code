@@ -65,6 +65,7 @@ def APlus_ch_with_erasure(tx_symbols, L, K, J, p_e, seed=0):
     tx_temp = np.zeros((K,L*J),dtype=int)
     for l in range(L):
         applyErrs = np.where(bernoulli.rvs(p_e, size=K))[0]
+        # print(applyErrs)
         tx_symbols[applyErrs,l] = -1
         tx_temp[:,l] = tx_symbols[:,l]
         tx_symbols_l = tx_symbols[:,l]

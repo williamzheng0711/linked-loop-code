@@ -56,7 +56,7 @@ assert w + Pa == L*J
 Gs, columns_index, sub_G_inversions = get_G_info(L=L, windowSize=windowSize, J=J)                                                    
 Gijs, whichGMatrix = partitioning_Gs(L, Gs, parityLens, windowSize)
 
-print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e) + " and L= " + str(L))          # Simulation starts!!!!!
+print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e) + " and L= " + str(L) +" and windowSize= " + str(windowSize))          # Simulation starts!!!!!
 # Outer-code encoding. No need to change.
 txBits = np.random.randint(low=2, size=(K, w))                              
 
@@ -74,7 +74,7 @@ if channel_type == "A":
 
 # print(" Genie: How many no-outage ? " + str(num_no_outage))
 # print(" Genie: How many one-outage? " + str(num_one_outage))
-print(" Genie: One-outage where: " + str(one_outage_where))
+# print(" Genie: One-outage where: " + str(one_outage_where))
 
 
 print(" -Phase 1 (decoding) now starts.")
@@ -122,11 +122,81 @@ print(" -Phase 2 is done, this simulation terminates.")
 
 
 
-print(" -!!! Old version of phase 1 (decoding) now starts.")
+# print(" -!!! Old version of phase 1 (decoding) now starts.")
+# tic = time.time()
+# rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols, L=L, J=J, 
+#                                                                  Gijs=Gijs, messageLens=messageLens, parityLens=parityLens, 
+#                                                                  K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, SIC=SIC, pChosenRoot=0)
+# toc = time.time()
+# print(" | Time of GLLC decode " + str(toc-tic))
+# if rxBits_llc.shape[0] > K: 
+#     rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
+
+# # Check how many are correct amongst the recover (recover means first phase). No need to change.
+# txBits_remained_llc = check_phase_1(txBits, rxBits_llc, "Linked-loop Code")
+# print(" -Phase 1 Done.")
+
+
+# # *Corrector. PAINPOINT
+# print(" -Phase 2 (correction) now starts.")
+# tic = time.time()
+# rxBits_corrected_llc= GLLC_UACE_corrector(cs_decoded_tx_message=cs_decoded_tx_message, L=L, J=J, Gs=Gs, Gijs=Gijs, columns_index=columns_index, 
+#                                         sub_G_inversions=sub_G_inversions, messageLens=messageLens, parityLens=parityLens, K=K,
+#                                         windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, SIC=SIC, pChosenRoot=0)
+# toc = time.time()
+# print(" | Time of correct " + str(toc-tic))
+# if txBits_remained_llc.shape[0] == w:
+#     txBits_remained_llc = txBits_remained_llc.reshape(1,-1)
+
+# # Check how many are true amongst those "corrected". No need to change.
+# corrected = 0
+# if rxBits_corrected_llc.size:
+#     for i in range(txBits_remained_llc.shape[0]):
+#         incre = 0
+#         incre = np.equal(txBits_remained_llc[i,:],rxBits_corrected_llc).all(axis=1).any()
+#         corrected += int(incre)
+#     print(" | In phase 2, Linked-loop code corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected_llc.shape[0]) )
+# else: 
+#     print(" | Nothing was corrected")
+
+# print(" -Phase 2 is done, this simulation terminates.")
+# print("   ")
+# print("   ")
+
+
+windowSize = 2
+print("WindowSize = 2 starts")
+messageLens, parityLens = get_allocation(L=L, J=J)
+assert sum(messageLens) == w
+M = 2**J                                            # Each coded sub-block is J-length binary, 
+                                                        # to represent it in decimal, 
+                                                        # it ranges in [0, M] = [0, 2**J].
+assert windowSize > 0
+Pa = sum(parityLens)                                # Total number of parity check bits, in this case Pa=w=128
+assert w + Pa == L*J
+
+Gs, columns_index, sub_G_inversions = get_G_info(L=L, windowSize=windowSize, J=J)                                                    
+Gijs, whichGMatrix = partitioning_Gs(L, Gs, parityLens, windowSize)
+
+
+print("## K=" + str(K) +" and p_e= " + str(p_e) + " and L= " + str(L) +" and windowSize= " + str(windowSize))          # Simulation starts!!!!!
+# Outer-code encoding. No need to change.
+
+# LLC: Generate random binary messages for K active users. Hence txBits.shape is [K,w]
+txBitsParitized_llc = GLLC_encode(txBits,K,L,J,Pa,w,messageLens,parityLens, Gs, windowSize, Gijs)
+tx_symbols_llc = GAch_binary_to_symbol(txBitsParitized_llc, L, K, J)
+
+rx_coded_symbols, num_one_outage, one_outage_where, num_no_outage = APlus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+if channel_type == "A":
+    rx_coded_symbols = remove_multiplicity(rx_coded_symbols)
+# print(" Genie: One-outage where: " + str(one_outage_where))
+
+
+print(" -Phase 1 (decoding) now starts.")
 tic = time.time()
 rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols, L=L, J=J, 
                                                                  Gijs=Gijs, messageLens=messageLens, parityLens=parityLens, 
-                                                                 K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, SIC=SIC, pChosenRoot=0)
+                                                                 K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, SIC=SIC)
 toc = time.time()
 print(" | Time of GLLC decode " + str(toc-tic))
 if rxBits_llc.shape[0] > K: 
@@ -142,7 +212,7 @@ print(" -Phase 2 (correction) now starts.")
 tic = time.time()
 rxBits_corrected_llc= GLLC_UACE_corrector(cs_decoded_tx_message=cs_decoded_tx_message, L=L, J=J, Gs=Gs, Gijs=Gijs, columns_index=columns_index, 
                                         sub_G_inversions=sub_G_inversions, messageLens=messageLens, parityLens=parityLens, K=K,
-                                        windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, SIC=SIC, pChosenRoot=0)
+                                        windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, SIC=SIC)
 toc = time.time()
 print(" | Time of correct " + str(toc-tic))
 if txBits_remained_llc.shape[0] == w:
@@ -160,5 +230,5 @@ else:
     print(" | Nothing was corrected")
 
 print(" -Phase 2 is done, this simulation terminates.")
-print("   ")
-print("   ")
+print(" ")
+print(" ")
