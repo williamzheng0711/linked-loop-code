@@ -72,9 +72,9 @@ rx_coded_symbols, num_one_outage, one_outage_where, num_no_outage = APlus_ch_wit
 if channel_type == "A":
     rx_coded_symbols = remove_multiplicity(rx_coded_symbols)
 
-# print(" Genie: How many no-outage ? " + str(num_no_outage))
-# print(" Genie: How many one-outage? " + str(num_one_outage))
-# print(" Genie: One-outage where: " + str(one_outage_where))
+print(" Genie: How many no-outage ? " + str(num_no_outage))
+print(" Genie: How many one-outage? " + str(num_one_outage))
+print(" Genie: One-outage where: " + str(one_outage_where))
 
 
 print(" -Phase 1 (decoding) now starts.")

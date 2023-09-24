@@ -1,5 +1,7 @@
 import numpy as np
 import linkedloop as LLC
+import binmatrix as BM
+
 
 
 def GLLC_encode(tx_message, K, L, J, Pa, w, messageLens, parityLens, Gs, windowSize, Gijs):
@@ -39,7 +41,7 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
     assert isinstance(Path, LLC.GLinkedLoop)
     oldPath = Path.get_path()
     oldLostPart = Path.get_lostPart()
-    # print(Path.get_path(), oldLostPart)
+    oldLostSection = Path.get_lostSection()
     Parity_computed = np.empty((0),dtype=int)
 
     if section2Check >= windowSize: 
@@ -50,7 +52,7 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
     for k in range(K):
         if cs_decoded_tx_message[k,section2Check*J] != -1:
             if section2Check < windowSize: # the sub-path on hand is too short, hence is impossible to be inconsistent
-                new.append( LLC.GLinkedLoop( list(oldPath) + list([k]) , messageLens, oldLostPart) )
+                new.append( LLC.GLinkedLoop( list(oldPath) + list([k]) , messageLens, oldLostPart, oldLostSection) )
             else : 
                 toKeep, lostPart = GLLC_grow_a_consistent_path(Parity_computed=Parity_computed, toCheck=section2Check, Path=Path, k=k, 
                                                                          cs_decoded_tx_message=cs_decoded_tx_message, J=J, messageLens=messageLens,
@@ -59,11 +61,11 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
                                                                          columns_index= columns_index, sub_G_inversions=sub_G_inversions)
                 if toKeep:
                     # print(lostPart)
-                    new.append( LLC.GLinkedLoop( list(oldPath) + list([k]) , messageLens, lostPart) )
+                    new.append( LLC.GLinkedLoop( list(oldPath) + list([k]) , messageLens, lostPart, oldLostSection) )
     
     if Path.whether_contains_na() == False and num_erase[section2Check]!=0:
         if section2Check != L-1:
-            new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldLostPart) )
+            new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldLostPart, section2Check) )
         else:
             temp_path = LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldLostPart)
             toKeep, lostPart = GLLC_grow_a_consistent_path(Parity_computed = None, toCheck=L-1, Path=temp_path, k= None, 
@@ -71,7 +73,7 @@ def GLLC_correct_each_section_and_path(section2Check, Path, cs_decoded_tx_messag
                                                                     whichGMatrix=whichGMatrix, L=L, windowSize=windowSize, Gs=Gs, Gijs=Gijs,
                                                                     columns_index=columns_index, sub_G_inversions=sub_G_inversions)
             if toKeep:
-                new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]) , messageLens, lostPart) ) 
+                new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]) , messageLens, lostPart, section2Check) ) 
     
     return new
 
@@ -81,6 +83,13 @@ def GLLC_final_parity_check(Path, cs_decoded_tx_message,J,messageLens, parityLen
     focusPath = Path.get_path()
     assert len(focusPath) == L
     isOkay = True
+    markdown = False
+    # print(Path.get_lostSection())
+    if Path.get_lostSection() == 1:
+        markdown = True
+        print("Focus !!!")
+        print( np.array(Path.get_lostPart(), dtype=int) )
+
     for toCheck in range(L):
         if focusPath[toCheck] != -1:
             parityComputed = GLLC_compute_parity(L=L, Path=Path,cs_decoded_tx_message=cs_decoded_tx_message, 
@@ -90,6 +99,10 @@ def GLLC_final_parity_check(Path, cs_decoded_tx_message,J,messageLens, parityLen
             if flag_ll.any() != 0: 
                 isOkay = False
                 break
+    
+    if markdown: 
+        print(isOkay)
+
     return isOkay
 
 
@@ -148,6 +161,7 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
     oldLostPart = Path.get_lostPart()
     losts = np.where( np.array(focusPath) < 0 )[0]
 
+
     # Under the following circumstances, we don't need to consider about RECOVERING something lost
     # 1. There is nothing lost in the sub-path at all. Aka, no "na". and 
     # 2. The lost part has already been recovered long time ago. (> windowSize)
@@ -161,6 +175,7 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
     # 有lost
     else:   
         lostSection = losts[0]
+
         # (w1, w2, w3, w4) => p5    # (w2, w3, w4, w5) => p6    
         # (w3, w4, w5, w6) => p7    # (w4, w5, w6, w7) => p8    
         # # w5, w6, w7 and w8 are "saverSections" of lostSections. w(4) is what we lost.
@@ -199,11 +214,20 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, cs_decoded_tx
         for known_vector in known_vectors:
             concatenated_known_vctr = np.hstack((concatenated_known_vctr, known_vector))
 
-        sufficent_columns = np.array(columns_index[lostSection],dtype=int)
-        gen_binmat_inv = sub_G_inversions[lostSection]
-        theLostPart = np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2)
-        assert theLostPart.shape[0] == messageLens[lostSection]
+        # !!!! This is a temporary patch, should be dealt later when considering more general codes
+        if lostSection >= windowSize - 1:
+            sufficent_columns = np.array(columns_index[lostSection],dtype=int)
+            gen_binmat_inv = sub_G_inversions[lostSection]
+            theLostPart = np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2)
+            assert theLostPart.shape[0] == messageLens[lostSection]
+        else: 
+            sufficent_columns = range(8, 16)
+            BinMat = BM.BinMatrix(m= Gs[lostSection][:,sufficent_columns])
+            gen_binmat_inv = np.array(BinMat.inv(), dtype=int )
+            theLostPart = np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2)
+            assert theLostPart.shape[0] == messageLens[lostSection]
 
+        
         if np.array_equal(np.mod( np.matmul(theLostPart, Gs[lostSection]), 2), concatenated_known_vctr) == False and len(availSavers)==windowSize:
             return False , oldLostPart
 
