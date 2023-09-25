@@ -5,7 +5,8 @@ from general_utils import *
 from tqdm import tqdm
 from joblib import Parallel, delayed
 
-def check_phase_1(txBits, rxBits, name):
+
+def check_phase(txBits, rxBits, name, phase):
     # Check how many are correct amongst the recover (recover means first phase). No need to change.
     if len(rxBits) == 0:
         return txBits
@@ -18,7 +19,7 @@ def check_phase_1(txBits, rxBits, name):
         thisIter += int(incre)
         if (incre == False):
             txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
-    print(" | In phase 1, " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
+    print(" | In phase " + phase + " " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
     # print(" - " + str(name) + " Phase 1 is done.")
     return txBits_remained
 
