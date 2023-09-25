@@ -85,10 +85,10 @@ def GLLC_final_parity_check(Path, cs_decoded_tx_message,J,messageLens, parityLen
     isOkay = True
     markdown = False
     # print(Path.get_lostSection())
-    if Path.get_lostSection() == 1:
-        markdown = True
-        print("Focus !!!")
-        print( np.array(Path.get_lostPart(), dtype=int) )
+    # if Path.get_lostSection() == 1:
+    #     markdown = True
+    #     print("Focus !!!")
+    #     print( np.array(Path.get_lostPart(), dtype=int) )
 
     for toCheck in range(L):
         if focusPath[toCheck] != -1:

@@ -151,9 +151,9 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
             Paths = newAll 
 
         # print("A root, before final checkng surviving paths=" + str(len(Paths)))
-        for path in Paths:
-            if path.get_lostSection() == 1:
-                print("***", path.get_path())
+        # for path in Paths:
+        #     if path.get_lostSection() == 1:
+        #         print("***", path.get_path())
 
 
         PathsUpdated = []
