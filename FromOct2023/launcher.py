@@ -34,7 +34,7 @@ messageLens, parityLens = get_allocation(L=L);  N = 2**J # N denotes the length 
 ### Retrieve parity-generating matrices from matrix repository
 Gis, columns_index, sub_G_invs = get_G_info(L, M, messageLens, parityLens)
 ### Do partition on Gl's, making them into G_{l,l+1}, G_{l,l+2}, ... , G_{l,l+M}, these matrices with double subscripts are called Gijs
-Gijs, Gijs_cipher = partition_Gs(L, M, parityLens, Gis) 
+Gijs = partition_Gs(L, M, parityLens, Gis) 
 
 
 
@@ -73,7 +73,7 @@ grand_list = symbol_to_binary(K, L, rx_symbols)
 ### Decoding phase 1 (simply finding & stitching 0-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 1 now starts.")
 tic = time.time()
-rxBits_p1, grand_list = phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, Gijs_cipher, SIC=SIC)
+rxBits_p1, grand_list = phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=SIC)
 toc = time.time()
 print(" | Time of phase 1 (LLC): " + str(toc-tic))
 

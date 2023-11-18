@@ -36,7 +36,7 @@ def encode(tx_message,K,L,N,M,messageLens,parityLens, Gijs):
     return encoded_tx_message
 
 
-def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, Gijs_cipher, SIC=True, pChosenRoot=None):
+def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True, pChosenRoot=None):
     """
     Parameters
     ----------
@@ -61,7 +61,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, Gijs_ciph
             new= np.empty(shape= (0, 0))
             for Path in Paths:
                 if l >= M: 
-                    pl_computed = compute_parity(L, Path, grand_list, l, Gijs_cipher, messageLens, parityLens, Gijs, M)
+                    pl_computed = compute_parity(L, Path, grand_list, l, messageLens, parityLens, Gijs, M)
                 for k in range(K):
                     index= (l< M) or np.array_equal(grand_list[k, l*J + messageLens[l]: (l+1)*J], pl_computed)
                     if index:
@@ -72,7 +72,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, Gijs_ciph
         Paths2Return = []
         for j in range(len(Paths)):
             Path = Paths[j]
-            pathOk = final_parity_check(Path, grand_list, messageLens, parityLens, Gijs_cipher, L, Gijs, M)
+            pathOk = final_parity_check(Path, grand_list, messageLens, parityLens, L, Gijs, M)
             if pathOk:
                 Paths2Return.append( Path )
         Paths = Paths2Return # Elements of Paths should be all of 0-outage. May contain false positives.
@@ -107,7 +107,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, Gijs_ciph
 
 
 
-def phase2_decoder(grand_list, L, Gis, Gijs, Gijs_cipher, columns_index, sub_G_inversions, messageLens, parityLens, K, M, SIC=True, pChosenRoot=None):
+def phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_inversions, messageLens, parityLens, K, M, SIC=True, pChosenRoot=None):
 
     # chosenRoot = np.argmin(num_erase) if pChosenRoot == None else pChosenRoot
     # print(" | ChosenRoot: " + str(chosenRoot))

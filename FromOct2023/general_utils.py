@@ -7,24 +7,23 @@ from static_repo import *
 def who_decides_p_sec(L, l, M):
     return [(l-j) % L for j in range(M,0,-1)]
 
-
 # For phase 1
-def compute_parity(L, Path, rx_cdwds, toCheck, Gijs_cipher, messageLens, parityLens, Gijs, M):
+def compute_parity(L, Path, rx_cdwds, toCheck, messageLens, parityLens, Gijs, M):
     deciders = who_decides_p_sec(L,toCheck,M)
     Parity_computed = np.zeros(parityLens[toCheck], dtype=int)
     for decider in deciders:      # l labels the sections we gonna check to fix toCheck's parities
-        gen_mat = Gijs[ Gijs_cipher[decider, toCheck] ]
+        gen_mat = Gijs[ CantorPairing(decider, toCheck) ]
         infoInvolved = rx_cdwds[Path[decider], decider*J : decider*J+messageLens[decider]]
         Parity_computed = Parity_computed + np.matmul( infoInvolved, gen_mat)
     Parity_computed = np.mod(Parity_computed, 2)
     return Parity_computed
 
 # For phase 1
-def final_parity_check(Path, rx_cdwds, messageLens, parityLens, Gijs_cipher, L, Gijs, M):
+def final_parity_check(Path, rx_cdwds, messageLens, parityLens, L, Gijs, M):
     assert len(Path)== L
     decision= True
     for m in range(M):
-        parityComputed = compute_parity(L, Path, rx_cdwds, m, Gijs_cipher, messageLens, parityLens, Gijs, M)
+        parityComputed = compute_parity(L, Path, rx_cdwds, m, messageLens, parityLens, Gijs, M)
         should_be_0 = np.abs(parityComputed - rx_cdwds[Path[m], m*J+messageLens[m]: (m+1)*J])
         if should_be_0.any() != 0: 
             decision = False
@@ -154,7 +153,7 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, grand_list, m
 
 
 # For phase 2
-def GLLC_correct_each_section_and_path(sec2chk, Path, grand_list, Gijs_cipher, K, messageLens, 
+def GLLC_correct_each_section_and_path(sec2chk, Path, grand_list, K, messageLens, 
                                        parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs, num_erase):
     new = []  
     assert isinstance(Path, LLC.GLinkedLoop)
@@ -164,7 +163,7 @@ def GLLC_correct_each_section_and_path(sec2chk, Path, grand_list, Gijs_cipher, K
     Parity_computed = np.empty((0),dtype=int)
 
     if sec2chk >= M: 
-        Parity_computed = compute_parity_oop(L, Path, grand_list, sec2chk, Gijs_cipher, messageLens, parityLens, Gijs, M)
+        Parity_computed = compute_parity_oop(L, Path, grand_list, sec2chk, messageLens, parityLens, Gijs, M)
     
     for k in range(K):
         if grand_list[k,sec2chk*J] != -1:

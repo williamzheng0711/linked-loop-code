@@ -2227,7 +2227,7 @@ def partition_Gs(L, M, parityLens, Gis):
             # Each Gij is a submatrix of Gi, by selecting all rows and some consecutive columns
             Gijs[cipher] = np.array(Gis[i])[:, chooseFrom: chooseFrom + parityLens[j]]  
             Gij_cipher[i,j] = cipher
-    return Gijs, Gij_cipher
+    return Gijs
 
 
 # A function to debug -- checking if is identity
