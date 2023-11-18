@@ -2182,14 +2182,14 @@ def get_G_info(L, M, messageLens, parityLens):
 
     G_dict = {}
     columns_index_dict = {}     # telling us which columns are needed to do a inversion
-    sub_G_inversions_dict = {}  # inversion of the square submatrices
+    sub_G_invs_dict = {}        # inversion of the square submatrices
 
     element_counts = Counter(Gl_shape)
 
     for element in list(element_counts.keys()):
         count = element_counts[element]
         nr, nc = element 
-        G_pool, columns_index_pool, sub_G_inversions_pool = G_matrix_profile(nr, nc)
+        G_pool, columns_index_pool, sub_G_invs_pool = G_matrix_profile(nr, nc)
         chosen = random.sample(range(len(G_pool)), count)
 
         for l in range(L):
@@ -2197,19 +2197,34 @@ def get_G_info(L, M, messageLens, parityLens):
             if Gl_shape[l] == (nr, nc):
                 G_dict[l] = G_pool[chosen[j]]
                 columns_index_dict[l] = columns_index_pool[chosen[j]]
-                sub_G_inversions_dict[l] = sub_G_inversions_pool[chosen[j]]
+                sub_G_invs_dict[l] = sub_G_invs_pool[chosen[j]]
                 j = j + 1
 
     G_output = []               
     columns_index = []
-    sub_G_inversions = []
+    sub_G_invs = []
 
     for l in range(L):
         G_output.append( G_dict[l] )
         columns_index.append( columns_index_dict[l] )
-        sub_G_inversions.append( sub_G_inversions_dict[l] )
+        sub_G_invs.append( sub_G_invs_dict[l] )
 
-    return np.array(G_output, dtype=object), np.array(columns_index, dtype=object), np.array(sub_G_inversions, dtype=object)
+    return np.array(G_output, dtype=object), np.array(columns_index, dtype=object), np.array(sub_G_invs, dtype=object)
+
+
+def partition_Gs(L, M, parityLens, Gis):
+    Gij_cipher = -1*np.ones((L,L), dtype=int)
+    Gijs = {}
+    for i in range(L):
+        i_decides_who = np.mod( range(i+1, i+1+M, 1), L)
+        for j, idx in zip(i_decides_who, range(M)):
+            # cipher = 2**i*3**j                # This function goes expansive when (i,j) is large
+            cipher =  1/2*(i+j)*(i+j+1)+i       # We use Cantor pairing function, see here: https://www.math.drexel.edu/~tolya/cantorpairing.pdf 
+            chooseFrom = sum(parityLens[i_decides_who[0:idx]])
+            # Each Gij is a submatrix of Gi, by selecting all rows and some consecutive columns
+            Gijs[cipher] = np.array(Gis[i])[:, chooseFrom: chooseFrom + parityLens[j]]  
+            Gij_cipher[i,j] = cipher
+    return Gijs, Gij_cipher
 
 
 # A function to debug -- checking if is identity

@@ -2,7 +2,10 @@ import numpy as np
 import linkedloop as LLC
 
 from general_utils import *
+from static_repo import *
 from tqdm import tqdm
+from joblib import Parallel, delayed
+
 
 def check_phase(txBits, rxBits, name, phase):
     # Check how many are correct amongst the recover (recover means first phase). No need to change.
@@ -20,22 +23,6 @@ def check_phase(txBits, rxBits, name, phase):
     print(" | In phase " + phase + " " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
     # print(" - " + str(name) + " Phase 1 is done.")
     return txBits_remained
-
-
-def partitioning_Gs(L, Gs, parityLens, windowSize):
-    whichGMatrix = -1*np.ones((L,L), dtype=int)
-    Gijs = {}
-    for i in range(L):
-        i_decides_who = np.mod( range(i+1, i+1+windowSize, 1), L)
-        for j, idx in zip(i_decides_who, range(windowSize)):
-            cipher = 2**i*3**j
-            premable = sum(parityLens[i_decides_who[0:idx]])
-            Gijs[cipher] = np.array(Gs[i])[:, premable:premable + parityLens[j]]
-            whichGMatrix[i,j] = cipher
-    return Gijs, whichGMatrix
-
-
-
 
 
 def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, windowSize, whichGMatrix, SIC=True, pChosenRoot=None):

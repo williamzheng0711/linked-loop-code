@@ -33,8 +33,9 @@ channel_type = options.ctype;                   assert channel_type == "A" or ch
 ### Extract pre-determined info-parity pattern
 messageLens, parityLens = get_allocation(L=L);  N = 2**J # N denotes the length of a codeword, that is rate R = B / N
 ### Retrieve parity-generating matrices from matrix repository
-Gs, columns_index, sub_G_inversions = get_G_info(L, M, messageLens, parityLens)
-Gijs, whichGMatrix = partitioning_Gs(L, Gs, parityLens, M) 
+Gis, columns_index, sub_G_inversions = get_G_info(L, M, messageLens, parityLens)
+### Do partition on Gl's, making them into G_{l,l+1}, G_{l,l+2}, ... , G_{l,l+M}, these matrices with double subscripts are called Gijs
+Gijs, Gij_cipher = partition_Gs(L, M, parityLens, Gis) 
 
 print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e) + " and L= " + str(L) +" and windowSize= " + str(windowSize))          # Simulation starts!!!!!
 # Outer-code encoding. No need to change.
