@@ -7,7 +7,7 @@ from general_utils import *
 from static_repo import *   # Contains all the static / constant stuff
 from utils import *
 from slow_lib import *
-from ach_utils import *
+from abch_utils import *
 from tc_utils import *
 from ldpc_utils import *
 
@@ -37,28 +37,31 @@ Gis, columns_index, sub_G_inversions = get_G_info(L, M, messageLens, parityLens)
 ### Do partition on Gl's, making them into G_{l,l+1}, G_{l,l+2}, ... , G_{l,l+M}, these matrices with double subscripts are called Gijs
 Gijs, Gij_cipher = partition_Gs(L, M, parityLens, Gis) 
 
-print("####### Start Rocking ######## K=" + str(K) +" and p_e= " + str(p_e) + " and L= " + str(L) +" and windowSize= " + str(windowSize))          # Simulation starts!!!!!
-# Outer-code encoding. No need to change.
-txBits = np.random.randint(low=2, size=(K, w))                              
+### Simulation starts.
+print("####### Start Rocking ######## K="+ str(K)+ " and p_e= "+ str(p_e)+ " and L= "+ str(L) +" and M= " + str(M))          
+### Generate the iid random B-bit messages for each of the K users. Hence txBits.shape is [K,B]
+txBits = np.random.randint(low=2, size=(K, B))                              
 
+### Encode all messages of K users. Hence tx_cdwds.shape is [K,N]
+tx_cdwds = GLLC_encode(txBits, K, L, N, M, messageLens, parityLens, Gijs)
+### Convert binary coded-sub blocks to symbols
+tx_symbols = binary_to_symbol(tx_cdwds, L, K)
 
-# LLC: Generate random binary messages for K active users. Hence txBits.shape is [K,w]
-txBitsParitized_llc = GLLC_encode(txBits,K,L,J,Pa,w,messageLens,parityLens, Gs, windowSize, Gijs)
-tx_symbols_llc = GAch_binary_to_symbol(txBitsParitized_llc, L, K, J)
-
-
-# * A-Channel with Erasure
-seed = np.random.randint(0,10000)
-rx_coded_symbols, num_one_outage, one_outage_where, num_no_outage = APlus_ch_with_erasure(tx_symbols_llc, L, K, J, p_e, seed=seed)
+### B-Channel with Erasure
+seed = np.random.randint(0,10000) # randomness for erasure pattern
+rx_symbols, one_outage_where, n0, n1, n2 = bch_with_erasure(tx_symbols, L, K, p_e, seed=seed)
 if channel_type == "A":
-    rx_coded_symbols = remove_multiplicity(rx_coded_symbols)
+    # A-channel is obtained by removing multiplicities from B-channel
+    # We call "rx_symbols" or its equivalence as "the grand list"
+    rx_symbols = remove_multiplicity(rx_symbols)
 
-print(" Genie: How many no-outage ? " + str(num_no_outage))
-print(" Genie: How many one-outage? " + str(num_one_outage))
-print(" Genie: One-outage where: " + str(one_outage_where))
+### Generate genie reports
+print(" Genie: How many 0-outage ? " + str(n0))
+print(" Genie: How many 1-outage? " + str(n1))
+print(" Genie: 1-outage positions: " + str(one_outage_where))
 
-
-print(" -Phase 1 (decoding) now starts.")
+### Decoding phase 1 (simply finding & stitching 0-outage codewords in the channel output) now starts.
+print(" -- Decoding phase 1 now starts.")
 tic = time.time()
 rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols, L=L, J=J, 
                                                                  Gijs=Gijs, messageLens=messageLens, parityLens=parityLens, 

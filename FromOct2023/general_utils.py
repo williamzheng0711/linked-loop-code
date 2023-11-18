@@ -2,35 +2,33 @@ import numpy as np
 import linkedloop as LLC
 import binmatrix as BM
 
+from static_repo import *
 
 
-def GLLC_encode(tx_message, K, L, J, Pa, w, messageLens, parityLens, Gs, windowSize, Gijs):
+def GLLC_encode(tx_message,K,L,N,M,messageLens,parityLens, Gijs):
     """
     Parameters
     ----------
-    tx_message (ndarray): K x w matrix of K users' w-bit messages
+    tx_message (ndarray): K x B matrix of K users' B-bit messages
     K (int): number of active users
     L (int): number of sections in codeword
-    J (int): number of bits/section
+    N (int): number of bits in codeword
 
     Returns
     -------
-    encoded_tx_message : ndarray (K by (w+Pa) matrix, or 100 by 256 in usual case)
+    encoded_tx_message : ndarray (K by N matrix, or 100 by 256 in usual case)
     """
-    encoded_tx_message = np.zeros((K, w+Pa), dtype=int)
+    encoded_tx_message = np.zeros((K, N), dtype=int)
     for l in range(L):
-        encoded_tx_message[:,l*J:l*J+messageLens[l] ] = tx_message[: , sum(messageLens[0:l]) :sum(messageLens[0:l]) + messageLens[l]]
-        who_decides_pl = [(l-j) % L for j in range(windowSize,0,-1)]
+        encoded_tx_message[:,l*J:l*J+messageLens[l]] = tx_message[:, sum(messageLens[0:l]): sum(messageLens[0:l])+ messageLens[l]]
+        who_decides_pl = [(l-j) % L for j in range(M,0,-1)]
         parity_l = np.zeros((K, parityLens[l]), dtype=int)
         for decider in who_decides_pl: 
-            # print( Gijs[2**decider*3**l].shape, decider, l)
-            toAdd = (tx_message[:,sum(messageLens[0:decider]):sum(messageLens[0:decider])+ messageLens[decider]] @ Gijs[2**decider*3**l] )
-            parity_l = parity_l + toAdd
-        encoded_tx_message[: , l*J+messageLens[l]:(l+1)*J] = np.mod(parity_l, 2)
-
+            toAdd= (tx_message[:,sum(messageLens[0:decider]):sum(messageLens[0:decider])+ messageLens[decider]] @ Gijs[CantorPairing(decider,l)] )
+            parity_l= parity_l+ toAdd
+        encoded_tx_message[: ,l*J+messageLens[l]: (l+1)*J]= np.mod(parity_l, 2)
     # One can check what a outer-encoded message looks like in the csv file.
     # np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
-
     return encoded_tx_message
 
 

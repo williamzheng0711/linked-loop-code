@@ -9,6 +9,10 @@ J = 16                     # Length of each coded sub-block
 L_set = [15, 16]
 M_set = [2, 3]
 
+def CantorPairing(i,j):
+    assert i>=0 and j >=0
+    return 1/2*(i+j)*(i+j+1)+i
+
 def get_allocation(L):
     assert L in L_set
     messageLens = np.empty((0),dtype=int)
@@ -2211,7 +2215,6 @@ def get_G_info(L, M, messageLens, parityLens):
 
     return np.array(G_output, dtype=object), np.array(columns_index, dtype=object), np.array(sub_G_invs, dtype=object)
 
-
 def partition_Gs(L, M, parityLens, Gis):
     Gij_cipher = -1*np.ones((L,L), dtype=int)
     Gijs = {}
@@ -2219,7 +2222,7 @@ def partition_Gs(L, M, parityLens, Gis):
         i_decides_who = np.mod( range(i+1, i+1+M, 1), L)
         for j, idx in zip(i_decides_who, range(M)):
             # cipher = 2**i*3**j                # This function goes expansive when (i,j) is large
-            cipher =  1/2*(i+j)*(i+j+1)+i       # We use Cantor pairing function, see here: https://www.math.drexel.edu/~tolya/cantorpairing.pdf 
+            cipher = CantorPairing(i,j)         # We use Cantor pairing function, see here: https://www.math.drexel.edu/~tolya/cantorpairing.pdf 
             chooseFrom = sum(parityLens[i_decides_who[0:idx]])
             # Each Gij is a submatrix of Gi, by selecting all rows and some consecutive columns
             Gijs[cipher] = np.array(Gis[i])[:, chooseFrom: chooseFrom + parityLens[j]]  
