@@ -65,13 +65,12 @@ def compute_parity_oop(L, Path, grand_list, toCheck, messageLens, parityLens, Gi
 
 
 # For phase 2
-def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, grand_list, messageLens, parityLens,
+def Path_goes_entry_k(Parity_computed, toCheck, Path, k, grand_list, messageLens, parityLens,
                                 L, M, Gis, Gijs, columns_index, sub_G_invs):
     # Here, "Path" is a LinkedLoop
     focusPath = Path.get_path()
     oldLostPart = Path.get_lostPart()
     losts = np.where( np.array(focusPath) < 0 )[0]
-
 
     # Under the following circumstances, we don't need to consider about RECOVERING something lost
     # 1. There is nothing lost in the sub-path at all. Aka, no "na". and 
@@ -153,8 +152,8 @@ def GLLC_grow_a_consistent_path(Parity_computed, toCheck, Path, k, grand_list, m
 
 
 # For phase 2
-def GLLC_correct_each_section_and_path(sec2chk, Path, grand_list, K, messageLens, 
-                                       parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs, num_erase):
+def Path_goes_section_l(l, Path, grand_list, K, messageLens, 
+                                       parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot):
     new = []  
     assert isinstance(Path, LLC.GLinkedLoop)
     oldPath = Path.get_path()
@@ -162,69 +161,50 @@ def GLLC_correct_each_section_and_path(sec2chk, Path, grand_list, K, messageLens
     oldLostSection = Path.get_lostSection()
     Parity_computed = np.empty((0),dtype=int)
 
-    if sec2chk >= M: 
-        Parity_computed = compute_parity_oop(L, Path, grand_list, sec2chk, messageLens, parityLens, Gijs, M)
+    if l >= M: 
+        Parity_computed = compute_parity_oop(L, Path, grand_list, l, messageLens, parityLens, Gijs, M)
     
     for k in range(K):
-        if grand_list[k,sec2chk*J] != -1:
-            if sec2chk < M: # the sub-path on hand is too short, hence is impossible to be inconsistent
+        if grand_list[k,l*J] != -1:
+            if l < M: # the sub-path on hand is too short, hence is impossible to be inconsistent
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([k]) , messageLens, oldLostPart, oldLostSection) )
             else : 
-                toKeep, lostPart = GLLC_grow_a_consistent_path(Parity_computed=Parity_computed, toCheck=sec2chk, Path=Path, k=k, 
-                                                                         cs_decoded_tx_message=grand_list, J=J, messageLens=messageLens,
-                                                                         parityLens= parityLens, whichGMatrix=whichGMatrix, L=L,
-                                                                         windowSize=M, Gs=Gs, Gijs=Gijs,
-                                                                         columns_index= columns_index, sub_G_inversions=sub_G_inversions)
+                toKeep, lostPart = Path_goes_entry_k(Parity_computed, l, Path, k, grand_list, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs)
                 if toKeep:
                     # print(lostPart)
-                    new.append( LLC.GLinkedLoop( list(oldPath) + list([k]) , messageLens, lostPart, oldLostSection) )
+                    new.append(LLC.GLinkedLoop(list(oldPath)+ list([k]), messageLens, lostPart, oldLostSection))
     
-    if Path.whether_contains_na() == False and num_erase[sec2chk]!=0:
-        if sec2chk != L-1:
-            new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldLostPart, sec2chk) )
+    if Path.whether_contains_na()== False and (erasure_slot== l or erasure_slot== None):
+        if l != L-1:
+                new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldLostPart, l) ) 
         else:
             temp_path = LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldLostPart)
-            toKeep, lostPart = GLLC_grow_a_consistent_path(Parity_computed = None, toCheck=L-1, Path=temp_path, k= None, 
-                                                                    cs_decoded_tx_message=grand_list, J=J, messageLens=messageLens, parityLens=parityLens,
-                                                                    whichGMatrix=whichGMatrix, L=L, windowSize=windowSize, Gs=Gs, Gijs=Gijs,
-                                                                    columns_index=columns_index, sub_G_inversions=sub_G_inversions)
+            toKeep, lostPart = Path_goes_entry_k(None, L-1, temp_path, None, grand_list, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs)
             if toKeep:
-                new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]) , messageLens, lostPart, sec2chk) ) 
-    
+                new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]) , messageLens, lostPart, l) ) 
+                
     return new
 
 
 # Done
-def GLLC_final_parity_check(Path, cs_decoded_tx_message,J,messageLens, parityLens, whichGMatrix, L, Gijs, windowSize):
+def final_parity_check_oop(Path, grand_list, messageLens, parityLens, L, Gijs, M):
     focusPath = Path.get_path()
     assert len(focusPath) == L
     isOkay = True
-    markdown = False
-    # print(Path.get_lostSection())
-    # if Path.get_lostSection() == 1:
-    #     markdown = True
-    #     print("Focus !!!")
-    #     print( np.array(Path.get_lostPart(), dtype=int) )
 
     for toCheck in range(L):
         if focusPath[toCheck] != -1:
-            parityComputed = GLLC_compute_parity(L=L, Path=Path,cs_decoded_tx_message=cs_decoded_tx_message, 
-                                J=J, toCheck=toCheck, whichGMatrix=whichGMatrix, messageLens=messageLens, 
-                                parityLens=parityLens, Gijs=Gijs, windowSize=windowSize)
-            flag_ll = np.abs(parityComputed - cs_decoded_tx_message[focusPath[toCheck], toCheck*J+messageLens[toCheck]: (toCheck+1)*J])
+            parityComputed = compute_parity_oop(L, Path, grand_list, toCheck, messageLens, parityLens, Gijs, M)
+            flag_ll = np.abs(parityComputed - grand_list[focusPath[toCheck], toCheck*J+messageLens[toCheck]: (toCheck+1)*J])
             if flag_ll.any() != 0: 
                 isOkay = False
                 break
-    
-    if markdown: 
-        print(isOkay)
-
     return isOkay
 
     
 
 # Done
-def GLLC_output_message(cs_decoded_tx_message, linkedloops, L, J):
+def output_message_oop(grand_list, linkedloops, L, J):
     messageLens = linkedloops[0].get_messageLens()
     n = len(linkedloops)
     msg = np.empty( (n, sum(messageLens)), dtype=int)
@@ -233,7 +213,7 @@ def GLLC_output_message(cs_decoded_tx_message, linkedloops, L, J):
         path = linkedloop.get_path()
         for l in range(L):
             if path[l] != -1: 
-                msg[i, sum(messageLens[0:l]): sum(messageLens[0:l])+messageLens[l]] = cs_decoded_tx_message[path[l], l*J: l*J+messageLens[l]]
+                msg[i, sum(messageLens[0:l]): sum(messageLens[0:l])+messageLens[l]] = grand_list[path[l], l*J: l*J+messageLens[l]]
             else: 
                 msg[i, sum(messageLens[0:l]): sum(messageLens[0:l])+messageLens[l]] = linkedloop.get_lostPart()
     return msg

@@ -39,7 +39,6 @@ Gijs = partition_Gs(L, M, parityLens, Gis)
 
 
 
-
 ###################################################################################################
 ### Simulation starts.
 print("####### Start Rocking ######## K="+ str(K)+ " and p_e= "+ str(p_e)+ " and L= "+ str(L) +" and M= " + str(M))          
@@ -62,6 +61,7 @@ if channel_type == "A":
 ### Generate genie reports
 print(" Genie: How many 0-outage? " + str(n0))
 print(" Genie: How many 1-outage? " + str(n1))
+print(" Genie: How many 2-outage? " + str(n2))
 print(" Genie: 1-outage positions: " + str(one_outage_where))
 ### Convert back to binary representation. (This is what in reality RX can get)
 grand_list = symbol_to_binary(K, L, rx_symbols)
@@ -83,6 +83,8 @@ if rxBits_p1.shape[0] > K:
 
 ### Check how many are correct amongst the recover (recover means first phase). No need to change.
 txBits_rmd_afterp1 = check_phase(txBits, rxBits_p1, "linked loop Code", "1")
+if txBits_rmd_afterp1.shape[0] == B: # Only remains one message 
+    txBits_rmd_afterp1 = txBits_rmd_afterp1.reshape(1,-1)
 print(" -Phase 1 Done.\n")
 ###################################################################################################
 
@@ -93,32 +95,31 @@ print(" -Phase 1 Done.\n")
 ### Decoding phase 2 (finding/recovering 1-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 2 now starts.")
 tic = time.time()
-rxBits_corrected_llc= phase2_decoder(grand_list, L, Gs=Gis, Gijs=Gijs, columns_index=columns_index, 
-                                        sub_G_inversions=sub_G_inversions, messageLens=messageLens, parityLens=parityLens, K=K,
-                                        windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, SIC=SIC)
+rxBits_p21= phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, erasure_slot=None)
 toc = time.time()
-print(" | Time of correct " + str(toc-tic))
-if txBits_remained_llc.shape[0] == w:
-    txBits_remained_llc = txBits_remained_llc.reshape(1,-1)
+print(" | Time of phase 2.1 " + str(toc-tic))
+txBits_rmd_afterp21 = check_phase(txBits_rmd_afterp1, rxBits_p21, "Linked-loop Code", "2.1")
 
-# Check how many are true amongst those "corrected". No need to change.
-corrected = 0
-if rxBits_corrected_llc.size:
-    for i in range(txBits_remained_llc.shape[0]):
-        incre = 0
-        incre = np.equal(txBits_remained_llc[i,:],rxBits_corrected_llc).all(axis=1).any()
-        corrected += int(incre)
-    print(" | In phase 2, Linked-loop code corrected " + str(corrected) + " true (one-outage) message out of " +str(rxBits_corrected_llc.shape[0]) )
-else: 
-    print(" | Nothing was corrected")
+tic = time.time()
+rxBits_p22= phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoot=7, erasure_slot=0)
+toc = time.time()
+print(" | Time of phase 2.2 " + str(toc-tic))
+txBits_rmd_afterp22 = check_phase(txBits_rmd_afterp21, rxBits_p22, "Linked-loop Code", "2.2")
+print("\n")
 
-
-all_decoded_txBits = np.vstack( ( rxBits_llc,rxBits_corrected_llc   ) )
+all_decoded_txBits = np.vstack((rxBits_p1, rxBits_p21, rxBits_p22))
 all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
-_ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "all")
+_ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 2")
 
 print(" -Phase 2 is done, this simulation terminates.")
-############################
+#################################################################################################
 
 
-## Phase 2+ :(
+
+
+
+###################################################################################################
+### Decoding phase 2plus (finding/recovering 2-outage codewords in the channel output) now starts.
+print(" -- Decoding phase 2+ now starts.")
+
+
