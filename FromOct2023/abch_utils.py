@@ -7,9 +7,18 @@ def binary_to_symbol(tx_cdwds, L, K):
     tx_symbols = np.zeros((K,L), dtype=int)
     for l in range(L):
         tx_symbols[:,l] = tx_cdwds[:,l*J:(l+1)*J] @ 2**np.arange(J)[::-1].reshape(-1)
-    # print(f'info_symbols.shape: {tx_symbols.shape}')
-    # print(tx_symbols[0:5, :])
     return tx_symbols
+
+def symbol_to_binary(K, L, rx_symbols):
+    grand_list = -1 * np.ones((K, L*J))
+    for id_row in range(K):
+        for id_col in range(L):
+            if rx_symbols[id_row, id_col] != -1:
+                a = np.binary_repr(rx_symbols[id_row, id_col], width=J)     
+                b = np.array([int(n) for n in a] ).reshape(1,-1)        
+                grand_list[id_row, id_col*J:(id_col+1)*J] = b[0,:]
+    return grand_list
+
 
 def bch_with_erasure(tx_symbols, L, K, p_e, seed=0):
     np.random.seed(seed=seed)

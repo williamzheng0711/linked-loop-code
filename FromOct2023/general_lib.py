@@ -7,111 +7,122 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 
 
-def check_phase(txBits, rxBits, name, phase):
-    # Check how many are correct amongst the recover (recover means first phase). No need to change.
-    if len(rxBits) == 0:
-        return txBits
-    
-    thisIter = 0
-    txBits_remained = np.empty(shape=(0,0))
-    for i in range(txBits.shape[0]):
-        incre = 0
-        incre = np.equal(txBits[i,:],rxBits).all(axis=1).any()
-        thisIter += int(incre)
-        if (incre == False):
-            txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
-    print(" | In phase " + phase + " " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits.shape[0]))
-    # print(" - " + str(name) + " Phase 1 is done.")
-    return txBits_remained
+### We use this file to store functions/methods that are inside the launcher and related to decoding procedure.
+
+def encode(tx_message,K,L,N,M,messageLens,parityLens, Gijs):
+    """
+    Parameters
+    ----------
+    tx_message (ndarray): K x B matrix of K users' B-bit messages
+    K (int): number of active users
+    L (int): number of sections in codeword
+    N (int): number of bits in codeword
+
+    Returns
+    -------
+    encoded_tx_message : ndarray (K by N matrix, or 100 by 256 in usual case)
+    """
+    encoded_tx_message = np.zeros((K, N), dtype=int)
+    for l in range(L):
+        encoded_tx_message[:,l*J:l*J+messageLens[l]] = tx_message[:, sum(messageLens[0:l]): sum(messageLens[0:l])+ messageLens[l]]
+        who_decides_pl = who_decides_p_sec(L,l,M)
+        parity_l = np.zeros((K, parityLens[l]), dtype=int)
+        for decider in who_decides_pl: 
+            toAdd= (tx_message[:,sum(messageLens[0:decider]):sum(messageLens[0:decider])+ messageLens[decider]] @ Gijs[CantorPairing(decider,l)] )
+            parity_l= parity_l+ toAdd
+        encoded_tx_message[: ,l*J+messageLens[l]: (l+1)*J]= np.mod(parity_l, 2)
+    # One can check what a outer-encoded message looks like in the csv file.
+    # np.savetxt('encoded_message.csv', encoded_tx_message[0].reshape(16,16), delimiter=',', fmt='%d')
+    return encoded_tx_message
 
 
-def GLLC_UACE_decoder(rx_coded_symbols, L, J, Gijs, messageLens, parityLens, K, windowSize, whichGMatrix, SIC=True, pChosenRoot=None):
+def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, Gijs_cipher, SIC=True, pChosenRoot=None):
+    """
+    Parameters
+    ----------
+    K (int): number of active users
+    L (int): number of sections in codeword
+    N (int): number of bits in codeword
 
-    # In decoder, will not change root
-    cs_decoded_tx_message = -1 * np.ones((K, L*J))
-    for id_row in range(K):
-        for id_col in range(L):
-            if rx_coded_symbols[id_row, id_col] != -1:
-                a = np.binary_repr(rx_coded_symbols[id_row, id_col], width=J)     
-                b = np.array([int(n) for n in a] ).reshape(1,-1)        
-                cs_decoded_tx_message[id_row, id_col*J:(id_col+1)*J] = b[0,:]
-    
-    selected_cols = [l*J for l in range(L)]
-    samples = cs_decoded_tx_message[:,selected_cols]
-    num_erase = np.count_nonzero(samples == -1, axis=0) 
+    Returns
+    -------
+    encoded_tx_message : ndarray (K by N matrix, or 100 by 256 in usual case)
+    """
 
-    K_effective  = [x for x in range(K) if cs_decoded_tx_message[x,0] != -1]
-    tree_decoded_tx_message = np.empty(shape=(0,0))
+    # selected_cols = [l*J for l in range(L)]
+    # samples = grand_list[:,selected_cols]
+    # num_erase = np.count_nonzero(samples == -1, axis=0) 
+    K_effective  = [x for x in range(K) if grand_list[x,0] != -1]
+    decoded_msg = np.empty(shape=(0,0))
 
     for i, _ in zip(K_effective, tqdm(range(len(K_effective)))):
         Paths = np.array([[i]])
-        for l in list(range(1,L)): # its last element is L-1
-            # print("l="+str(l) +" len=" + str(len(Paths)))
-            new=np.empty( shape=(0,0))
+        for l in list(range(1,L)):
+            new= np.empty(shape= (0, 0))
             for Path in Paths:
-                if l >= windowSize: 
-                    Parity_computed = compute_parity(L=L, Path_list=Path, cs_decoded_tx_message=cs_decoded_tx_message, 
-                                                            J=J, toCheck=l, whichGMatrix= whichGMatrix, messageLens=messageLens, 
-                                                            parityLens=parityLens, Gijs=Gijs, windowSize=windowSize)
+                if l >= M: 
+                    pl_computed = compute_parity(L, Path, grand_list, l, Gijs_cipher, messageLens, parityLens, Gijs, M)
                 for k in range(K):
-                    index = l<windowSize or np.array_equal(cs_decoded_tx_message[k, l*J + messageLens[l]: (l+1)*J], Parity_computed)
+                    index= (l< M) or np.array_equal(grand_list[k, l*J + messageLens[l]: (l+1)*J], pl_computed)
                     if index:
                         new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
             Paths = new
-            if Paths.shape[0] == 0:
-                break
+            if Paths.shape[0] == 0: break
 
-        PathsUpdated = []
+        Paths2Return = []
         for j in range(len(Paths)):
             Path = Paths[j]
-            isOkay = final_parity_check(Path=Path, cs_decoded_tx_message=cs_decoded_tx_message, J=J,
-                                        messageLens=messageLens, parityLens=parityLens, whichGMatrix=whichGMatrix, 
-                                        L=L, Gijs=Gijs, windowSize=windowSize)
-            if isOkay:
-                PathsUpdated.append( Path )
-        Paths = PathsUpdated
-        # print("The root, surviving paths=" + str(len(Paths)))
-
-        # print(len(Paths))
-        if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
-            recovered_message = output_message(cs_decoded_tx_message, Paths, L, J, messageLens=messageLens)
-            tree_decoded_tx_message = np.vstack((tree_decoded_tx_message, recovered_message)) if tree_decoded_tx_message.size else recovered_message
+            pathOk = final_parity_check(Path, grand_list, messageLens, parityLens, Gijs_cipher, L, Gijs, M)
+            if pathOk:
+                Paths2Return.append( Path )
+        Paths = Paths2Return # Elements of Paths should be all of 0-outage. May contain false positives.
+                
+        ### Something can be improved here!!!
+        if len(Paths) >= 1:
+            ## 之後要做這個：
+                # 如果在phase 1中 有一些root entry leads to 許多條codeword。那麽記錄下該"問題 root entry"的序號以及其導致的valid paths
+                # 先對後面的root entries 進行考察，等到所有root entries都考察完了，再回到這些"問題 root entry"中來，
+                    # For all 問題root:
+                        # 如果一個"問題root" 現在有且僅有一條在 grand list的path: 那收納該path進 output list. 
+                    # 如果一個"問題root" 現在沒有在grand list的path了, 那它的前path 也許是1-outage 或 2-outage，可以用於之後的decoding 
+            msg_rt_i = output_message(grand_list, Paths, L, J, messageLens=messageLens)
+            decoded_msg = np.vstack((decoded_msg, msg_rt_i)) if decoded_msg.size else msg_rt_i
             # cancel the cdwd sections decoded, or cancel the used root
             pathToCancel = Paths[0]
+            
             if SIC:
                 for l in range(L):
                     if pathToCancel[l] != -1:
-                        cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
-            else:
-                if pChosenRoot == None: 
-                    l = np.argmin(num_erase)
-                    cs_decoded_tx_message[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
-                else: 
-                    cs_decoded_tx_message[ pathToCancel[pChosenRoot], pChosenRoot*J:(pChosenRoot+1)*J] = -1*np.ones((J),dtype=int)
-    
-    tree_decoded_tx_message = np.unique(tree_decoded_tx_message, axis=0)        
-    return tree_decoded_tx_message, cs_decoded_tx_message, num_erase
+                        grand_list[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+            
+            # What to do if no SIC???
+            # else:
+            #     if pChosenRoot == None: 
+            #         l = np.argmin(num_erase)
+            #         grand_list[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
+            #     else: 
+            #         grand_list[ pathToCancel[pChosenRoot], pChosenRoot*J:(pChosenRoot+1)*J] = -1*np.ones((J),dtype=int)
+    decoded_msg = np.unique(decoded_msg, axis=0)
+    return decoded_msg, grand_list
 
 
 
-def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, sub_G_inversions, messageLens, parityLens, K, windowSize, whichGMatrix, num_erase, SIC=True, pChosenRoot=None):
+def phase2_decoder(grand_list, L, Gis, Gijs, Gijs_cipher, columns_index, sub_G_inversions, messageLens, parityLens, K, M, SIC=True, pChosenRoot=None):
 
-    chosenRoot = np.argmin(num_erase) if pChosenRoot == None else pChosenRoot
+    # chosenRoot = np.argmin(num_erase) if pChosenRoot == None else pChosenRoot
+    # print(" | ChosenRoot: " + str(chosenRoot))
+    # messageLens[range(L)] = messageLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    # parityLens[range(L)] = parityLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    # num_erase[range(L)] = num_erase[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    # Gs[range(L)] = Gs[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    # columns_index[range(L)] = columns_index[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    # sub_G_inversions[range(L)] = sub_G_inversions[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    # whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
+    # whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot, chosenRoot+L),L),:]
+    # cs_decoded_tx_message[:, range(L*J)] = cs_decoded_tx_message[:, np.mod( np.arange(chosenRoot*J, chosenRoot*J + L*J) ,L*J)]
 
-    print(" | ChosenRoot: " + str(chosenRoot))
-
-    messageLens[range(L)] = messageLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
-    parityLens[range(L)] = parityLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
-    num_erase[range(L)] = num_erase[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
-    Gs[range(L)] = Gs[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
-    columns_index[range(L)] = columns_index[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
-    sub_G_inversions[range(L)] = sub_G_inversions[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
-    whichGMatrix[:,range(L)] = whichGMatrix[:,np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
-    whichGMatrix[range(L),:] = whichGMatrix[np.mod(np.arange(chosenRoot, chosenRoot+L),L),:]
-    cs_decoded_tx_message[:, range(L*J)] = cs_decoded_tx_message[:, np.mod( np.arange(chosenRoot*J, chosenRoot*J + L*J) ,L*J)]
-
-    K_effective   = [x for x in range(K) if cs_decoded_tx_message[x,0] != -1]
-    tree_decoded_tx_message = np.empty(shape=(0,0))
+    K_effective   = [x for x in range(K) if grand_list[x,0] != -1]
+    decoded_msg = np.empty(shape=(0,0))
 
     for i, _ in zip(K_effective, tqdm(range(len(K_effective)))):
         Paths = [ LLC.GLinkedLoop([i], messageLens) ]
@@ -122,7 +133,7 @@ def GLLC_UACE_corrector(cs_decoded_tx_message, L, J, Gs, Gijs, columns_index, su
             newAll = []
             survivePaths = Parallel(n_jobs=-1)(delayed(GLLC_correct_each_section_and_path)(section2Check=l, Path=Paths[j], 
                                                                                            cs_decoded_tx_message=cs_decoded_tx_message, 
-                                                                                           J=J, whichGMatrix=whichGMatrix, K=K, 
+                                                                                            whichGMatrix=whichGMatrix, K=K, 
                                                                                            messageLens=messageLens, parityLens=parityLens, 
                                                                                            L=L, windowSize= windowSize, Gs=Gs, Gijs=Gijs, 
                                                                                            columns_index= columns_index,

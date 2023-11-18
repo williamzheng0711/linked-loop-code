@@ -8,8 +8,7 @@ from static_repo import *   # Contains all the static / constant stuff
 from utils import *
 from slow_lib import *
 from abch_utils import *
-from tc_utils import *
-from ldpc_utils import *
+
 
 ### Accept user inputs, specifying simulation arguments
 parser = OptionParser()
@@ -33,17 +32,22 @@ channel_type = options.ctype;                   assert channel_type == "A" or ch
 ### Extract pre-determined info-parity pattern
 messageLens, parityLens = get_allocation(L=L);  N = 2**J # N denotes the length of a codeword, that is rate R = B / N
 ### Retrieve parity-generating matrices from matrix repository
-Gis, columns_index, sub_G_inversions = get_G_info(L, M, messageLens, parityLens)
+Gis, columns_index, sub_G_invs = get_G_info(L, M, messageLens, parityLens)
 ### Do partition on Gl's, making them into G_{l,l+1}, G_{l,l+2}, ... , G_{l,l+M}, these matrices with double subscripts are called Gijs
-Gijs, Gij_cipher = partition_Gs(L, M, parityLens, Gis) 
+Gijs, Gijs_cipher = partition_Gs(L, M, parityLens, Gis) 
 
+
+
+
+
+###################################################################################################
 ### Simulation starts.
 print("####### Start Rocking ######## K="+ str(K)+ " and p_e= "+ str(p_e)+ " and L= "+ str(L) +" and M= " + str(M))          
 ### Generate the iid random B-bit messages for each of the K users. Hence txBits.shape is [K,B]
 txBits = np.random.randint(low=2, size=(K, B))                              
 
 ### Encode all messages of K users. Hence tx_cdwds.shape is [K,N]
-tx_cdwds = GLLC_encode(txBits, K, L, N, M, messageLens, parityLens, Gijs)
+tx_cdwds = encode(txBits, K, L, N, M, messageLens, parityLens, Gijs)
 ### Convert binary coded-sub blocks to symbols
 tx_symbols = binary_to_symbol(tx_cdwds, L, K)
 
@@ -56,30 +60,40 @@ if channel_type == "A":
     rx_symbols = remove_multiplicity(rx_symbols)
 
 ### Generate genie reports
-print(" Genie: How many 0-outage ? " + str(n0))
+print(" Genie: How many 0-outage? " + str(n0))
 print(" Genie: How many 1-outage? " + str(n1))
 print(" Genie: 1-outage positions: " + str(one_outage_where))
+### Convert back to binary representation. (This is what in reality RX can get)
+grand_list = symbol_to_binary(K, L, rx_symbols)
+###################################################################################################
 
+
+
+###################################################################################################
 ### Decoding phase 1 (simply finding & stitching 0-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 1 now starts.")
 tic = time.time()
-rxBits_llc, cs_decoded_tx_message, num_erase = GLLC_UACE_decoder(rx_coded_symbols=rx_coded_symbols, L=L, J=J, 
-                                                                 Gijs=Gijs, messageLens=messageLens, parityLens=parityLens, 
-                                                                 K=K, windowSize=windowSize, whichGMatrix=whichGMatrix, SIC=SIC)
+rxBits_p1, grand_list = phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, Gijs_cipher, SIC=SIC)
 toc = time.time()
-print(" | Time of GLLC decode " + str(toc-tic))
-if rxBits_llc.shape[0] > K: 
-    rxBits_llc = rxBits_llc[np.arange(K)]                    # As before, if we have >K paths, always choose the first K's.
+print(" | Time of phase 1 (LLC): " + str(toc-tic))
 
-# Check how many are correct amongst the recover (recover means first phase). No need to change.
-txBits_remained_llc = check_phase(txBits, rxBits_llc, "Linked-loop Code", "1")
-print(" -Phase 1 Done.")
+### If we have >K decoded messages, only choose the first K.
+if rxBits_p1.shape[0] > K: 
+    rxBits_p1 = rxBits_p1[np.arange(K)]                    
+
+### Check how many are correct amongst the recover (recover means first phase). No need to change.
+txBits_rmd_afterp1 = check_phase(txBits, rxBits_p1, "linked loop Code", "1")
+print(" -Phase 1 Done.\n")
+###################################################################################################
 
 
-# *Corrector. PAINPOINT
-print(" -Phase 2 (correction) now starts.")
+
+
+###################################################################################################
+### Decoding phase 2 (finding/recovering 1-outage codewords in the channel output) now starts.
+print(" -- Decoding phase 2 now starts.")
 tic = time.time()
-rxBits_corrected_llc= GLLC_UACE_corrector(cs_decoded_tx_message=cs_decoded_tx_message, L=L, J=J, Gs=Gs, Gijs=Gijs, columns_index=columns_index, 
+rxBits_corrected_llc= phase2_decoder(grand_list, L, Gs=Gis, Gijs=Gijs, columns_index=columns_index, 
                                         sub_G_inversions=sub_G_inversions, messageLens=messageLens, parityLens=parityLens, K=K,
                                         windowSize=windowSize, whichGMatrix=whichGMatrix, num_erase=num_erase, SIC=SIC)
 toc = time.time()
@@ -105,3 +119,6 @@ _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "all")
 
 print(" -Phase 2 is done, this simulation terminates.")
 ############################
+
+
+## Phase 2+ :(
