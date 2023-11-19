@@ -166,5 +166,6 @@ def phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageL
     w = sum(messageLens)
     decoded_msg[:,range(w)] = decoded_msg[:, np.mod( np.arange(w) + sum(messageLens[0:L-chosenRoot]), w)]
     decoded_msg = np.unique(decoded_msg, axis=0)
+    grand_list[:, range(L*J)] = grand_list[:, np.mod( np.arange(-chosenRoot*J, -chosenRoot*J + L*J) ,L*J)]
     
-    return decoded_msg
+    return decoded_msg, grand_list
