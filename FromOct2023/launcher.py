@@ -95,13 +95,13 @@ print(" -Phase 1 Done.\n")
 ### Decoding phase 2 (finding/recovering 1-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 2 now starts.")
 tic = time.time()
-rxBits_p21, grand_list= phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, erasure_slot=None)
+rxBits_p21, grand_list= phase2plus_decoder(1, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, erasure_slot=None)
 toc = time.time()
 print(" | Time of phase 2.1 " + str(toc-tic))
 txBits_rmd_afterp21 = check_phase(txBits_rmd_afterp1, rxBits_p21, "Linked-loop Code", "2.1")
 
 tic = time.time()
-rxBits_p22, grand_list= phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoot=7, erasure_slot=0)
+rxBits_p22, grand_list= phase2plus_decoder(1, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[7], erasure_slot=0)
 toc = time.time()
 print(" | Time of phase 2.2 " + str(toc-tic))
 txBits_rmd_afterp22 = check_phase(txBits_rmd_afterp21, rxBits_p22, "Linked-loop Code", "2.2")
@@ -121,5 +121,9 @@ print(" -Phase 2 is done, this simulation terminates.")
 ###################################################################################################
 ### Decoding phase 2plus (finding/recovering 2-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 2+ now starts.")
-
+tic = time.time()
+rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, erasure_slot=None)
+toc = time.time()
+print(" | Time of phase 3.1 " + str(toc-tic))
+txBits_rmd_afterp31 = check_phase(txBits_rmd_afterp22, rxBits_p31, "Linked-loop Code", "3.1")
 

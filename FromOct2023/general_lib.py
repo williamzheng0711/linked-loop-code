@@ -107,9 +107,12 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
 
 
 
-def phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoot=None, erasure_slot=None):
+def phase2plus_decoder(d, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None, erasure_slot=None):
     
-    chosenRoot = 0 if pChosenRoot == None else pChosenRoot
+    chosenRoot = 0 if pChosenRoots == None else pChosenRoots[-1]
+    # erasure_slot = np.mod( 0 - chosenRoot, L) if erasure_slot!= None else None
+    erasure_slot = [np.mod(0- chosenRoot, L) for chosenRoot in pChosenRoots] if pChosenRoots!= None else None
+    
     # print(" | ChosenRoot: " + str(chosenRoot))
     messageLens[range(L)] = messageLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     parityLens[range(L)] = parityLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
@@ -117,8 +120,6 @@ def phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageL
     columns_index[range(L)] = columns_index[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     sub_G_invs[range(L)] = sub_G_invs[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     grand_list[:, range(L*J)] = grand_list[:, np.mod( np.arange(chosenRoot*J, chosenRoot*J + L*J) ,L*J)]
-    
-    erasure_slot = np.mod( 0 - chosenRoot, L) if erasure_slot!= None else None
 
     K_effective   = [x for x in range(K) if grand_list[x,0] != -1]
     decoded_msg = np.empty(shape=(0,0))
@@ -130,7 +131,7 @@ def phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageL
                 break
             # print("l="+str(l) +" len=" + str(len(Paths)))
             newAll = []
-            survivePaths= Parallel(n_jobs=-1)(delayed(Path_goes_section_l)(l, Paths[j], grand_list, K, messageLens, parityLens, 
+            survivePaths= Parallel(n_jobs=-1)(delayed(Path_goes_section_l)(l, Paths[j],d, grand_list, K, messageLens, parityLens, 
                                                                            L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot) for j in range(len(Paths)))
             # print("This section done.", end=" ")
             for survivePath in survivePaths:

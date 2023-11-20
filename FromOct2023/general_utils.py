@@ -117,8 +117,7 @@ def Path_goes_entry_k(Parity_computed, toCheck, Path, k, grand_list, messageLens
             longMinued = np.empty((0),dtype=int)
             longSubtrahend = np.empty((0),dtype=int)
             for availSaver in availSavers: # saver != lostSection            
-                # saverDeciders = [ np.mod(availSaver-ll, L) for ll in range(M,0,-1) ] # 被減數 Aka p(saver)
-                saverDeciders = who_decides_p_sec(L, availSaver, M)
+                saverDeciders = who_decides_p_sec(L, availSaver, M)   # 被減數 Aka p(saver)
                 minuend = grand_list[focusPath[availSaver], availSaver*J+messageLens[availSaver]: (availSaver+1)*J ] if Path.known_in_path(availSaver) else grand_list[k, availSaver*J+messageLens[availSaver]: (availSaver+1)*J] 
                 longMinued = np.hstack( (longMinued, np.mod(minuend,2)))
                 subtrahend = np.zeros((parityLens[availSaver]),dtype=int)
@@ -163,7 +162,7 @@ def Path_goes_entry_k(Parity_computed, toCheck, Path, k, grand_list, messageLens
 
 
 # For phase 2
-def Path_goes_section_l(l, Path, grand_list, K, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot):
+def Path_goes_section_l(l, Path, d, grand_list, K, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot):
     new = []  
     assert isinstance(Path, LLC.GLinkedLoop)
     oldPath = Path.get_path().copy()
@@ -185,7 +184,7 @@ def Path_goes_section_l(l, Path, grand_list, K, messageLens, parityLens, L, M, G
                 if toKeep:
                     new.append(LLC.GLinkedLoop(list(oldPath)+ list([k]), messageLens, oldListLostSects, updDictLostInfos))
     
-    if Path.num_na_in_path() <1 and (erasure_slot== l or erasure_slot== None):
+    if Path.num_na_in_path() < d and (erasure_slot== None or l in erasure_slot):
         if l != L-1:
                 # print("See here")
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldListLostSects + list([l]), oldDictLostInfos) ) 
