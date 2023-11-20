@@ -64,7 +64,7 @@ def llc_correct_lost_by_check_parity(Parity_computed, toCheck, Path, k, cs_decod
     # 1. 沒有NA在path中，一切正常。
     # 2. lost 的部分已經被recover出來
     # 3. 
-    if Path.whether_contains_na()==False or np.array_equal(oldLostPart,-1*np.ones((messageLen),dtype=int))==False:
+    if Path.num_na_in_path() < 1 or np.array_equal(oldLostPart,-1*np.ones((messageLen),dtype=int))==False:
         Parity = cs_decoded_tx_message[k,toCheck*J+messageLen:(toCheck+1)*J]    # 第k行的第Lpath section的parity
         if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
             return True, oldLostPart
@@ -257,7 +257,7 @@ def slow_correct_each_section_and_path(l, Path, cs_decoded_tx_message, J,
                 if toKeep:
                     new.append( LLC.LinkedLoop( list(oldPath) + list([k]) , messageLen, lostPart) )
     
-    if Path.whether_contains_na() == False:
+    if Path.num_na_in_path() < 1:
         if l != L-1:
             new.append( LLC.LinkedLoop( list(oldPath) + list([-1]) , messageLen, oldLostPart) )
         else:

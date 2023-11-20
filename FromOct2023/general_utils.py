@@ -75,7 +75,7 @@ def Path_goes_entry_k(Parity_computed, toCheck, Path, k, grand_list, messageLens
     # Under the following circumstances, we don't need to consider about RECOVERING something lost
     # 1. There is nothing lost in the sub-path at all. Aka, no "na". and 
     # 2. The lost part has already been recovered long time ago. (> windowSize)
-    if Path.whether_contains_na()==False or np.array_equal(oldLostPart, np.empty((0),dtype=int))==False:
+    if Path.num_na_in_path() < 1 or np.array_equal(oldLostPart, np.empty((0),dtype=int))==False:
         Parity = grand_list[k, toCheck*J+messageLens[toCheck] :(toCheck+1)*J ]    # 第k行的第 toCheck section的parity
         if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
             return True, oldLostPart
@@ -174,7 +174,7 @@ def Path_goes_section_l(l, Path, grand_list, K, messageLens,
                     # print(lostPart)
                     new.append(LLC.GLinkedLoop(list(oldPath)+ list([k]), messageLens, lostPart, oldLostSection))
     
-    if Path.whether_contains_na()== False and (erasure_slot== l or erasure_slot== None):
+    if Path.num_na_in_path()<1 and (erasure_slot== l or erasure_slot== None):
         if l != L-1:
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldLostPart, l) ) 
         else:
