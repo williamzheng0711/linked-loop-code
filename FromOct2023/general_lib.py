@@ -137,8 +137,9 @@ def phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageL
                 if len(survivePath) > 0:
                     newAll = list(newAll) + list(survivePath) # list merging
             Paths = newAll 
+            # print(l, len(Paths))
 
-        # print("A root, before final checkng surviving paths=" + str(len(Paths)))
+        # print(str(i)+"-th root, before final checkng surviving paths=" + str(len(Paths)))
         # for path in Paths:
         #     if path.get_lostSection() == 1:
         #         print("***", path.get_path())
@@ -147,6 +148,7 @@ def phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageL
         for j in range(len(Paths)):
             Path = Paths[j]
             isOkay = final_parity_check_oop(Path, grand_list, messageLens, parityLens, L, Gijs, M)
+            # isOkay = True
             if isOkay:
                 PathsUpdated.append( Path )
         Paths = PathsUpdated
@@ -155,6 +157,8 @@ def phase2_decoder(grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageL
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
             Paths = [Paths[0]]
+            # print(str(Paths[0].get_path()))
+            # print(Paths[0].get_dictLostInfos())
             recovered_message = output_message_oop(grand_list, Paths, L, J)
             decoded_msg = np.vstack((decoded_msg, recovered_message)) if decoded_msg.size else recovered_message
             if SIC:

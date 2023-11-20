@@ -1,20 +1,21 @@
 import numpy as np
 
 class GLinkedLoop:
-    def __init__(self, list, messageLens, lostPart=None, lostSection=None):
+    def __init__(self, list, messageLens, listLostSects=None, dictLostInfos=None):
         self.path = list
         self.messageLens = messageLens
-        self.lostSection = lostSection if lostSection is not None else -1
-        self.lostPart = lostPart if lostPart is not None else np.empty((0),dtype=int)
-
+        self.listLostSects = listLostSects if listLostSects is not None else []
+        self.dictLostInfos = dictLostInfos if dictLostInfos is not None else {}
     def get_path(self):
         return self.path
 
-    def get_lostPart(self):
-        return self.lostPart
+    # This returns the dictionary containing recovered lost bits for respective sections
+    def get_dictLostInfos(self):
+        return self.dictLostInfos
     
-    def get_lostSection(self):
-        return self.lostSection
+    # Returns the list containing lost sections
+    def get_listLostSects(self):
+        return self.listLostSects
     
     def num_na_in_path(self):
         return self.path.count(-1)
