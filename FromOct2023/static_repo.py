@@ -9,6 +9,31 @@ J = 16                     # Length of each coded sub-block
 L_set = [15, 16]
 M_set = [2, 3]
 
+
+def subset(list1, list2):
+    # determine if list1 is a subset of list2 
+    for elmt1 in list1:
+        if elmt1 not in list2:
+            return False
+    return True
+
+
+
+def smart_order(losts):
+    if len(losts) <= 1:
+        return losts
+    elif len(losts) == 2:
+        if abs(losts[0] - losts[1]) >= 3:
+            return losts
+        else: 
+            return np.flip(losts)
+
+def consecutive(a):
+    assert len(a) == 2
+    if a[0] == a[1]+1 or a[0]== a[1] - 1:
+        return True
+    return False
+
 def CantorPairing(i,j):
     assert i>=0 and j >=0
     return 1/2*(i+j)*(i+j+1)+i

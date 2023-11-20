@@ -70,12 +70,13 @@ def compute_parity_oop(L, Path, grand_list, toCheck, messageLens, parityLens, Gi
     # return -1 * np.ones((1,parityLens[toCheck]),dtype=int)
 
 # For phase 2+
-def Path_goes_entry_k(Parity_computed, toCheck, Path, k, grand_list, messageLens, parityLens,
+def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageLens, parityLens,
                                 L, M, Gis, Gijs, columns_index, sub_G_invs):
     # Here, "Path" is a LinkedLoop
     focusPath = Path.get_path()
     oldDictLostInfos = Path.get_dictLostInfos().copy()
     losts = np.where( np.array(focusPath) < 0 )[0]
+
 
     # Under the following circumstances, we don't need to consider about RECOVERING something lost
     # 1. There is nothing lost in the sub-path at all. Aka, no "na". and 
@@ -86,7 +87,9 @@ def Path_goes_entry_k(Parity_computed, toCheck, Path, k, grand_list, messageLens
         if (focusPath[toCheckDecider]==-1) and (toCheckDecider not in oldDictLostInfos):
             canDecide_toCheck = False
 
-    if Path.num_na_in_path() < 1 or canDecide_toCheck and toCheck != L-1 :
+    # if d==2 and len(losts)==2 and consecutive(losts): print(Parity_computed, focusPath, toCheck, Path.num_na_in_path(), Path.get_dictLostInfos(), Path.get_listLostSects())
+
+    if canDecide_toCheck and toCheck != L-1 :
         Parity = grand_list[k, toCheck*J+messageLens[toCheck] :(toCheck+1)*J ]    # 第k行的第 toCheck section的parity
         # assert sum(Parity_computed)>=0
         # if np.equal(Parity_computed, -2 * np.ones((parityLens[toCheck]),dtype=int)).all() and len(focusPath)<=2:
@@ -96,10 +99,11 @@ def Path_goes_entry_k(Parity_computed, toCheck, Path, k, grand_list, messageLens
             return True, oldDictLostInfos
         else: 
             return False, {}
+
     
     # 有lost
     else:   
-        for lostSection in losts:
+        for lostSection in smart_order(losts):
             # (w1, w2, w3, w4) => p5    # (w2, w3, w4, w5) => p6    
             # (w3, w4, w5, w6) => p7    # (w4, w5, w6, w7) => p8    
             # # w5, w6, w7 and w8 are "saverSections" of lostSections. w(4) is what we lost.
@@ -175,22 +179,23 @@ def Path_goes_section_l(l, Path, d, grand_list, K, messageLens, parityLens, L, M
         # if sum(Parity_computed) < 0 : print("AAAA", Path.get_path(), Path.get_listLostSects(), Path.get_dictLostInfos()) 
     for k in range(K):
         if grand_list[k,l*J] != -1:
-            if l < M: # the sub-path on hand is too short, hence is impossible to be inconsistent
+            ########### Problems are here
+            if l < M : # the sub-path on hand is too short, hence is impossible to be inconsistent
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([k]), messageLens, oldListLostSects, oldDictLostInfos) )
             else : 
                 Path = LLC.GLinkedLoop(oldPath, messageLens, oldListLostSects, oldDictLostInfos )
                 # if sum(Parity_computed) < 0 : print("BBBB", Path.get_path(), Path.get_listLostSects(), Path.get_dictLostInfos()) 
-                toKeep, updDictLostInfos = Path_goes_entry_k(Parity_computed, l, Path, k, grand_list, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs)
+                toKeep, updDictLostInfos = Path_goes_entry_k(d, Parity_computed, l, Path, k, grand_list, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs)
                 if toKeep:
                     new.append(LLC.GLinkedLoop(list(oldPath)+ list([k]), messageLens, oldListLostSects, updDictLostInfos))
     
-    if Path.num_na_in_path() < d and (erasure_slot== None or l in erasure_slot):
+    if Path.num_na_in_path() < d and (erasure_slot== None   or   l in erasure_slot    or   subset(erasure_slot, oldListLostSects)):
         if l != L-1:
                 # print("See here")
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldListLostSects + list([l]), oldDictLostInfos) ) 
         else:
             temp_path = LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldListLostSects + list([l]), oldDictLostInfos)
-            toKeep, updDictLostInfos = Path_goes_entry_k(None, L-1, temp_path, None, grand_list, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs)
+            toKeep, updDictLostInfos = Path_goes_entry_k(d, None, L-1, temp_path, None, grand_list, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs)
             if toKeep:
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]) , messageLens, oldListLostSects + list([l]), updDictLostInfos) ) 
                 

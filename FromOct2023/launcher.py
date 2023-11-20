@@ -52,7 +52,7 @@ tx_symbols = binary_to_symbol(tx_cdwds, L, K)
 
 ### B-Channel with Erasure
 seed = np.random.randint(0,10000) # randomness for erasure pattern
-rx_symbols, one_outage_where, n0, n1, n2 = bch_with_erasure(tx_symbols, L, K, p_e, seed=seed)
+rx_symbols, one_outage_where, two_outage_where, n0, n1, n2 = bch_with_erasure(tx_symbols, L, K, p_e, seed=seed)
 if channel_type == "A":
     # A-channel is obtained by removing multiplicities from B-channel
     # We call "rx_symbols" or its equivalence as "the grand list"
@@ -63,6 +63,7 @@ print(" Genie: How many 0-outage? " + str(n0))
 print(" Genie: How many 1-outage? " + str(n1))
 print(" Genie: How many 2-outage? " + str(n2))
 print(" Genie: 1-outage positions: " + str(one_outage_where))
+print(" Genie: 2-outage positions: " + str(two_outage_where))
 ### Convert back to binary representation. (This is what in reality RX can get)
 grand_list = symbol_to_binary(K, L, rx_symbols)
 ###################################################################################################
@@ -95,23 +96,21 @@ print(" -Phase 1 Done.\n")
 ### Decoding phase 2 (finding/recovering 1-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 2 now starts.")
 tic = time.time()
-rxBits_p21, grand_list= phase2plus_decoder(1, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, erasure_slot=None)
+rxBits_p21, grand_list= phase2plus_decoder(1, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
 toc = time.time()
 print(" | Time of phase 2.1 " + str(toc-tic))
 txBits_rmd_afterp21 = check_phase(txBits_rmd_afterp1, rxBits_p21, "Linked-loop Code", "2.1")
 
 tic = time.time()
-rxBits_p22, grand_list= phase2plus_decoder(1, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[7], erasure_slot=0)
+rxBits_p22, grand_list= phase2plus_decoder(1, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[7])
 toc = time.time()
 print(" | Time of phase 2.2 " + str(toc-tic))
 txBits_rmd_afterp22 = check_phase(txBits_rmd_afterp21, rxBits_p22, "Linked-loop Code", "2.2")
-print(" | \n")
 
 all_decoded_txBits = np.vstack((rxBits_p1, rxBits_p21, rxBits_p22)) if rxBits_p22.size else np.vstack((rxBits_p1, rxBits_p21))
 all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
 _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 2")
-
-print(" -Phase 2 is done, this simulation terminates.")
+print(" -Phase 2 is done, this simulation terminates.\n")
 #################################################################################################
 
 
@@ -122,8 +121,19 @@ print(" -Phase 2 is done, this simulation terminates.")
 ### Decoding phase 2plus (finding/recovering 2-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 2+ now starts.")
 tic = time.time()
-rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, erasure_slot=None)
+rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
 toc = time.time()
 print(" | Time of phase 3.1 " + str(toc-tic))
 txBits_rmd_afterp31 = check_phase(txBits_rmd_afterp22, rxBits_p31, "Linked-loop Code", "3.1")
 
+tic = time.time()
+rxBits_p32, grand_list= phase2plus_decoder(2, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[5])
+toc = time.time()
+print(" | Time of phase 3.2 " + str(toc-tic))
+txBits_rmd_afterp32 = check_phase(txBits_rmd_afterp31, rxBits_p32, "Linked-loop Code", "3.2")
+
+tic = time.time()
+rxBits_p33, grand_list= phase2plus_decoder(2, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[5,10])
+toc = time.time()
+print(" | Time of phase 3.3 " + str(toc-tic))
+txBits_rmd_afterp33 = check_phase(txBits_rmd_afterp32, rxBits_p33, "Linked-loop Code", "3.3")

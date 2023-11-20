@@ -107,7 +107,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
 
 
 
-def phase2plus_decoder(d, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None, erasure_slot=None):
+def phase2plus_decoder(d, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None):
     
     chosenRoot = 0 if pChosenRoots == None else pChosenRoots[-1]
     # erasure_slot = np.mod( 0 - chosenRoot, L) if erasure_slot!= None else None
@@ -158,7 +158,8 @@ def phase2plus_decoder(d, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, m
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
             Paths = [Paths[0]]
-            # print(str(Paths[0].get_path()))
+            # if d==2: print(str(Paths[0].get_path()))
+            if d==2: print(str( list(np.where( np.array( Paths[0].get_path())== -1 )[0]))) 
             # print(Paths[0].get_dictLostInfos())
             recovered_message = output_message_oop(grand_list, Paths, L, J)
             decoded_msg = np.vstack((decoded_msg, recovered_message)) if decoded_msg.size else recovered_message

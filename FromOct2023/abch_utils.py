@@ -34,6 +34,7 @@ def bch_with_erasure(tx_symbols, L, K, p_e, seed=0):
         tx_symbols[len(tx_symbols_l): ,l] = -1
     
     one_outage_where = np.zeros((L),dtype=int)
+    two_outage_where = []
     n0 = 0 # number of 0 outage cdwds
     n1 = 0 # number of 1 outage cdwds
     n2 = 0 # number of 2 outage cdwds
@@ -52,10 +53,11 @@ def bch_with_erasure(tx_symbols, L, K, p_e, seed=0):
             one_outage_where = one_outage_where + loss_section
         elif num_loss_section == 2:
             n2 += 1
+            two_outage_where.append(list(np.where( np.array(loss_section) == 1 )[0]))
 
     rng = np.random.default_rng()
     rx_symbols = rng.permuted(tx_symbols, axis=0)
-    return rx_symbols, one_outage_where, n0, n1, n2
+    return rx_symbols, one_outage_where, two_outage_where, n0, n1, n2
 
 
 def remove_multiplicity(output):
