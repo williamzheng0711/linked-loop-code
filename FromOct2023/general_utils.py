@@ -117,7 +117,8 @@ def Path_goes_entry_k(Parity_computed, toCheck, Path, k, grand_list, messageLens
             longMinued = np.empty((0),dtype=int)
             longSubtrahend = np.empty((0),dtype=int)
             for availSaver in availSavers: # saver != lostSection            
-                saverDeciders = [ np.mod(availSaver-ll, L) for ll in range(M,0,-1) ] # 被減數 Aka p(saver)
+                # saverDeciders = [ np.mod(availSaver-ll, L) for ll in range(M,0,-1) ] # 被減數 Aka p(saver)
+                saverDeciders = who_decides_p_sec(L, availSaver, M)
                 minuend = grand_list[focusPath[availSaver], availSaver*J+messageLens[availSaver]: (availSaver+1)*J ] if Path.known_in_path(availSaver) else grand_list[k, availSaver*J+messageLens[availSaver]: (availSaver+1)*J] 
                 longMinued = np.hstack( (longMinued, np.mod(minuend,2)))
                 subtrahend = np.zeros((parityLens[availSaver]),dtype=int)

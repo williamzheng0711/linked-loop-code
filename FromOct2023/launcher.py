@@ -107,7 +107,7 @@ print(" | Time of phase 2.2 " + str(toc-tic))
 txBits_rmd_afterp22 = check_phase(txBits_rmd_afterp21, rxBits_p22, "Linked-loop Code", "2.2")
 print(" | \n")
 
-all_decoded_txBits = np.vstack((rxBits_p1, rxBits_p21, rxBits_p22))
+all_decoded_txBits = np.vstack((rxBits_p1, rxBits_p21, rxBits_p22)) if rxBits_p22.size else np.vstack((rxBits_p1, rxBits_p21))
 all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
 _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 2")
 
