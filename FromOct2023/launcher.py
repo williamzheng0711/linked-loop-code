@@ -83,7 +83,8 @@ if rxBits_p1.shape[0] > K:
     rxBits_p1 = rxBits_p1[np.arange(K)]                    
 
 ### Check how many are correct amongst the recover (recover means first phase). No need to change.
-txBits_rmd_afterp1 = check_phase(txBits, rxBits_p1, "linked loop Code", "1")
+all_decoded_txBits = np.unique(rxBits_p1, axis=0)
+txBits_rmd_afterp1 = check_phase(txBits, all_decoded_txBits, "linked loop Code", "1")
 if txBits_rmd_afterp1.shape[0] == B: # Only remains one message 
     txBits_rmd_afterp1 = txBits_rmd_afterp1.reshape(1,-1)
 print(" -Phase 1 Done.\n")
@@ -118,7 +119,7 @@ print(" -Phase 2 is done. \n")
 
 
 ###################################################################################################
-### Decoding phase 2plus (finding/recovering 2-outage codewords in the channel output) now starts.
+### Decoding phase 3 (finding/recovering 2-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 3 now starts.")
 tic = time.time()
 rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
@@ -145,3 +146,15 @@ all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
 _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 3")
 print(" -Phase 3 is done, this simulation terminates.\n")
 #################################################################################################
+
+
+
+
+# ###################################################################################################
+# ### Decoding phase 2plus (finding/recovering 2-outage codewords in the channel output) now starts.
+# print(" -- Decoding phase 4 now starts.")
+# tic = time.time()
+# rxBits_p41, grand_list= phase2plus_decoder(3, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
+# toc = time.time()
+# print(" | Time of phase 4.1 " + str(toc-tic))
+# txBits_rmd_afterp41 = check_phase(txBits_rmd_afterp33, rxBits_p41, "Linked-loop Code", "4.1")
