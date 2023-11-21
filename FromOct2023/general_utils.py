@@ -189,7 +189,8 @@ def Path_goes_section_l(l, Path, d, grand_list, K, messageLens, parityLens, L, M
                 if toKeep:
                     new.append(LLC.GLinkedLoop(list(oldPath)+ list([k]), messageLens, oldListLostSects, updDictLostInfos))
     
-    if Path.num_na_in_path() < d and (erasure_slot== None   or   l in erasure_slot    or   subset(erasure_slot, oldListLostSects)):
+    # if Path.num_na_in_path() < d and (erasure_slot== None   or   l in erasure_slot    or   subset(erasure_slot, oldListLostSects)):
+    if (d - Path.num_na_in_path() > 0) and ( d- len(erasure_slot) > 0 or l in erasure_slot):
         if l != L-1:
                 # print("See here")
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldListLostSects + list([l]), oldDictLostInfos) ) 

@@ -110,7 +110,7 @@ txBits_rmd_afterp22 = check_phase(txBits_rmd_afterp21, rxBits_p22, "Linked-loop 
 all_decoded_txBits = np.vstack((rxBits_p1, rxBits_p21, rxBits_p22)) if rxBits_p22.size else np.vstack((rxBits_p1, rxBits_p21))
 all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
 _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 2")
-print(" -Phase 2 is done, this simulation terminates.\n")
+print(" -Phase 2 is done. \n")
 #################################################################################################
 
 
@@ -119,7 +119,7 @@ print(" -Phase 2 is done, this simulation terminates.\n")
 
 ###################################################################################################
 ### Decoding phase 2plus (finding/recovering 2-outage codewords in the channel output) now starts.
-print(" -- Decoding phase 2+ now starts.")
+print(" -- Decoding phase 3 now starts.")
 tic = time.time()
 rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
 toc = time.time()
@@ -137,3 +137,11 @@ rxBits_p33, grand_list= phase2plus_decoder(2, grand_list, L, Gis, Gijs, columns_
 toc = time.time()
 print(" | Time of phase 3.3 " + str(toc-tic))
 txBits_rmd_afterp33 = check_phase(txBits_rmd_afterp32, rxBits_p33, "Linked-loop Code", "3.3")
+
+all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p31)) 
+all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p32)) if rxBits_p32.size else  all_decoded_txBits
+all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p33)) if rxBits_p33.size else  all_decoded_txBits
+all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
+_ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 3")
+print(" -Phase 3 is done, this simulation terminates.\n")
+#################################################################################################
