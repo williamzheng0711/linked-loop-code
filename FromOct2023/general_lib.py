@@ -107,12 +107,12 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
 
 
 
-def phase2plus_decoder(d, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None):
+def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None):
     
     chosenRoot = 0 if pChosenRoots == None else pChosenRoots[-1]
     # erasure_slot = np.mod( 0 - chosenRoot, L) if erasure_slot!= None else None
     erasure_slot = [np.mod(0- chosenRoot, L) for chosenRoot in pChosenRoots] if pChosenRoots!= None else []
-    
+    # print(erasure_slot)
     # print(" | ChosenRoot: " + str(chosenRoot))
     messageLens[range(L)] = messageLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     parityLens[range(L)] = parityLens[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
@@ -120,6 +120,8 @@ def phase2plus_decoder(d, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, m
     columns_index[range(L)] = columns_index[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     sub_G_invs[range(L)] = sub_G_invs[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     grand_list[:, range(L*J)] = grand_list[:, np.mod( np.arange(chosenRoot*J, chosenRoot*J + L*J) ,L*J)]
+    
+    Gijs = partition_Gs(L, M, parityLens, Gis) 
 
     K_effective   = [x for x in range(K) if grand_list[x,0] != -1]
     decoded_msg = np.empty(shape=(0,0))
@@ -142,8 +144,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, Gijs, columns_index, sub_G_invs, m
 
         # print(str(i)+"-th root, before final checkng surviving paths=" + str(len(Paths)))
         # for path in Paths:
-        #     if path.get_lostSection() == 1:
-        #         print("***", path.get_path())
+        #     print("***", path.get_path())
 
         PathsUpdated = []
         for j in range(len(Paths)):

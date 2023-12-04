@@ -4,6 +4,10 @@ import binmatrix as BM
 
 from static_repo import *
 
+
+def convert_secNo_to_default(chosenRoot, sect, L):
+    return np.mod(chosenRoot + sect, L)
+
 def who_decides_p_sec(L, l, M):
     return [(l-j) % L for j in range(M,0, -1)]
 
@@ -60,7 +64,7 @@ def compute_parity_oop(L, Path, grand_list, toCheck, messageLens, parityLens, Gi
                 return -2 * np.ones(parityLens[toCheck],dtype=int)          # We can do nothing here.
             else:
                 useLost = True
-        gen_mat = Gijs[ CantorPairing(decider, toCheck) ]
+        gen_mat = Gijs[ CantorPairing( decider, toCheck) ]
         # if useLost == True: print(Path.get_dictLostInfos(), decider)
         infoInvolved = grand_list[focusPath[decider], decider*J : decider*J+messageLens[decider]] if useLost==False else Path.get_dictLostInfos()[decider]
         Parity_computed = Parity_computed + np.matmul( infoInvolved, gen_mat)

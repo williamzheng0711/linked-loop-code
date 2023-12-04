@@ -17,8 +17,6 @@ def subset(list1, list2):
             return False
     return True
 
-
-
 def smart_order(losts):
     if len(losts) <= 1:
         return losts
