@@ -124,6 +124,8 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
     K_effective   = [x for x in range(K) if grand_list[x,0] != -1]
     decoded_msg = np.empty(shape=(0,0))
 
+    # if d == 2: print(messageLens)
+
     for i, _ in zip(K_effective, tqdm(range(len(K_effective)))):
         Paths = [ LLC.GLinkedLoop([i], messageLens) ]
         for l in list(range(1,L)): # its last element is L-1
@@ -161,7 +163,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
             Paths = [Paths[0]]
-            if d==2: print( convert_secNo_to_default(chosenRoot,list(np.where( np.array( Paths[0].get_path())== -1 )[0]) ,L)  ) 
+            # if d==2: print( convert_secNo_to_default(chosenRoot,list(np.where( np.array( Paths[0].get_path())== -1 )[0]) ,L)  ) 
             recovered_message = output_message_oop(grand_list, Paths, L, J)
             decoded_msg = np.vstack((decoded_msg, recovered_message)) if decoded_msg.size else recovered_message
             if SIC:
@@ -173,6 +175,13 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
     w = sum(messageLens)
     decoded_msg[:,range(w)] = decoded_msg[:, np.mod( np.arange(w) + sum(messageLens[0:L-chosenRoot]), w)]
     decoded_msg = np.unique(decoded_msg, axis=0)
-    grand_list[:, range(L*J)] = grand_list[:, np.mod( np.arange(-chosenRoot*J, -chosenRoot*J + L*J) ,L*J)]
     
+    ### shift things back
+    grand_list[:, range(L*J)] = grand_list[:, np.mod( np.arange(-chosenRoot*J, -chosenRoot*J + L*J) ,L*J)]
+    messageLens[range(L)] = messageLens[np.mod(np.arange(-chosenRoot, -chosenRoot+L),L)]
+    parityLens[range(L)] = parityLens[np.mod(np.arange(-chosenRoot, -chosenRoot+L),L)]
+    Gis[range(L)] = Gis[np.mod(np.arange(-chosenRoot, -chosenRoot+L),L)]
+    columns_index[range(L)] = columns_index[np.mod(np.arange(-chosenRoot, -chosenRoot+L),L)]
+    sub_G_invs[range(L)] = sub_G_invs[np.mod(np.arange(-chosenRoot, -chosenRoot+L),L)]
+
     return decoded_msg, grand_list
