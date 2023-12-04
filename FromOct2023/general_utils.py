@@ -6,7 +6,7 @@ from static_repo import *
 
 
 def convert_secNo_to_default(chosenRoot, sect, L):
-    return np.mod(chosenRoot + sect, L)
+    return np.mod( [chosenRoot + a for a in sect], L)
 
 def who_decides_p_sec(L, l, M):
     return [(l-j) % L for j in range(M,0, -1)]
@@ -83,8 +83,8 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
 
 
     # Under the following circumstances, we don't need to consider about RECOVERING something lost
-    # 1. There is nothing lost in the sub-path at all. Aka, no "na". and 
-    # 2. The lost part has already been recovered long time ago. (> M)
+    # 1. There is nothing lost in the sub-path at all. Aka, no "na". or 
+    # 2. The lost part has already been recovered. 
     toCheckDeciders = who_decides_p_sec(L, toCheck, M)
     canDecide_toCheck = True
     for toCheckDecider in toCheckDeciders:
@@ -95,23 +95,15 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
 
     if canDecide_toCheck and toCheck != L-1 :
         Parity = grand_list[k, toCheck*J+messageLens[toCheck] :(toCheck+1)*J ]    # 第k行的第 toCheck section的parity
-        # assert sum(Parity_computed)>=0
-        # if np.equal(Parity_computed, -2 * np.ones((parityLens[toCheck]),dtype=int)).all() and len(focusPath)<=2:
-        #     print(Parity_computed, focusPath, toCheck, Path.num_na_in_path(), toCheckDeciders, Path.get_dictLostInfos(), Path.get_listLostSects())
         if (np.sum(np.absolute(Parity_computed-Parity)) == 0):
-            # print("A 口出去")
             return True, oldDictLostInfos
         else: 
             return False, {}
 
-    
     # 有lost
     else:   
-        for lostSection in smart_order(losts):
-            # (w1, w2, w3, w4) => p5    # (w2, w3, w4, w5) => p6    
-            # (w3, w4, w5, w6) => p7    # (w4, w5, w6, w7) => p8    
+        for lostSection in losts:
             # # w5, w6, w7 and w8 are "saverSections" of lostSections. w(4) is what we lost.
-            # for lostSection in losts:
             saverSections = I_decides_who(L, lostSection, M)             # then saverSections = [5, 6, 7, 8]
             availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=toCheck for x in range(M+1)]).all() == True]
             # if len(focusPath)<=2 : print(saverSections, availSavers, focusPath, Path.get_dictLostInfos())
@@ -133,7 +125,17 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
                 for saverDecider in saverDeciders:     
                     if (saverDecider != lostSection):
                         gen_mat = Gijs[ CantorPairing(saverDecider, availSaver) ]
-                        toAdd = np.matmul(grand_list[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat) if saverDecider != toCheck else np.matmul(grand_list[k,saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat)
+                        try:
+                            toAdd = np.matmul(grand_list[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat) if saverDecider != toCheck else np.matmul(grand_list[k,saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat)
+                        except:
+                            print(str(saverDecider != toCheck) + " " + str(k) + " " + str(losts))
+                            if saverDecider != toCheck:
+                                print(grand_list[focusPath[saverDecider],saverDecider*J:saverDecider*J+messageLens[saverDecider]])
+                            else:
+                                print(grand_list[k,saverDecider*J:saverDecider*J+messageLens[saverDecider]])
+                        # except:
+                        #     # do something rubbish
+                        #     toAdd = np.matmul(grand_list[focusPath[0], saverDecider*J:saverDecider*J+messageLens[saverDecider]], gen_mat)
                         toAdd = np.mod(toAdd, 2)
                         subtrahend = subtrahend + toAdd
 
@@ -146,17 +148,22 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
                 concatenated_known_vctr = np.hstack((concatenated_known_vctr, known_vector))
 
             # !!!! This is a temporary patch, should be dealt later when considering more general codes
-            if lostSection >= M - 1:
-                sufficent_columns = np.array(columns_index[lostSection],dtype=int)
-                gen_binmat_inv = sub_G_invs[lostSection]
-                newAnswer = np.array(np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2), dtype=int)
-                assert newAnswer.shape[0] == messageLens[lostSection]
-            else: 
-                sufficent_columns = range(8, 16)
-                BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
-                gen_binmat_inv = np.array(BinMat.inv(), dtype=int )
-                newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
-                assert newAnswer.shape[0] == messageLens[lostSection]
+            ## This only works for (L=16, M=3) cases
+            # if lostSection >= M - 1:
+
+            ## This means that erasures happening at [0,1] will not be dealt
+            sufficent_columns = np.array(columns_index[lostSection],dtype=int)
+            gen_binmat_inv = sub_G_invs[lostSection]
+            newAnswer = np.array(np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2), dtype=int)
+            assert newAnswer.shape[0] == messageLens[lostSection]
+            # else: 
+            #     assert lostSection == 1
+            #     # if d==1: print("来了", str(availSavers))
+            #     sufficent_columns = range(8, 16)   # which is not the usual range(0,8)
+            #     BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
+            #     gen_binmat_inv = np.array(BinMat.inv(), dtype=int)
+            #     newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
+            #     assert newAnswer.shape[0] == messageLens[lostSection]
 
             if np.array_equal(np.mod( np.matmul(newAnswer, Gis[lostSection]), 2), concatenated_known_vctr) == False and len(availSavers)==M:
                 return False , {}
@@ -188,13 +195,12 @@ def Path_goes_section_l(l, Path, d, grand_list, K, messageLens, parityLens, L, M
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([k]), messageLens, oldListLostSects, oldDictLostInfos) )
             else : 
                 Path = LLC.GLinkedLoop(oldPath, messageLens, oldListLostSects, oldDictLostInfos )
-                # if sum(Parity_computed) < 0 : print("BBBB", Path.get_path(), Path.get_listLostSects(), Path.get_dictLostInfos()) 
                 toKeep, updDictLostInfos = Path_goes_entry_k(d, Parity_computed, l, Path, k, grand_list, messageLens, parityLens, L, M, Gis, Gijs, columns_index, sub_G_invs)
                 if toKeep:
                     new.append(LLC.GLinkedLoop(list(oldPath)+ list([k]), messageLens, oldListLostSects, updDictLostInfos))
     
     # if Path.num_na_in_path() < d and (erasure_slot== None   or   l in erasure_slot    or   subset(erasure_slot, oldListLostSects)):
-    if (d - Path.num_na_in_path() > 0) and ( d- len(erasure_slot) > 0 or l in erasure_slot):
+    if (d - Path.num_na_in_path() > 0) and ( d- len(erasure_slot) > 0 or l in erasure_slot or np.mod(l-1,L) in erasure_slot):
         if l != L-1:
                 # print("See here")
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldListLostSects + list([l]), oldDictLostInfos) ) 

@@ -92,7 +92,6 @@ print(" -Phase 1 Done.\n")
 
 
 
-
 ###################################################################################################
 ### Decoding phase 2 (finding/recovering 1-outage codewords in the channel output) now starts.
 print(" -- Decoding phase 2 now starts.")
@@ -113,6 +112,7 @@ all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
 _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 2")
 print(" -Phase 2 is done. \n")
 #################################################################################################
+
 
 
 
@@ -139,7 +139,7 @@ toc = time.time()
 print(" | Time of phase 3.3 " + str(toc-tic))
 txBits_rmd_afterp33 = check_phase(txBits_rmd_afterp32, rxBits_p33, "Linked-loop Code", "3.3")
 
-all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p31)) 
+all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p31)) if rxBits_p31.size else  all_decoded_txBits
 all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p32)) if rxBits_p32.size else  all_decoded_txBits
 all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p33)) if rxBits_p33.size else  all_decoded_txBits
 all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
