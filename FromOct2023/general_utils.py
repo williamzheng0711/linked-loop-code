@@ -8,6 +8,9 @@ from static_repo import *
 def convert_secNo_to_default(chosenRoot, sect, L):
     return np.mod( [chosenRoot + a for a in sect], L)
 
+def convert_sec_to_default(chosenRoot, x, L):
+    return np.mod( chosenRoot + x, L)
+
 def who_decides_p_sec(L, l, M):
     return [(l-j) % L for j in range(M,0, -1)]
 
@@ -73,6 +76,8 @@ def compute_parity_oop(L, Path, grand_list, toCheck, messageLens, parityLens, Gi
     return Parity_computed
     # return -1 * np.ones((1,parityLens[toCheck]),dtype=int)
 
+
+
 # For phase 2+
 def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageLens, parityLens,
                                 L, M, Gis, Gijs, columns_index, sub_G_invs):
@@ -80,7 +85,6 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
     focusPath = Path.get_path()
     oldDictLostInfos = Path.get_dictLostInfos().copy()
     losts = np.where( np.array(focusPath) < 0 )[0]
-
 
     # Under the following circumstances, we don't need to consider about RECOVERING something lost
     # 1. There is nothing lost in the sub-path at all. Aka, no "na". or 
@@ -102,7 +106,8 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
 
     # 有lost
     else:   
-        for lostSection in losts:
+        unsolved_losts = [x for x in losts if x not in oldDictLostInfos]
+        for lostSection in unsolved_losts:
             # # w5, w6, w7 and w8 are "saverSections" of lostSections. w(4) is what we lost.
             saverSections = I_decides_who(L, lostSection, M)             # then saverSections = [5, 6, 7, 8]
             availSavers = [saver for saver in saverSections if np.array([np.mod(saver-x,L)<=toCheck for x in range(M+1)]).all() == True]
@@ -167,10 +172,8 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
 
             if np.array_equal(np.mod( np.matmul(newAnswer, Gis[lostSection]), 2), concatenated_known_vctr) == False and len(availSavers)==M:
                 return False , {}
-
             oldDictLostInfos[lostSection] = newAnswer
-
-        # print("B 口出去", oldDictLostInfos)
+            # if d==2: print("有作用")
         return True, oldDictLostInfos
 
 
@@ -200,9 +203,8 @@ def Path_goes_section_l(l, Path, d, grand_list, K, messageLens, parityLens, L, M
                     new.append(LLC.GLinkedLoop(list(oldPath)+ list([k]), messageLens, oldListLostSects, updDictLostInfos))
     
     # if Path.num_na_in_path() < d and (erasure_slot== None   or   l in erasure_slot    or   subset(erasure_slot, oldListLostSects)):
-    if (d - Path.num_na_in_path() > 0) and ( d- len(erasure_slot) > 0 or l in erasure_slot or np.mod(l-1,L) in erasure_slot):
+    if d-Path.num_na_in_path()>0 and ( d- len(erasure_slot) > 0 or l in erasure_slot or np.mod(l-1,L) in erasure_slot ) and all_known(oldPath, oldDictLostInfos) and     not (M==3 and l==1):
         if l != L-1:
-                # print("See here")
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldListLostSects + list([l]), oldDictLostInfos) ) 
         else:
             temp_path = LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldListLostSects + list([l]), oldDictLostInfos)

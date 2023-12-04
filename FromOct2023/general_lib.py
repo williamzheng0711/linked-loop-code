@@ -119,7 +119,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
     sub_G_invs[range(L)] = sub_G_invs[np.mod(np.arange(chosenRoot, chosenRoot+L),L)]
     grand_list[:, range(L*J)] = grand_list[:, np.mod( np.arange(chosenRoot*J, chosenRoot*J + L*J) ,L*J)]
     ## Always generate Gijs immediately after Gis.
-    Gijs = partition_Gs(L, M, parityLens, Gis) 
+    Gijs = partition_Gs(L, M, parityLens, Gis)
 
     K_effective   = [x for x in range(K) if grand_list[x,0] != -1]
     decoded_msg = np.empty(shape=(0,0))
@@ -129,7 +129,10 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
         for l in list(range(1,L)): # its last element is L-1
             if len(Paths) == 0: 
                 break
-            # if d==2: print("l="+str(l) +" len=" + str(len(Paths)))
+            # if d==2: 
+            #     print("l="+str(np.mod(chosenRoot + l, L)) +" len=" + str(len(Paths)))
+            #     for Path in Paths:
+            #         print(Path.get_path(), Path.all_known())
             newAll = []
             survivePaths= Parallel(n_jobs=-1)(delayed(Path_goes_section_l)(l, Paths[j],d, grand_list, K, messageLens, parityLens, 
                                                                            L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot) for j in range(len(Paths)))
@@ -141,7 +144,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
             # print(l, len(Paths))
 
         # print(str(i)+"-th root, before final checkng surviving paths=" + str(len(Paths)))
-        # if d==1: 
+        # if d==2: 
         #     for path in Paths:
         #         # print("***", path.get_path())
         #         print(str( list(np.where( np.array( path.get_path())== -1 )[0]))) 
@@ -150,7 +153,6 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
         for j in range(len(Paths)):
             Path = Paths[j]
             isOkay = final_parity_check_oop(Path, grand_list, messageLens, parityLens, L, Gijs, M)
-            # isOkay = True
             if isOkay:
                 PathsUpdated.append( Path )
         Paths = PathsUpdated
@@ -159,7 +161,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
         if len(Paths) >= 1: # rows inside Paths should be all with one-outage. Some are true positive, some are false positive
             # print(" | We obtained some candidate!!")
             Paths = [Paths[0]]
-            # if d==2: print( convert_secNo_to_default(chosenRoot,list(np.where( np.array( Paths[0].get_path())== -1 )[0]) ,L)  ) 
+            if d==2: print( convert_secNo_to_default(chosenRoot,list(np.where( np.array( Paths[0].get_path())== -1 )[0]) ,L)  ) 
             recovered_message = output_message_oop(grand_list, Paths, L, J)
             decoded_msg = np.vstack((decoded_msg, recovered_message)) if decoded_msg.size else recovered_message
             if SIC:

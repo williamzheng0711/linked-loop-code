@@ -28,3 +28,13 @@ class GLinkedLoop:
             return False
         else:
             return True
+        
+    def all_known(self):
+        flag = True
+        for l in range(len(self.path)):
+            if self.path[l] == -1:
+                if l not in self.dictLostInfos:
+                    flag = False
+                    return flag
+        return flag
+        

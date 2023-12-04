@@ -9,6 +9,14 @@ J = 16                     # Length of each coded sub-block
 L_set = [15, 16]
 M_set = [2, 3]
 
+def all_known(path, dict):
+    flag = True
+    for l in range(len(path)):
+        if path[l] == -1:
+            if l not in dict:
+                flag = False
+                return flag
+    return flag
 
 def subset(list1, list2):
     # determine if list1 is a subset of list2 
