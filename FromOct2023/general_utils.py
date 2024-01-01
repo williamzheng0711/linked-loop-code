@@ -205,29 +205,27 @@ def Path_goes_section_l(l, Path, d, grand_list, K, messageLens, parityLens, L, M
 
 def solveInfoBack(concatenated_known_vctr, columns_index, lostSection, sub_G_invs, messageLens, L, M, Gis):
     if L==16 and M==3 and lostSection == 1: 
-            sufficent_columns = range(8,16)
-            BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
-            gen_binmat_inv = np.array(BinMat.inv(), dtype=int)
-            newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
-            assert newAnswer.shape[0] == messageLens[lostSection]
-            return newAnswer
+        sufficent_columns = range(8,16)
+        BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
+        gen_binmat_inv = np.array(BinMat.inv(), dtype=int)
+        newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
+        assert newAnswer.shape[0] == messageLens[lostSection]
+        return newAnswer
+
+    if L==15 and M ==3 and lostSection ==1:
+        sufficent_columns = range(7,15)
+        BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
+        gen_binmat_inv = np.array(BinMat.inv(), dtype=int)
+        newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
+        assert newAnswer.shape[0] == messageLens[lostSection]
+        return newAnswer
+    
     else: 
         sufficent_columns = np.array(columns_index[lostSection],dtype=int)
         gen_binmat_inv = sub_G_invs[lostSection]
         newAnswer = np.array(np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2), dtype=int)
         assert newAnswer.shape[0] == messageLens[lostSection]
         return newAnswer
-
-
-    # else: 
-    #     assert lostSection == 1
-    #     # if d==1: print("来了", str(availSavers))
-    #     sufficent_columns = range(8, 16)   # which is not the usual range(0,8)
-    #     BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
-    #     gen_binmat_inv = np.array(BinMat.inv(), dtype=int)
-    #     newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
-    #     assert newAnswer.shape[0] == messageLens[lostSection]
-
 
 
 # Done
