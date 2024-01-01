@@ -153,9 +153,7 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
                 concatenated_known_vctr = np.hstack((concatenated_known_vctr, known_vector))
 
             # !!!! This is a temporary patch, should be dealt later when considering more general codes
-            ## This only works for (L=16, M=3) cases
             # if lostSection >= M - 1:
-
             ## This means that erasures happening at [0,1] will not be dealt
             sufficent_columns = np.array(columns_index[lostSection],dtype=int)
             gen_binmat_inv = sub_G_invs[lostSection]
