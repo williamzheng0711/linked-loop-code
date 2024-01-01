@@ -155,18 +155,8 @@ def Path_goes_entry_k(d, Parity_computed, toCheck, Path, k, grand_list, messageL
             # !!!! This is a temporary patch, should be dealt later when considering more general codes
             # if lostSection >= M - 1:
             ## This means that erasures happening at [0,1] will not be dealt
-            sufficent_columns = np.array(columns_index[lostSection],dtype=int)
-            gen_binmat_inv = sub_G_invs[lostSection]
-            newAnswer = np.array(np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2), dtype=int)
-            assert newAnswer.shape[0] == messageLens[lostSection]
-            # else: 
-            #     assert lostSection == 1
-            #     # if d==1: print("来了", str(availSavers))
-            #     sufficent_columns = range(8, 16)   # which is not the usual range(0,8)
-            #     BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
-            #     gen_binmat_inv = np.array(BinMat.inv(), dtype=int)
-            #     newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
-            #     assert newAnswer.shape[0] == messageLens[lostSection]
+
+            newAnswer = solveInfoBack(concatenated_known_vctr, columns_index, lostSection, sub_G_invs, messageLens, L, M, Gis)
 
             if np.array_equal(np.mod( np.matmul(newAnswer, Gis[lostSection]), 2), concatenated_known_vctr) == False and len(availSavers)==M:
                 return False , {}
@@ -201,7 +191,7 @@ def Path_goes_section_l(l, Path, d, grand_list, K, messageLens, parityLens, L, M
                     new.append(LLC.GLinkedLoop(list(oldPath)+ list([k]), messageLens, oldListLostSects, updDictLostInfos))
     
     # if Path.num_na_in_path() < d and (erasure_slot== None   or   l in erasure_slot    or   subset(erasure_slot, oldListLostSects)):
-    if d-Path.num_na_in_path()>0 and ( d- len(erasure_slot) > 0 or l in erasure_slot or np.mod(l-1,L) in erasure_slot ) and all_known(oldPath, oldDictLostInfos) and     not (M==3 and l==1):
+    if Path.num_na_in_path() < d and ( d- len(erasure_slot) > 0 or l in erasure_slot ) and all_known(oldPath, oldDictLostInfos):
         if l != L-1:
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]), messageLens, oldListLostSects + list([l]), oldDictLostInfos) ) 
         else:
@@ -211,6 +201,33 @@ def Path_goes_section_l(l, Path, d, grand_list, K, messageLens, parityLens, L, M
                 new.append( LLC.GLinkedLoop( list(oldPath) + list([-1]) , messageLens, oldListLostSects + list([l]), updDictLostInfos) ) 
                 
     return new
+
+
+def solveInfoBack(concatenated_known_vctr, columns_index, lostSection, sub_G_invs, messageLens, L, M, Gis):
+    if L==16 and M==3 and lostSection == 1: 
+            sufficent_columns = range(8,16)
+            BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
+            gen_binmat_inv = np.array(BinMat.inv(), dtype=int)
+            newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
+            assert newAnswer.shape[0] == messageLens[lostSection]
+            return newAnswer
+    else: 
+        sufficent_columns = np.array(columns_index[lostSection],dtype=int)
+        gen_binmat_inv = sub_G_invs[lostSection]
+        newAnswer = np.array(np.mod(np.matmul(concatenated_known_vctr[sufficent_columns],gen_binmat_inv),2), dtype=int)
+        assert newAnswer.shape[0] == messageLens[lostSection]
+        return newAnswer
+
+
+    # else: 
+    #     assert lostSection == 1
+    #     # if d==1: print("来了", str(availSavers))
+    #     sufficent_columns = range(8, 16)   # which is not the usual range(0,8)
+    #     BinMat = BM.BinMatrix(m= Gis[lostSection][:,sufficent_columns])
+    #     gen_binmat_inv = np.array(BinMat.inv(), dtype=int)
+    #     newAnswer = np.array( np.mod(np.matmul(concatenated_known_vctr[range(8)],gen_binmat_inv),2), dtype= int)
+    #     assert newAnswer.shape[0] == messageLens[lostSection]
+
 
 
 # Done
