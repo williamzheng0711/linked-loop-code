@@ -263,7 +263,10 @@ def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed):
     print(" | Time of phase 2.2 " + str(toc-tic))
     txBits_rmd_afterp22 = check_phase(txBits_rmd_afterp21, rxBits_p22, "Linked-loop Code", "2.2")
 
-    all_decoded_txBits = np.vstack((rxBits_p1, rxBits_p21, rxBits_p22)) if rxBits_p22.size else np.vstack((rxBits_p1, rxBits_p21))
+    if rxBits_p21.size: 
+        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p21))
+    if rxBits_p22.size: 
+        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p22))
     all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
     _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 2")
     print(" -Phase 2 is done. \n")
