@@ -10,19 +10,19 @@ from slow_lib import *
 from abch_utils import *
 
 
-p_e = 0.225
-K = 50 
-channel_type = "B"
-SIC = True
+p_e = 0.1
+K = 100 
+# channel_type = "B"
+# SIC = True
 
 txBits = np.random.randint(low=2, size=(K, B))        
 seed = np.random.randint(1000)
 print("The seed is " + str(seed))
 
 ### Run the simulation
-simulation(16, p_e, K, 2, channel_type, SIC, txBits, seed)
-simulation(16, p_e, K, 3, channel_type, SIC, txBits, seed)
-simulation(15, p_e, K, 2, channel_type, SIC, txBits, seed)
+simulation(16, p_e, K, 3, "B", True,  txBits, seed, 3)
+simulation(16, p_e, K, 3, "A", True,  txBits, seed, 3)
+simulation(16, p_e, K, 3, "A", False, txBits, seed, 2)
 # simulation(15, p_e, K, 3, channel_type, SIC, txBits, seed)
 
 print("********************Done*****************")

@@ -190,7 +190,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
 
 
 
-def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed):
+def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3):
 
     messageLens, parityLens = get_allocation(L=L);  N = 2**J # N denotes the length of a codeword, that is rate R = B / N
     ### Retrieve parity-generating matrices from matrix repository
@@ -247,7 +247,6 @@ def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed):
     ###################################################################################################
 
 
-
     ###################################################################################################
     ### Decoding phase 2 (finding/recovering 1-outage codewords in the channel output) now starts.
     print(" -- Decoding phase 2 now starts.")
@@ -264,44 +263,43 @@ def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed):
     txBits_rmd_afterp22 = check_phase(txBits_rmd_afterp21, rxBits_p22, "Linked-loop Code", "2.2")
 
     if rxBits_p21.size: 
-        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p21))
+        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p21)) if all_decoded_txBits.size else rxBits_p21
     if rxBits_p22.size: 
-        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p22))
+        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p22)) if all_decoded_txBits.size else rxBits_p22
     all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
     _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 2")
     print(" -Phase 2 is done. \n")
     #################################################################################################
 
-
-
+    if phase >=3:
     ###################################################################################################
     ### Decoding phase 3 (finding/recovering 2-outage codewords in the channel output) now starts.
-    print(" -- Decoding phase 3 now starts.")
-    tic = time.time()
-    rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
-    toc = time.time()
-    print(" | Time of phase 3.1 " + str(toc-tic))
-    txBits_rmd_afterp31 = check_phase(txBits_rmd_afterp22, rxBits_p31, "Linked-loop Code", "3.1")
+        print(" -- Decoding phase 3 now starts.")
+        tic = time.time()
+        rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
+        toc = time.time()
+        print(" | Time of phase 3.1 " + str(toc-tic))
+        txBits_rmd_afterp31 = check_phase(txBits_rmd_afterp22, rxBits_p31, "Linked-loop Code", "3.1")
 
-    tic = time.time()
-    rxBits_p32, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[6])
-    toc = time.time()
-    print(" | Time of phase 3.2 " + str(toc-tic))
-    txBits_rmd_afterp32 = check_phase(txBits_rmd_afterp31, rxBits_p32, "Linked-loop Code", "3.2")
+        tic = time.time()
+        rxBits_p32, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[6])
+        toc = time.time()
+        print(" | Time of phase 3.2 " + str(toc-tic))
+        txBits_rmd_afterp32 = check_phase(txBits_rmd_afterp31, rxBits_p32, "Linked-loop Code", "3.2")
 
-    tic = time.time()
-    rxBits_p33, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[6,10])
-    toc = time.time()
-    print(" | Time of phase 3.3 " + str(toc-tic))
-    txBits_rmd_afterp33 = check_phase(txBits_rmd_afterp32, rxBits_p33, "Linked-loop Code", "3.3")
+        tic = time.time()
+        rxBits_p33, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[6,10])
+        toc = time.time()
+        print(" | Time of phase 3.3 " + str(toc-tic))
+        txBits_rmd_afterp33 = check_phase(txBits_rmd_afterp32, rxBits_p33, "Linked-loop Code", "3.3")
 
-    all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p31)) if rxBits_p31.size else  all_decoded_txBits
-    all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p32)) if rxBits_p32.size else  all_decoded_txBits
-    all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p33)) if rxBits_p33.size else  all_decoded_txBits
-    all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
-    _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 3")
-    print(" -Phase 3 is done, this simulation terminates.\n")
-    #################################################################################################
+        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p31)) if rxBits_p31.size else  all_decoded_txBits
+        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p32)) if rxBits_p32.size else  all_decoded_txBits
+        all_decoded_txBits = np.vstack((all_decoded_txBits, rxBits_p33)) if rxBits_p33.size else  all_decoded_txBits
+        all_decoded_txBits = np.unique(all_decoded_txBits, axis=0)
+        _ = check_phase(txBits, all_decoded_txBits, "Linked-loop Code", "up-to-phase 3")
+        print(" -Phase 3 is done, this simulation terminates.\n")
+        #################################################################################################
 
 
     # ###################################################################################################
