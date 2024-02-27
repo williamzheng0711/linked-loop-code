@@ -2149,7 +2149,8 @@ def G_matrix_profile(nr, nc):
     return np.array(G_pool, dtype=object), np.array(columns_index_pool, dtype=int), np.array(sub_G_inversions_pool, dtype=object)
 
 
-def get_G_info(L, M, messageLens, parityLens):
+def get_G_info(L, M, messageLens, parityLens, seed=0):
+    np.random.seed(seed=seed)
     # number of rows of Gl for each l in [L]
     nr_Gl= messageLens 
     

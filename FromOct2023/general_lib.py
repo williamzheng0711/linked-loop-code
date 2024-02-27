@@ -194,13 +194,13 @@ def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3):
 
     messageLens, parityLens = get_allocation(L=L);  N = 2**J # N denotes the length of a codeword, that is rate R = B / N
     ### Retrieve parity-generating matrices from matrix repository
-    Gis, columns_index, sub_G_invs = get_G_info(L, M, messageLens, parityLens)
+    Gis, columns_index, sub_G_invs = get_G_info(L, M, messageLens, parityLens, seed=seed)
     ### Do partition on Gl's, making them into G_{l,l+1}, G_{l,l+2}, ... , G_{l,l+M}, these matrices with double subscripts are called Gijs
     Gijs = partition_Gs(L, M, parityLens, Gis) 
 
     ###################################################################################################
     ### Simulation starts.
-    print("####### Start Rocking ######## K="+ str(K)+ " and p_e= "+ str(p_e)+ " and L= "+ str(L) +" and M= " + str(M))                                
+    print("####### Start Rocking ######## K="+ str(K)+ " and p_e= "+ str(p_e)+ " and L= "+ str(L) +" and M= " + str(M) + " and ctype: " + str(channel_type))                                
 
     ### Encode all messages of K users. Hence tx_cdwds.shape is [K,N]
     tx_cdwds = encode(txBits, K, L, N, M, messageLens, parityLens, Gijs)

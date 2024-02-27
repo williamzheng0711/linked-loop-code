@@ -22,7 +22,7 @@ print("The seed is " + str(seed))
 ### Run the simulation
 simulation(16, p_e, K, 3, "B", True,  txBits, seed, 3)
 simulation(16, p_e, K, 3, "A", True,  txBits, seed, 3)
-simulation(16, p_e, K, 3, "A", False, txBits, seed, 2)
+# simulation(16, p_e, K, 3, "A", False, txBits, seed, 2)
 # simulation(15, p_e, K, 3, channel_type, SIC, txBits, seed)
 
 print("********************Done*****************")
