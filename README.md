@@ -17,6 +17,7 @@ In specific, this demostration result says we managed to recover 92 true positiv
 * Phase 1 try to find ALL parity consistent paths that suffers NO erasures. 
 * Phase 2 try to find ALL (the remaining) parity consistent paths that suffers 1 erasures.
 * Phase 3 try to find SOME (the remaining) parity consistent paths that suffers 2 (E.g., not happening in consecutive sections) erasures.
+* For phase 2.xxx, 3.xxx, these mean we are operating the "multiple root" method. We occasionally change the root section to see if we can decode more messages at the current phase. 
 
 ```md
 ####### Start Rocking ######## K=100 and p_e= 0.05 and L= 16 and M= 2 and ctype: B
