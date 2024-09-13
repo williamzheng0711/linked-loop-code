@@ -21,29 +21,29 @@ In specific, this demostration result says we managed to recover 92 true positiv
 ```md
 ####### Start Rocking ######## K=100 and p_e= 0.05 and L= 16 and M= 2 and ctype: B
  -- Decoding phase 1 now starts.
- 99%|███████████████████████████████████████████████████████████████| 95/96 [00:02<00:00, 37.04it/s]
+ 99%|██████████████████████████████████████████████| 95/96 [00:02<00:00, 37.04it/s]
  | Time of phase 1 (LLC): 2.573298931121826
  | In phase 1 linked loop Code decodes 42 true message out of 42
  -Phase 1 Done.
 
  -- Decoding phase 2 now starts.
- 98%|██████████████████████████████████████████████████████████████| 53/54 [00:29<00:00,  1.81it/s]
+ 98%|█████████████████████████████████████████████| 53/54 [00:29<00:00,  1.81it/s]
  | Time of phase 2.1 29.349550008773804
  | In phase 2.1 Linked-loop Code decodes 35 true message out of 35
- 95%|██████████████████████████████████████████████████████████████| 19/20 [00:00<00:00, 42.04it/s]
+ 95%|████████████████████████████████████████████| 19/20 [00:00<00:00, 42.04it/s]
  | Time of phase 2.2 0.4530029296875
  | In phase 2.2 Linked-loop Code decodes 1 true message out of 1
  | In phase up-to-phase 2 Linked-loop Code decodes 78 true message out of 78
  -Phase 2 is done. 
 
  -- Decoding phase 3 now starts.
- 95%|██████████████████████████████████████████████████████████████  | 18/19 [00:15<00:00,  1.14it/s]
+ 95%|████████████████████████████████████████████ | 18/19 [00:15<00:00,  1.14it/s]
  | Time of phase 3.1 15.845634698867798
  | In phase 3.1 Linked-loop Code decodes 12 true message out of 13
- 88%|█████████████████████████████████████████████████████████████| 7/8 [00:02<00:00,  2.35it/s]
+ 88%|███████████████████████████████████████████ | 7/8 [00:02<00:00,  2.35it/s]
  | Time of phase 3.2 2.9842469692230225
  | In phase 3.2 Linked-loop Code decodes 2 true message out of 2
- 80%|█████████████████████████████████████████████████████████████| 4/5 [00:00<00:00, 109.37it/s]
+ 80%|████████████████████████████████████████████| 4/5 [00:00<00:00, 109.37it/s]
  | Time of phase 3.3 0.03735232353210449
  | In phase up-to-phase 3 Linked-loop Code decodes 92 true message out of 93
  -Phase 3 is done, this simulation terminates.
