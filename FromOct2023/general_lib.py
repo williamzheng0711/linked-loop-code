@@ -138,7 +138,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
             #     for Path in Paths:
             #         print(Path.get_path(), Path.all_known())
             newAll = []
-            survivePaths= Parallel(n_jobs=-1)(delayed(Path_goes_section_l)(l, Paths[j],d, grand_list, K, messageLens, parityLens, 
+            survivePaths= Parallel(n_jobs=-1)( delayed(Path_goes_section_l)(l, Paths[j],d, grand_list, K, messageLens, parityLens, 
                                                                            L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot) for j in range(len(Paths)))
             # print("This section done.", end=" ")
             for survivePath in survivePaths:
