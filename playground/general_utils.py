@@ -269,11 +269,31 @@ def check_phase(txBits, rxBits_phase, name, phase):
     
     thisIter = 0
     txBits_remained = np.empty(shape=(0,0))
+    # for i in range(txBits.shape[0]):
+    #     incre = 0
+    #     incre = np.equal(txBits[i,:],rxBits_phase).all(axis=1).any()
+    #     thisIter += int(incre)
+    #     if (incre == False):
+    #         txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
+    # print(" | In phase " + phase + " " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits_phase.shape[0]))
+    
     for i in range(txBits.shape[0]):
         incre = 0
-        incre = np.equal(txBits[i,:],rxBits_phase).all(axis=1).any()
+        # 檢查 txBits 是否為一維陣列
+        if txBits.ndim == 1:
+            # 一維情況：直接比較 txBits 與 rxBits_phase
+            incre = np.array_equal(txBits, rxBits_phase)
+        else:
+            # 二維情況：比較 txBits[i,:] 與 rxBits_phase
+            incre = np.equal(txBits[i,:], rxBits_phase).all(axis=1).any()
+        
         thisIter += int(incre)
-        if (incre == False):
-            txBits_remained = np.vstack( (txBits_remained, txBits[i,:]) ) if txBits_remained.size else  txBits[i,:]
-    print(" | In phase " + phase + " " + str(name) + " decodes " + str(thisIter) + " true message out of " +str(rxBits_phase.shape[0]))
+        if not incre:
+            # 根據 txBits 的維度選擇適當的 stacking 方式
+            if txBits.ndim == 1:
+                txBits_remained = np.append(txBits_remained, txBits) if txBits_remained.size else txBits
+            else:
+                txBits_remained = np.vstack((txBits_remained, txBits[i,:])) if txBits_remained.size else txBits[i,:]
+                
+    print(" | In phase " + phase + " " + str(name) + " decodes " + str(thisIter) + " true message out of " + str(rxBits_phase.shape[0]))
     return txBits_remained

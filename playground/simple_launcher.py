@@ -19,6 +19,8 @@ parser.add_option("--L", type="int", dest="L", help="Number of sections", defaul
 parser.add_option("--sic", type="int", dest="sic", help="Do SIC?", default=1)
 parser.add_option("--M", type="int", dest="M", help="Window size?", default=-1)
 parser.add_option("--ctype", type="string", dest="ctype", help="A or B?", default="None")
+parser.add_option("--num_exp", type="int", dest="num_exp", help="Number of experiments", default=10)
+parser.add_option("--toPrint", type="int", dest="toPrint", help="Whether to print", default=1)
 (options, args) = parser.parse_args()
 
 
@@ -29,11 +31,14 @@ L = options.L;                                  assert L in L_set
 assert options.sic==0 or options.sic==1;        SIC = True if options.sic else False
 M = options.M;                                  assert M in M_set # M = 2 or 3
 channel_type = options.ctype;                   assert channel_type == "A" or channel_type == "B"
+num_exp = options.num_exp;                      assert num_exp > 0
+toPrint = True if options.toPrint else False
 
 
-### Generate the iid random B-bit messages for each of the K users. Hence txBits.shape is [K,B]
-txBits = np.random.randint(low=2, size=(K, B))        
-seed = np.random.randint(1000)
+for _ in range(num_exp):
+    ### Generate the iid random B-bit messages for each of the K users. Hence txBits.shape is [K,B]
+    txBits = np.random.randint(low=2, size=(K, B))      
+    random_seed = int(time.time() * 1000) % (2**32)
 
-### Run the simulation
-simulation(L, p_e, K, M, channel_type, SIC, txBits, seed)
+    ### Run the simulation
+    simulation(L, p_e, K, M, channel_type, SIC, txBits, random_seed, toPrint=toPrint)

@@ -38,7 +38,7 @@ def encode(tx_message,K,L,N,M,messageLens,parityLens, Gijs):
     return encoded_tx_message
 
 
-def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True, pChosenRoot=None):
+def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True, pChosenRoot=None, toPrint=True):
     """
     Parameters
     ----------
@@ -57,7 +57,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
     K_effective  = [x for x in range(K) if grand_list[x,0] != -1]
     decoded_msg = np.empty(shape=(0,0))
 
-    for i, _ in zip(K_effective, tqdm(range(len(K_effective)))):
+    for i, _ in zip(K_effective, tqdm(range(len(K_effective))) if toPrint else range(len(K_effective))):
         Paths = np.array([[i]])
         for l in list(range(1,L)):
             new= np.empty(shape= (0, 0))
@@ -109,7 +109,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
 
 
 
-def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None):
+def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None, toPrint=True):
     
     # Determine the No. of section to perform as the root.
     chosenRoot = 0 if pChosenRoots == None else pChosenRoots[-1]
@@ -128,7 +128,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
     decoded_msg = np.empty(shape=(0,0))
 
 
-    for i, _ in zip(K_effective, tqdm(range(len(K_effective)))):
+    for i, _ in zip(K_effective, tqdm(range(len(K_effective))) if toPrint else range(len(K_effective))):
         Paths = [ LLC.GLinkedLoop([i], messageLens) ]
         for l in list(range(1,L)): # its last element is L-1
             if len(Paths) == 0: 
@@ -190,7 +190,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
 
 
 
-def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3):
+def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3, toPrint=True):
 
     messageLens, parityLens = get_allocation(L=L);  N = 2**J # N denotes the length of a codeword, that is rate R = B / N
     ### Retrieve parity-generating matrices from matrix repository
@@ -214,12 +214,14 @@ def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3):
         # We call "rx_symbols" or its equivalence as "the grand list"
         rx_symbols = remove_multiplicity(rx_symbols)
 
+
     ### Generate genie reports
-    print(" Genie: How many 0-outage? " + str(n0))
-    print(" Genie: How many 1-outage? " + str(n1))
-    print(" Genie: How many 2-outage? " + str(n2))
-    print(" Genie: 1-outage positions: " + str(one_outage_where))
-    print(" Genie: 2-outage positions: " + str(two_outage_where))
+    if toPrint:
+        print(" Genie: How many 0-outage? " + str(n0))
+        print(" Genie: How many 1-outage? " + str(n1))
+        print(" Genie: How many 2-outage? " + str(n2))
+        print(" Genie: 1-outage positions: " + str(one_outage_where))
+        print(" Genie: 2-outage positions: " + str(two_outage_where))
     ### Convert back to binary representation. (This is what in reality RX can get)
     grand_list = symbol_to_binary(K, L, rx_symbols)
     ###################################################################################################
@@ -230,7 +232,7 @@ def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3):
     ### Decoding phase 1 (simply finding & stitching 0-outage codewords in the channel output) now starts.
     print(" -- Decoding phase 1 now starts.")
     tic = time.time()
-    rxBits_p1, grand_list = phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=SIC)
+    rxBits_p1, grand_list = phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=SIC, toPrint=toPrint)
     toc = time.time()
     print(" | Time of phase 1 (LLC): " + str(toc-tic))
 
@@ -251,13 +253,13 @@ def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3):
     ### Decoding phase 2 (finding/recovering 1-outage codewords in the channel output) now starts.
     print(" -- Decoding phase 2 now starts.")
     tic = time.time()
-    rxBits_p21, grand_list= phase2plus_decoder(1, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
+    rxBits_p21, grand_list= phase2plus_decoder(1, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, toPrint=toPrint)
     toc = time.time()
     print(" | Time of phase 2.1 " + str(toc-tic))
     txBits_rmd_afterp21 = check_phase(txBits_rmd_afterp1, rxBits_p21, "Linked-loop Code", "2.1")
 
     tic = time.time()
-    rxBits_p22, grand_list= phase2plus_decoder(1, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[8])
+    rxBits_p22, grand_list= phase2plus_decoder(1, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[8], toPrint=toPrint)
     toc = time.time()
     print(" | Time of phase 2.2 " + str(toc-tic))
     txBits_rmd_afterp22 = check_phase(txBits_rmd_afterp21, rxBits_p22, "Linked-loop Code", "2.2")
@@ -276,19 +278,19 @@ def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3):
     ### Decoding phase 3 (finding/recovering 2-outage codewords in the channel output) now starts.
         print(" -- Decoding phase 3 now starts.")
         tic = time.time()
-        rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC)
+        rxBits_p31, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, toPrint=toPrint)
         toc = time.time()
         print(" | Time of phase 3.1 " + str(toc-tic))
         txBits_rmd_afterp31 = check_phase(txBits_rmd_afterp22, rxBits_p31, "Linked-loop Code", "3.1")
 
         tic = time.time()
-        rxBits_p32, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[6])
+        rxBits_p32, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[6], toPrint=toPrint)
         toc = time.time()
         print(" | Time of phase 3.2 " + str(toc-tic))
         txBits_rmd_afterp32 = check_phase(txBits_rmd_afterp31, rxBits_p32, "Linked-loop Code", "3.2")
 
         tic = time.time()
-        rxBits_p33, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[6,10])
+        rxBits_p33, grand_list= phase2plus_decoder(2, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=SIC, pChosenRoots=[6,10], toPrint=toPrint)
         toc = time.time()
         print(" | Time of phase 3.3 " + str(toc-tic))
         txBits_rmd_afterp33 = check_phase(txBits_rmd_afterp32, rxBits_p33, "Linked-loop Code", "3.3")
