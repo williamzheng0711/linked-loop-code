@@ -11,9 +11,9 @@ eval "$(conda shell.bash hook)"
 conda activate my_env
 
 # 切換到工作目錄
-cd ~/link-enhancement
+cd ~/URAC23/playground
 
 # 執行GaPFL算法，遍歷不同的H值
 for pe in 0.075 0.1 0.125 0.15 ; do
-    python3 simple_launcher.py --Ka=50 --pe=$pe --L=15 --sic=1 --M=3 --ctype=B --num_exp=3 --toPrint=0
+    python3 simple_launcher.py --Ka=50 --pe=$pe --L=15 --sic=1 --M=3 --ctype=B --num_exp=10 --toPrint=0
 done
