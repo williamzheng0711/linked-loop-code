@@ -109,7 +109,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
 
 
 
-def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None, toPrint=True):
+def phase2plus_decoder_old(d, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None, toPrint=True):
     
     # Determine the No. of section to perform as the root.
     chosenRoot = 0 if pChosenRoots == None else pChosenRoots[-1]
@@ -188,6 +188,72 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
 
     return decoded_msg, grand_list
 
+def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, messageLens, parityLens, K, M, SIC=True, pChosenRoots=None, toPrint=True):
+    # 完全等價於 phase2plus_decoder_old，只是 path 擴展用 joblib 並行
+    chosenRoot = 0 if pChosenRoots is None else pChosenRoots[-1]
+
+    # Adjust all corresponding variables according to the newly-chosen root
+    erasure_slot = [np.mod(0 - chosenRoot, L) for chosenRoot in pChosenRoots] if pChosenRoots is not None else []
+    messageLens[range(L)] = messageLens[np.mod(np.arange(chosenRoot, chosenRoot + L), L)]
+    parityLens[range(L)] = parityLens[np.mod(np.arange(chosenRoot, chosenRoot + L), L)]
+    Gis[range(L)] = Gis[np.mod(np.arange(chosenRoot, chosenRoot + L), L)]
+    columns_index[range(L)] = columns_index[np.mod(np.arange(chosenRoot, chosenRoot + L), L)]
+    sub_G_invs[range(L)] = sub_G_invs[np.mod(np.arange(chosenRoot, chosenRoot + L), L)]
+    grand_list[:, range(L * J)] = grand_list[:, np.mod(np.arange(chosenRoot * J, chosenRoot * J + L * J), L * J)]
+    Gijs = partition_Gs(L, M, parityLens, Gis)
+
+    K_effective = [x for x in range(K) if grand_list[x, 0] != -1]
+    decoded_msg = np.empty(shape=(0, 0))
+
+    iterator = tqdm(range(len(K_effective))) if toPrint else range(len(K_effective))
+    for idx in iterator:
+        i = K_effective[idx]
+        Paths = [LLC.GLinkedLoop([i], messageLens)]
+        for l in range(1, L):
+            if len(Paths) == 0:
+                break
+            newAll = []
+            survivePaths = Parallel(n_jobs=-1)(
+                delayed(Path_goes_section_l)(
+                    l, Paths[j], d, grand_list, K, messageLens, parityLens,
+                    L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot
+                ) for j in range(len(Paths))
+            )
+            for survivePath in survivePaths:
+                if len(survivePath) > 0:
+                    newAll = list(newAll) + list(survivePath)
+            Paths = newAll
+
+        PathsUpdated = []
+        for Path in Paths:
+            isOkay = final_parity_check_oop(Path, grand_list, messageLens, parityLens, L, Gijs, M)
+            if isOkay:
+                PathsUpdated.append(Path)
+        Paths = PathsUpdated
+
+        if len(Paths) >= 1:
+            Paths = [Paths[0]]
+            recovered_message = output_message_oop(grand_list, Paths, L, J)
+            decoded_msg = np.vstack((decoded_msg, recovered_message)) if decoded_msg.size else recovered_message
+            if SIC:
+                pathToCancel = Paths[0].get_path()
+                for l in range(L):
+                    if pathToCancel[l] != -1:
+                        grand_list[pathToCancel[l], l * J:(l + 1) * J] = -1 * np.ones((J), dtype=int)
+
+    w = sum(messageLens)
+    decoded_msg[:, range(w)] = decoded_msg[:, np.mod(np.arange(w) + sum(messageLens[0:L - chosenRoot]), w)]
+    decoded_msg = np.unique(decoded_msg, axis=0)
+
+    # shift things back
+    grand_list[:, range(L * J)] = grand_list[:, np.mod(np.arange(-chosenRoot * J, -chosenRoot * J + L * J), L * J)]
+    messageLens[range(L)] = messageLens[np.mod(np.arange(-chosenRoot, -chosenRoot + L), L)]
+    parityLens[range(L)] = parityLens[np.mod(np.arange(-chosenRoot, -chosenRoot + L), L)]
+    Gis[range(L)] = Gis[np.mod(np.arange(-chosenRoot, -chosenRoot + L), L)]
+    columns_index[range(L)] = columns_index[np.mod(np.arange(-chosenRoot, -chosenRoot + L), L)]
+    sub_G_invs[range(L)] = sub_G_invs[np.mod(np.arange(-chosenRoot, -chosenRoot + L), L)]
+
+    return decoded_msg, grand_list
 
 
 def simulation(L, p_e, K, M, channel_type, SIC, txBits, seed, phase=3, toPrint=True):
