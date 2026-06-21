@@ -55,20 +55,24 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
     # samples = grand_list[:,selected_cols]
     # num_erase = np.count_nonzero(samples == -1, axis=0) 
     K_effective  = [x for x in range(K) if grand_list[x,0] != -1]
-    decoded_msg = np.empty(shape=(0,0))
+    decoded_chunks = []
 
     for i, _ in zip(K_effective, tqdm(range(len(K_effective))) if toPrint else range(len(K_effective))):
+        valid_ks_by_section = [np.flatnonzero(grand_list[:, l * J] != -1) for l in range(L)]
+        parity_lookup_by_section = build_parity_lookup_by_section(grand_list, L, messageLens, valid_ks_by_section)
         Paths = np.array([[i]])
         for l in list(range(1,L)):
-            new= np.empty(shape= (0, 0))
+            new_paths = []
             for Path in Paths:
-                if l >= M: 
+                if l >= M:
                     pl_computed = compute_parity(L, Path, grand_list, l, messageLens, parityLens, Gijs, M)
-                for k in range(K):
-                    index= (l< M) or np.array_equal(grand_list[k, l*J + messageLens[l]: (l+1)*J], pl_computed)
-                    if index:
-                        new = np.vstack((new,np.hstack((Path.reshape(1,-1),np.array([[k]]))))) if new.size else np.hstack((Path.reshape(1,-1),np.array([[k]])))
-            Paths = new
+                    parity_lookup, key_weights = parity_lookup_by_section[l]
+                    parity_key = int(np.asarray(pl_computed, dtype=int) @ key_weights)
+                    candidate_ks = parity_lookup.get(parity_key, [])
+                else:
+                    candidate_ks = range(K)
+                new_paths.extend(list(Path) + [int(k)] for k in candidate_ks)
+            Paths = np.array(new_paths, dtype=int) if new_paths else np.empty(shape=(0, l+1), dtype=int)
             if Paths.shape[0] == 0: break
 
         Paths2Return = []
@@ -88,7 +92,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
                         # 如果一個"問題root" 現在有且僅有一條在 grand list的path: 那收納該path進 output list. 
                     # 如果一個"問題root" 現在沒有在grand list的path了, 那它的前path 也許是1-outage 或 2-outage，可以用於之後的decoding 
             msg_rt_i = output_message(grand_list, Paths, L, J, messageLens=messageLens)
-            decoded_msg = np.vstack((decoded_msg, msg_rt_i)) if decoded_msg.size else msg_rt_i
+            decoded_chunks.append(msg_rt_i)
             # cancel the cdwd sections decoded, or cancel the used root
             pathToCancel = Paths[0]
             
@@ -104,6 +108,7 @@ def phase1_decoder(grand_list, L, Gijs, messageLens, parityLens, K, M, SIC=True,
             #         grand_list[ pathToCancel[l], l*J:(l+1)*J] = -1*np.ones((J),dtype=int)
             #     else: 
             #         grand_list[ pathToCancel[pChosenRoot], pChosenRoot*J:(pChosenRoot+1)*J] = -1*np.ones((J),dtype=int)
+    decoded_msg = np.vstack(decoded_chunks) if decoded_chunks else np.empty(shape=(0,0))
     decoded_msg = np.unique(decoded_msg, axis=0)
     return decoded_msg, grand_list
 
@@ -203,30 +208,41 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
     Gijs = partition_Gs(L, M, parityLens, Gis)
 
     K_effective = [x for x in range(K) if grand_list[x, 0] != -1]
-    decoded_msg = np.empty(shape=(0, 0))
+    decoded_chunks = []
+    deciders_cache, avail_savers_cache = build_decoder_lookup(L, M)
+    solve_cache = build_solve_cache(L, M, columns_index, sub_G_invs, Gis)
 
     iterator = tqdm(range(len(K_effective))) if toPrint else range(len(K_effective))
     for idx in iterator:
         i = K_effective[idx]
+        valid_ks_by_section = [np.flatnonzero(grand_list[:, l * J] != -1) for l in range(L)]
+        parity_lookup_by_section = build_parity_lookup_by_section(grand_list, L, messageLens, valid_ks_by_section)
+        parity_cache = build_parity_cache(grand_list, L, M, messageLens, Gijs)
         Paths = [LLC.GLinkedLoop([i], messageLens)]
         for l in range(1, L):
             if len(Paths) == 0:
                 break
             newAll = []
-            survivePaths = Parallel(n_jobs=-1)(
-                delayed(Path_goes_section_l)(
+            survivePaths = [
+                Path_goes_section_l(
                     l, Paths[j], d, grand_list, K, messageLens, parityLens,
-                    L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot
+                    L, M, Gis, Gijs, columns_index, sub_G_invs, erasure_slot,
+                    valid_ks_by_section=valid_ks_by_section,
+                    parity_cache=parity_cache,
+                    deciders_cache=deciders_cache,
+                    avail_savers_cache=avail_savers_cache,
+                    parity_lookup_by_section=parity_lookup_by_section,
+                    solve_cache=solve_cache
                 ) for j in range(len(Paths))
-            )
+            ]
             for survivePath in survivePaths:
                 if len(survivePath) > 0:
-                    newAll = list(newAll) + list(survivePath)
+                    newAll.extend(survivePath)
             Paths = newAll
 
         PathsUpdated = []
         for Path in Paths:
-            isOkay = final_parity_check_oop(Path, grand_list, messageLens, parityLens, L, Gijs, M)
+            isOkay = final_parity_check_oop(Path, grand_list, messageLens, parityLens, L, Gijs, M, parity_cache=parity_cache, deciders_cache=deciders_cache)
             if isOkay:
                 PathsUpdated.append(Path)
         Paths = PathsUpdated
@@ -234,7 +250,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
         if len(Paths) >= 1:
             Paths = [Paths[0]]
             recovered_message = output_message_oop(grand_list, Paths, L, J)
-            decoded_msg = np.vstack((decoded_msg, recovered_message)) if decoded_msg.size else recovered_message
+            decoded_chunks.append(recovered_message)
             if SIC:
                 pathToCancel = Paths[0].get_path()
                 for l in range(L):
@@ -242,6 +258,7 @@ def phase2plus_decoder(d, grand_list, L, Gis, columns_index, sub_G_invs, message
                         grand_list[pathToCancel[l], l * J:(l + 1) * J] = -1 * np.ones((J), dtype=int)
 
     w = sum(messageLens)
+    decoded_msg = np.vstack(decoded_chunks) if decoded_chunks else np.empty(shape=(0, 0))
     decoded_msg[:, range(w)] = decoded_msg[:, np.mod(np.arange(w) + sum(messageLens[0:L - chosenRoot]), w)]
     decoded_msg = np.unique(decoded_msg, axis=0)
 

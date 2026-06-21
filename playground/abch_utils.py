@@ -11,12 +11,11 @@ def binary_to_symbol(tx_cdwds, L, K):
 
 def symbol_to_binary(K, L, rx_symbols):
     grand_list = -1 * np.ones((K, L*J))
+    bit_masks = 1 << np.arange(J - 1, -1, -1)
     for id_row in range(K):
         for id_col in range(L):
             if rx_symbols[id_row, id_col] != -1:
-                a = np.binary_repr(rx_symbols[id_row, id_col], width=J)     
-                b = np.array([int(n) for n in a] ).reshape(1,-1)        
-                grand_list[id_row, id_col*J:(id_col+1)*J] = b[0,:]
+                grand_list[id_row, id_col*J:(id_col+1)*J] = (int(rx_symbols[id_row, id_col]) & bit_masks) > 0
     return grand_list
 
 
