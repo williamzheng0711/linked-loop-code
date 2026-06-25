@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""Generate a Phase-I/II K-sweep validation summary at pe=0.1."""
+
+from __future__ import annotations
+
+import os
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(os.environ.get("TMPDIR", "/tmp")) / "llc_uace_mplconfig")
+)
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from uace_validation_summary import binomial_se
+
+
+ROOT = Path(__file__).resolve().parent
+
+
+PHASE1_FILES = (
+    "research/uace_empirical_phase1_K6_pe010_trials5.md",
+    "research/uace_empirical_phase1_K10_pe010_trials3.md",
+    "research/uace_empirical_phase1_K20_pe010_trials3.md",
+    "research/uace_empirical_phase1_K30_pe010_trials5.md",
+    "research/uace_empirical_phase1_K40_pe010_trials3.md",
+    "research/uace_empirical_phase1_K50_pe010_trials2.md",
+)
+
+PHASE2_EMPIRICAL_FILES = (
+    "research/uace_empirical_phase2_K10_pe010_trials3.md",
+    "research/uace_empirical_phase2_K20_pe010_trials3.md",
+)
+
+PHASE2_OVERLAY_FILES = (
+    "research/uace_trend_overlay_K6_phase2_trials5.md",
+    "research/uace_trend_overlay_K30_phase2_pe010_trials5.md",
+    "research/uace_trend_overlay_K40_phase2_pe010_trials3.md",
+)
+
+
+@dataclass(frozen=True)
+class Row:
+    phase: int
+    k: int
+    pe: float
+    trials: int
+    users: int
+    theory: float
+    empirical_pdp: float
+    schedule_fail: float
+    empirical_php: float
+    z_score: float
+    source: Path
+
+
+def scalar(pattern: str, text: str, path: Path, label: str) -> str:
+    match = re.search(pattern, text)
+    if not match:
+        raise ValueError(f"could not parse {label} from {path}")
+    return match.group(1)
+
+
+def parse_empirical_probe(path: Path, phase: int) -> Row:
+    text = path.read_text(encoding="utf-8")
+    k = int(scalar(r"- `K = ([0-9]+)`", text, path, "K"))
+    pe = float(scalar(r"- `p_e = ([0-9.]+)`", text, path, "p_e"))
+    trials = int(scalar(r"- trials: `([0-9]+)`", text, path, "trials"))
+    pdp = float(scalar(r"\| pdp \| ([0-9.]+) \|", text, path, "pdp"))
+    php = float(scalar(r"\| php \| ([0-9.]+) \|", text, path, "php"))
+    schedule = float(
+        scalar(r"\| schedule_fail_emp \| ([0-9.]+) \|", text, path, "schedule_fail")
+    )
+    theory = theory_for_phase(phase, pe)
+    users = k * trials
+    se = binomial_se(theory, users)
+    z = (pdp - theory) / se if se > 0 else 0.0
+    return Row(phase, k, pe, trials, users, theory, pdp, schedule, php, z, path)
+
+
+def theory_for_phase(phase: int, pe: float, length: int = 16) -> float:
+    if phase == 1:
+        return 1.0 - (1.0 - pe) ** length
+    if phase == 2:
+        return 1.0 - (1.0 - pe) ** length - length * pe * (1.0 - pe) ** (length - 1)
+    raise ValueError(f"unsupported phase {phase}")
+
+
+def parse_phase2_overlay(path: Path, target_pe: float = 0.1) -> Row:
+    text = path.read_text(encoding="utf-8")
+    k = int(scalar(r"- `K = ([0-9]+)`", text, path, "K"))
+    trials = int(
+        scalar(r"empirical trials per `p_e`: `([0-9]+)`", text, path, "trials")
+    )
+    header: list[str] | None = None
+    row_by_name: dict[str, float] | None = None
+    for line in text.splitlines():
+        if line.startswith("| pe |"):
+            header = [item.strip() for item in line.strip("|").split("|")]
+            continue
+        if header and line.startswith("| ") and not line.startswith("|---"):
+            cells = [item.strip() for item in line.strip("|").split("|")]
+            if len(cells) != len(header):
+                continue
+            values = {name: float(value) for name, value in zip(header, cells)}
+            if abs(values["pe"] - target_pe) < 1e-12:
+                row_by_name = values
+                break
+    if row_by_name is None:
+        raise ValueError(f"could not find pe={target_pe} row in {path}")
+
+    pe = row_by_name["pe"]
+    theory = theory_for_phase(2, pe)
+    users = k * trials
+    se = binomial_se(theory, users)
+    pdp = row_by_name["empirical PDP"]
+    schedule = row_by_name.get("empirical schedule fail", row_by_name["empirical P>=2 era"])
+    php = row_by_name["empirical PHP"]
+    z = (pdp - theory) / se if se > 0 else 0.0
+    return Row(
+        phase=2,
+        k=k,
+        pe=pe,
+        trials=trials,
+        users=users,
+        theory=theory,
+        empirical_pdp=pdp,
+        schedule_fail=schedule,
+        empirical_php=php,
+        z_score=z,
+        source=path,
+    )
+
+
+def collect_rows() -> list[Row]:
+    rows: list[Row] = []
+    rows.extend(parse_empirical_probe(Path(path), 1) for path in PHASE1_FILES if Path(path).exists())
+    rows.extend(parse_empirical_probe(Path(path), 2) for path in PHASE2_EMPIRICAL_FILES if Path(path).exists())
+    rows.extend(parse_phase2_overlay(Path(path)) for path in PHASE2_OVERLAY_FILES if Path(path).exists())
+    return sorted(rows, key=lambda item: (item.phase, item.k))
+
+
+def write_report(rows: list[Row], output: Path) -> None:
+    lines = [
+        "# Phase-I/II K-Sweep Validation at pe=0.1",
+        "",
+        "This report is generated by `research/generate_phase12_k_sweep.py`.",
+        "",
+        "The purpose is to check whether the schedule-predictive theorem remains stable across K, rather than only at K=30/K=40.",
+        "",
+        "| phase | K | trials | users | theory PDP | empirical PDP | sampled schedule fail | PDP-schedule gap | z vs theory | empirical PHP | source |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+    ]
+    for row in rows:
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    str(row.phase),
+                    str(row.k),
+                    str(row.trials),
+                    str(row.users),
+                    f"{row.theory:.6f}",
+                    f"{row.empirical_pdp:.6f}",
+                    f"{row.schedule_fail:.6f}",
+                    f"{abs(row.empirical_pdp - row.schedule_fail):.3e}",
+                    f"{row.z_score:.2f}",
+                    f"{row.empirical_php:.6f}",
+                    f"`{row.source}`",
+                ]
+            )
+            + " |"
+        )
+
+    max_gap = max((abs(row.empirical_pdp - row.schedule_fail) for row in rows), default=0.0)
+    max_abs_z = max((abs(row.z_score) for row in rows), default=0.0)
+    php_zero = all(row.empirical_php == 0 for row in rows)
+    lines.extend(
+        [
+            "",
+            "## Readout",
+            "",
+            f"- rows: `{len(rows)}`",
+            f"- max abs(PDP - sampled schedule fail): `{max_gap:.3e}`",
+            f"- max abs(z vs closed-form theory): `{max_abs_z:.2f}`",
+            f"- empirical PHP zero throughout: `{php_zero}`",
+            "",
+            "The interrupted K=50 phase-II run is not included in the table.  It hit the same path-expansion runtime issue seen in the larger phase-III checks, so the clean full-decoder K-sweep currently stops at K=40 for phase II.",
+            "",
+        ]
+    )
+    output.write_text("\n".join(lines), encoding="utf-8")
+
+
+def make_figure(rows: list[Row], output: Path) -> None:
+    fig, axes = plt.subplots(2, 1, figsize=(9.2, 7.0), constrained_layout=True)
+    colors = {1: "#2f5597", 2: "#c55a11"}
+    titles = {
+        1: "Phase I: zero-erasure schedule across K",
+        2: "Phase II: one-erasure schedule across K",
+    }
+    for ax, phase in zip(axes, (1, 2)):
+        phase_rows = [row for row in rows if row.phase == phase]
+        ks = np.array([row.k for row in phase_rows])
+        theory = np.array([row.theory for row in phase_rows])
+        empirical = np.array([row.empirical_pdp for row in phase_rows])
+        schedule = np.array([row.schedule_fail for row in phase_rows])
+        ax.plot(ks, theory, "--", color=colors[phase], label="closed-form theory")
+        ax.plot(ks, empirical, "o-", color="#70ad47", label="empirical PDP")
+        ax.plot(ks, schedule, "x", color="#7030a0", label="sampled schedule fail")
+        for row in phase_rows:
+            ax.annotate(f"T={row.trials}", (row.k, row.empirical_pdp), textcoords="offset points", xytext=(0, 7), ha="center", fontsize=8)
+        ax.set_ylim(0.0, 1.05)
+        ax.set_xlabel("number of active users K")
+        ax.set_ylabel("PDP / schedule fail")
+        ax.set_title(titles[phase])
+        ax.grid(True, alpha=0.25)
+        ax.legend(fontsize=8, loc="lower right")
+    fig.suptitle("Phase I/II schedule-predictive behavior is stable across tested K", fontsize=13)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output, dpi=190)
+
+
+def main() -> int:
+    rows = collect_rows()
+    report = ROOT / "uace_phase12_k_sweep_validation.md"
+    figure = ROOT / "figures" / "uace_phase12_k_sweep_validation.png"
+    write_report(rows, report)
+    make_figure(rows, figure)
+    print(f"wrote {report}")
+    print(f"wrote {figure}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

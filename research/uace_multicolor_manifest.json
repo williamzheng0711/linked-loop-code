@@ -1,0 +1,279 @@
+{
+  "known_sections": 14,
+  "chunk_size": 5000,
+  "entries": [
+    {
+      "colors": 3,
+      "attempt": "phase-III root 0",
+      "mask": [
+        1,
+        4
+      ],
+      "multiplicity": 12,
+      "intervals": [
+        [
+          0,
+          6000
+        ]
+      ],
+      "covered_profiles": 6000,
+      "canonical_profiles": 788970,
+      "coverage": 0.007604851895509335,
+      "next_start": 6000,
+      "next_stop": 11000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 0\" --only-mask-sections 1 4 --mask-multiplicity 12 --profile-offset 6000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root0_mask01_04_profiles006k_011k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 0",
+      "mask": [
+        1,
+        5
+      ],
+      "multiplicity": 14,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 0\" --only-mask-sections 1 5 --mask-multiplicity 14 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root0_mask01_05_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 0",
+      "mask": [
+        1,
+        6
+      ],
+      "multiplicity": 14,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 0\" --only-mask-sections 1 6 --mask-multiplicity 14 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root0_mask01_06_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 0",
+      "mask": [
+        1,
+        7
+      ],
+      "multiplicity": 14,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 0\" --only-mask-sections 1 7 --mask-multiplicity 14 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root0_mask01_07_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 0",
+      "mask": [
+        1,
+        8
+      ],
+      "multiplicity": 14,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 0\" --only-mask-sections 1 8 --mask-multiplicity 14 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root0_mask01_08_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 0",
+      "mask": [
+        1,
+        9
+      ],
+      "multiplicity": 7,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 0\" --only-mask-sections 1 9 --mask-multiplicity 7 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root0_mask01_09_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 10",
+      "mask": [
+        6,
+        10
+      ],
+      "multiplicity": 1,
+      "intervals": [
+        [
+          0,
+          20000
+        ]
+      ],
+      "covered_profiles": 20000,
+      "canonical_profiles": 788970,
+      "coverage": 0.02534950631836445,
+      "next_start": 20000,
+      "next_stop": 25000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 10\" --only-mask-sections 6 10 --mask-multiplicity 1 --profile-offset 20000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root10_profiles020k_025k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 6",
+      "mask": [
+        1,
+        4
+      ],
+      "multiplicity": 12,
+      "intervals": [
+        [
+          0,
+          6000
+        ]
+      ],
+      "covered_profiles": 6000,
+      "canonical_profiles": 788970,
+      "coverage": 0.007604851895509335,
+      "next_start": 6000,
+      "next_stop": 11000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 6\" --only-mask-sections 1 4 --mask-multiplicity 12 --profile-offset 6000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root6_mask01_04_profiles006k_011k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 6",
+      "mask": [
+        1,
+        5
+      ],
+      "multiplicity": 14,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 6\" --only-mask-sections 1 5 --mask-multiplicity 14 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root6_mask01_05_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 6",
+      "mask": [
+        1,
+        6
+      ],
+      "multiplicity": 14,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 6\" --only-mask-sections 1 6 --mask-multiplicity 14 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root6_mask01_06_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 6",
+      "mask": [
+        1,
+        7
+      ],
+      "multiplicity": 14,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 6\" --only-mask-sections 1 7 --mask-multiplicity 14 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root6_mask01_07_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 6",
+      "mask": [
+        1,
+        8
+      ],
+      "multiplicity": 14,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 6\" --only-mask-sections 1 8 --mask-multiplicity 14 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root6_mask01_08_profiles001k_006k.md"
+    },
+    {
+      "colors": 3,
+      "attempt": "phase-III root 6",
+      "mask": [
+        1,
+        9
+      ],
+      "multiplicity": 7,
+      "intervals": [
+        [
+          0,
+          1000
+        ]
+      ],
+      "covered_profiles": 1000,
+      "canonical_profiles": 788970,
+      "coverage": 0.0012674753159182225,
+      "next_start": 1000,
+      "next_stop": 6000,
+      "next_command": "python3 research/uace_pair_preemption_exact.py --colors 3 --only-attempt \"phase-III root 6\" --only-mask-sections 1 9 --mask-multiplicity 7 --profile-offset 1000 --max-profiles 5000 --output research/uace_pair_preemption_exact_c3_root6_mask01_09_profiles001k_006k.md"
+    }
+  ]
+}
