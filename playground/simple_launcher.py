@@ -19,7 +19,7 @@ parser.add_option("--L", type="int", dest="L", help="Number of sections", defaul
 parser.add_option("--sic", type="int", dest="sic", help="Do SIC?", default=1)
 parser.add_option("--M", type="int", dest="M", help="Window size?", default=-1)
 parser.add_option("--ctype", type="string", dest="ctype", help="A or B?", default="None")
-parser.add_option("--num_exp", type="int", dest="num_exp", help="Number of experiments", default=10)
+parser.add_option("--num_exp", type="int", dest="num_exp", help="Number of experiments", default=2)
 parser.add_option("--toPrint", type="int", dest="toPrint", help="Whether to print", default=1)
 (options, args) = parser.parse_args()
 
